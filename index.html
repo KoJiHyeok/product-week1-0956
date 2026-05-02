@@ -1,14 +1,177 @@
 <!doctype html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>MBTI 적성 검사</title>
-        <link href='style.css' rel='stylesheet'>
-      </head>
-      <body>
-       <h1>MBTI 적성 검사</h1>
-       <button id="start-button">검사 시작</button>
-       <script defer type="text/javascript" src="main.js"></script>
-     </body>
-     </html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MBTI 적성 검사</title>
+  <link href="style.css" rel="stylesheet" />
+</head>
+<body>
+  <button class="theme-toggle" id="themeToggle" type="button" aria-label="다크 모드로 변경" aria-pressed="false">
+    다크 모드
+  </button>
+
+  <main>
+    <section class="intro" id="intro">
+      <h1>MBTI 적성 검사</h1>
+      <p>
+        12개 문항에 답하면 E/I, S/N, T/F, J/P 성향을 간단히 계산해 결과를 보여줍니다.
+        정식 심리 검사가 아닌 재미용 자기이해 도구입니다.
+      </p>
+      <button class="primary" id="start-button" type="button">검사 시작</button>
+    </section>
+
+    <section class="quiz hidden" id="quiz" aria-live="polite">
+      <div class="top">
+        <div>
+          <h1>간단 MBTI 성향 검사</h1>
+          <p class="lead">각 문항에서 가장 나와 가까운 답을 하나씩 골라주세요.</p>
+        </div>
+        <div class="badge">
+          <strong id="answeredCount">0/12</strong>
+          <span>응답 완료</span>
+        </div>
+      </div>
+
+      <form id="quizForm">
+        <section class="question">
+          <h2>1. 새로운 모임에 갔을 때 나는 보통</h2>
+          <div class="options">
+            <label class="option"><input type="radio" name="q1" value="E" /> <span>먼저 말을 걸며 분위기를 익힌다</span></label>
+            <label class="option"><input type="radio" name="q1" value="I" /> <span>조용히 관찰하다가 편해지면 말한다</span></label>
+            <label class="option"><input type="radio" name="q1" value="E" /> <span>여러 사람과 짧게라도 대화해본다</span></label>
+            <label class="option"><input type="radio" name="q1" value="I" /> <span>익숙한 사람 옆에서 천천히 적응한다</span></label>
+          </div>
+        </section>
+
+        <section class="question">
+          <h2>2. 휴일에 에너지를 회복하는 방식은</h2>
+          <div class="options">
+            <label class="option"><input type="radio" name="q2" value="E" /> <span>친구를 만나거나 밖에서 활동한다</span></label>
+            <label class="option"><input type="radio" name="q2" value="I" /> <span>혼자 있는 시간을 충분히 가진다</span></label>
+            <label class="option"><input type="radio" name="q2" value="E" /> <span>새로운 장소에 가면 기분이 살아난다</span></label>
+            <label class="option"><input type="radio" name="q2" value="I" /> <span>집에서 조용히 쉬는 편이 좋다</span></label>
+          </div>
+        </section>
+
+        <section class="question">
+          <h2>3. 정보를 받아들일 때 더 끌리는 것은</h2>
+          <div class="options">
+            <label class="option"><input type="radio" name="q3" value="S" /> <span>눈에 보이는 사실과 구체적인 예시</span></label>
+            <label class="option"><input type="radio" name="q3" value="N" /> <span>가능성, 의미, 큰 그림</span></label>
+            <label class="option"><input type="radio" name="q3" value="S" /> <span>지금 당장 확인할 수 있는 자료</span></label>
+            <label class="option"><input type="radio" name="q3" value="N" /> <span>앞으로 이어질 변화와 아이디어</span></label>
+          </div>
+        </section>
+
+        <section class="question">
+          <h2>4. 일을 시작할 때 나는</h2>
+          <div class="options">
+            <label class="option"><input type="radio" name="q4" value="S" /> <span>검증된 방법부터 따라 해본다</span></label>
+            <label class="option"><input type="radio" name="q4" value="N" /> <span>새로운 방식으로 바꿀 수 있을지 생각한다</span></label>
+            <label class="option"><input type="radio" name="q4" value="S" /> <span>순서와 세부 사항을 먼저 확인한다</span></label>
+            <label class="option"><input type="radio" name="q4" value="N" /> <span>전체 방향과 가능성을 먼저 잡는다</span></label>
+          </div>
+        </section>
+
+        <section class="question">
+          <h2>5. 결정을 내려야 할 때 더 중요하게 보는 것은</h2>
+          <div class="options">
+            <label class="option"><input type="radio" name="q5" value="T" /> <span>논리적으로 맞는지</span></label>
+            <label class="option"><input type="radio" name="q5" value="F" /> <span>사람들의 감정과 관계가 어떤지</span></label>
+            <label class="option"><input type="radio" name="q5" value="T" /> <span>기준과 원칙에 맞는지</span></label>
+            <label class="option"><input type="radio" name="q5" value="F" /> <span>누군가에게 상처가 되지 않는지</span></label>
+          </div>
+        </section>
+
+        <section class="question">
+          <h2>6. 친구가 고민을 털어놓으면 나는 먼저</h2>
+          <div class="options">
+            <label class="option"><input type="radio" name="q6" value="T" /> <span>문제의 원인과 해결책을 정리한다</span></label>
+            <label class="option"><input type="radio" name="q6" value="F" /> <span>감정을 공감하고 충분히 들어준다</span></label>
+            <label class="option"><input type="radio" name="q6" value="T" /> <span>현실적으로 가능한 선택지를 말해준다</span></label>
+            <label class="option"><input type="radio" name="q6" value="F" /> <span>상대가 어떤 마음인지부터 살핀다</span></label>
+          </div>
+        </section>
+
+        <section class="question">
+          <h2>7. 여행을 준비할 때 나는</h2>
+          <div class="options">
+            <label class="option"><input type="radio" name="q7" value="J" /> <span>일정과 예약을 미리 정리한다</span></label>
+            <label class="option"><input type="radio" name="q7" value="P" /> <span>그날의 기분에 맞게 움직이고 싶다</span></label>
+            <label class="option"><input type="radio" name="q7" value="J" /> <span>동선과 시간을 계획해두면 편하다</span></label>
+            <label class="option"><input type="radio" name="q7" value="P" /> <span>즉흥적으로 발견하는 재미가 좋다</span></label>
+          </div>
+        </section>
+
+        <section class="question">
+          <h2>8. 마감이 있는 과제를 할 때 나는</h2>
+          <div class="options">
+            <label class="option"><input type="radio" name="q8" value="J" /> <span>미리 나누어 끝내는 편이다</span></label>
+            <label class="option"><input type="radio" name="q8" value="P" /> <span>마감이 가까워질수록 집중이 잘 된다</span></label>
+            <label class="option"><input type="radio" name="q8" value="J" /> <span>체크리스트가 있으면 마음이 놓인다</span></label>
+            <label class="option"><input type="radio" name="q8" value="P" /> <span>상황에 따라 방식을 바꾸는 편이다</span></label>
+          </div>
+        </section>
+
+        <section class="question">
+          <h2>9. 회의나 토론에서 나는</h2>
+          <div class="options">
+            <label class="option"><input type="radio" name="q9" value="E" /> <span>말하면서 생각이 정리된다</span></label>
+            <label class="option"><input type="radio" name="q9" value="I" /> <span>생각을 정리한 뒤 말하고 싶다</span></label>
+            <label class="option"><input type="radio" name="q9" value="T" /> <span>핵심 쟁점과 근거를 먼저 따진다</span></label>
+            <label class="option"><input type="radio" name="q9" value="F" /> <span>분위기와 참여자의 반응을 함께 본다</span></label>
+          </div>
+        </section>
+
+        <section class="question">
+          <h2>10. 설명을 들을 때 더 편한 방식은</h2>
+          <div class="options">
+            <label class="option"><input type="radio" name="q10" value="S" /> <span>단계별로 차근차근 듣는 것</span></label>
+            <label class="option"><input type="radio" name="q10" value="N" /> <span>핵심 개념과 비유로 이해하는 것</span></label>
+            <label class="option"><input type="radio" name="q10" value="J" /> <span>결론과 해야 할 일이 명확한 것</span></label>
+            <label class="option"><input type="radio" name="q10" value="P" /> <span>여러 가능성을 열어두는 것</span></label>
+          </div>
+        </section>
+
+        <section class="question">
+          <h2>11. 갈등이 생기면 나는</h2>
+          <div class="options">
+            <label class="option"><input type="radio" name="q11" value="T" /> <span>사실관계와 책임을 명확히 하고 싶다</span></label>
+            <label class="option"><input type="radio" name="q11" value="F" /> <span>서로의 입장을 풀어내는 것이 중요하다</span></label>
+            <label class="option"><input type="radio" name="q11" value="J" /> <span>빠르게 정리하고 기준을 세우고 싶다</span></label>
+            <label class="option"><input type="radio" name="q11" value="P" /> <span>시간을 두고 유연하게 조율하고 싶다</span></label>
+          </div>
+        </section>
+
+        <section class="question">
+          <h2>12. 평소 더 자주 듣는 말은</h2>
+          <div class="options">
+            <label class="option"><input type="radio" name="q12" value="E" /> <span>활발하고 표현이 많은 편이다</span></label>
+            <label class="option"><input type="radio" name="q12" value="I" /> <span>차분하고 깊이 생각하는 편이다</span></label>
+            <label class="option"><input type="radio" name="q12" value="N" /> <span>상상력과 아이디어가 많은 편이다</span></label>
+            <label class="option"><input type="radio" name="q12" value="S" /> <span>현실적이고 꼼꼼한 편이다</span></label>
+          </div>
+        </section>
+
+        <div class="actions">
+          <div class="message" id="message" aria-live="polite"></div>
+          <div class="buttons">
+            <button class="secondary" type="reset">다시 선택</button>
+            <button class="primary" type="submit">결과 보기</button>
+          </div>
+        </div>
+      </form>
+
+      <section class="result" id="result" aria-live="polite">
+        <p class="result-type" id="resultType"></p>
+        <h2 class="result-title" id="resultTitle"></h2>
+        <p class="result-text" id="resultText"></p>
+        <div class="scores" id="scores"></div>
+      </section>
+    </section>
+  </main>
+
+  <script defer src="main.js"></script>
+</body>
+</html>
