@@ -18,8 +18,9 @@ const resultTitle = document.getElementById("resultTitle");
 const resultText = document.getElementById("resultText");
 const scores = document.getElementById("scores");
 const themeToggle = document.getElementById("themeToggle");
-const partnershipForm = document.getElementById("partnershipForm");
-const partnershipStatus = document.getElementById("partnershipStatus");
+const feedbackToggle = document.getElementById("feedbackToggle");
+const feedbackPanel = document.getElementById("feedbackPanel");
+const feedbackStatus = document.getElementById("feedbackStatus");
 const headerLinks = document.querySelectorAll(".site-header a[href^='#']");
 const savedTheme = localStorage.getItem("theme");
 const initialTheme = savedTheme || "light";
@@ -138,6 +139,16 @@ function showHome() {
   result.classList.remove("show");
 }
 
+function setFeedbackOpen(isOpen) {
+  feedbackPanel.classList.toggle("hidden", !isOpen);
+  feedbackToggle.setAttribute("aria-expanded", String(isOpen));
+  feedbackToggle.textContent = isOpen ? "Feedback 접기" : "Feedback";
+
+  if (!isOpen) {
+    feedbackStatus.textContent = "";
+  }
+}
+
 setTheme(initialTheme);
 
 themeToggle.addEventListener("click", () => {
@@ -163,6 +174,7 @@ retryButton.addEventListener("click", () => {
   resultPage.classList.add("hidden");
   quiz.classList.remove("hidden");
   form.reset();
+  setFeedbackOpen(false);
   showQuestion(0);
   message.textContent = "";
   result.classList.remove("show");
@@ -225,22 +237,27 @@ form.addEventListener("submit", (event) => {
   quiz.classList.add("hidden");
   resultPage.classList.remove("hidden");
   result.classList.add("show");
+  setFeedbackOpen(false);
   resultPage.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 showQuestion(0);
 
-partnershipForm.addEventListener("submit", async (event) => {
+feedbackToggle.addEventListener("click", () => {
+  setFeedbackOpen(feedbackPanel.classList.contains("hidden"));
+});
+
+feedbackPanel.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  const submitButton = partnershipForm.querySelector("button[type='submit']");
-  const formData = new FormData(partnershipForm);
+  const submitButton = feedbackPanel.querySelector("button[type='submit']");
+  const formData = new FormData(feedbackPanel);
 
-  partnershipStatus.textContent = "전송 중입니다.";
+  feedbackStatus.textContent = "전송 중입니다.";
   submitButton.disabled = true;
 
   try {
-    const response = await fetch(partnershipForm.action, {
+    const response = await fetch(feedbackPanel.action, {
       method: "POST",
       body: formData,
       headers: {
@@ -252,10 +269,10 @@ partnershipForm.addEventListener("submit", async (event) => {
       throw new Error("Formspree submission failed");
     }
 
-    partnershipForm.reset();
-    partnershipStatus.textContent = "문의가 접수되었습니다.";
+    feedbackPanel.reset();
+    feedbackStatus.textContent = "Feedback이 접수되었습니다.";
   } catch (error) {
-    partnershipStatus.textContent = "전송에 실패했습니다. 잠시 후 다시 시도해주세요.";
+    feedbackStatus.textContent = "전송에 실패했습니다. 잠시 후 다시 시도해주세요.";
   } finally {
     submitButton.disabled = false;
   }

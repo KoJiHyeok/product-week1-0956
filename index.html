@@ -119,7 +119,7 @@
           </article>
           <article>
             <h3>답변 내용이 서버에 저장되나요?</h3>
-            <p>검사 답변과 결과 계산은 브라우저에서 처리됩니다. 제휴 문의 양식을 제출하는 경우에만 입력한 연락처와 문의 내용이 전송됩니다.</p>
+            <p>검사 답변과 결과 계산은 브라우저에서 처리됩니다. Feedback 양식을 제출하는 경우에만 입력한 연락처와 의견 내용이 전송됩니다.</p>
           </article>
           <article>
             <h3>정식 심리 검사를 대신할 수 있나요?</h3>
@@ -296,18 +296,20 @@
         <button class="secondary retry-button" id="retryButton" type="button">다시 검사하기</button>
       </section>
 
-      <section class="partnership" aria-labelledby="partnership-title">
-        <div class="partnership-copy">
-          <p class="eyebrow">Partnership</p>
-          <h2 id="partnership-title">제휴 문의</h2>
+      <section class="feedback" aria-labelledby="feedback-title">
+        <div class="feedback-copy">
+          <p class="eyebrow">Feedback</p>
+          <h2 id="feedback-title">Feedback</h2>
           <p>
-            서비스 제휴, 콘텐츠 협업, 광고 제안 등 함께 논의할 내용이 있다면
-            아래 양식으로 남겨주세요.
+            검사 결과나 사이트 사용 중 느낀 점이 있다면 남겨주세요.
           </p>
+          <button class="primary feedback-toggle" id="feedbackToggle" type="button" aria-expanded="false" aria-controls="feedbackPanel">
+            Feedback
+          </button>
         </div>
 
-        <form class="partnership-form" id="partnershipForm" action="https://formspree.io/f/mpqbqyyv" method="POST">
-          <input type="hidden" name="_subject" value="MBTI 적성 검사 제휴 문의" />
+        <form class="feedback-form hidden" id="feedbackPanel" action="https://formspree.io/f/mpqbqyyv" method="POST">
+          <input type="hidden" name="_subject" value="MBTI 적성 검사 Feedback" />
 
           <label>
             <span>이름</span>
@@ -320,18 +322,13 @@
           </label>
 
           <label>
-            <span>회사/서비스명</span>
-            <input type="text" name="company" autocomplete="organization" />
-          </label>
-
-          <label>
-            <span>문의 내용</span>
+            <span>Feedback</span>
             <textarea name="message" rows="5" required></textarea>
           </label>
 
-          <div class="partnership-actions">
-            <p class="form-status" id="partnershipStatus" aria-live="polite"></p>
-            <button class="primary" type="submit">문의 보내기</button>
+          <div class="feedback-actions">
+            <p class="form-status" id="feedbackStatus" aria-live="polite"></p>
+            <button class="primary" type="submit">Feedback 보내기</button>
           </div>
         </form>
       </section>
