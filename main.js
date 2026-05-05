@@ -1,7 +1,9 @@
 const totalQuestions = 12;
 const intro = document.getElementById("intro");
 const quiz = document.getElementById("quiz");
+const resultPage = document.getElementById("resultPage");
 const startButton = document.getElementById("start-button");
+const retryButton = document.getElementById("retryButton");
 const form = document.getElementById("quizForm");
 const answeredCount = document.getElementById("answeredCount");
 const message = document.getElementById("message");
@@ -11,6 +13,8 @@ const resultTitle = document.getElementById("resultTitle");
 const resultText = document.getElementById("resultText");
 const scores = document.getElementById("scores");
 const themeToggle = document.getElementById("themeToggle");
+const partnershipForm = document.getElementById("partnershipForm");
+const partnershipStatus = document.getElementById("partnershipStatus");
 const savedTheme = localStorage.getItem("theme");
 const initialTheme = savedTheme || "light";
 
@@ -104,6 +108,17 @@ themeToggle.addEventListener("click", () => {
 startButton.addEventListener("click", () => {
   intro.classList.add("hidden");
   quiz.classList.remove("hidden");
+  resultPage.classList.add("hidden");
+  quiz.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+retryButton.addEventListener("click", () => {
+  resultPage.classList.add("hidden");
+  quiz.classList.remove("hidden");
+  form.reset();
+  updateAnsweredCount();
+  message.textContent = "";
+  result.classList.remove("show");
   quiz.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
@@ -140,6 +155,39 @@ form.addEventListener("submit", (event) => {
   resultTitle.textContent = description[0];
   resultText.textContent = description[1];
   renderScores(score);
+  quiz.classList.add("hidden");
+  resultPage.classList.remove("hidden");
   result.classList.add("show");
-  result.scrollIntoView({ behavior: "smooth", block: "start" });
+  resultPage.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+partnershipForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const submitButton = partnershipForm.querySelector("button[type='submit']");
+  const formData = new FormData(partnershipForm);
+
+  partnershipStatus.textContent = "전송 중입니다.";
+  submitButton.disabled = true;
+
+  try {
+    const response = await fetch(partnershipForm.action, {
+      method: "POST",
+      body: formData,
+      headers: {
+        Accept: "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error("Formspree submission failed");
+    }
+
+    partnershipForm.reset();
+    partnershipStatus.textContent = "문의가 접수되었습니다.";
+  } catch (error) {
+    partnershipStatus.textContent = "전송에 실패했습니다. 잠시 후 다시 시도해주세요.";
+  } finally {
+    submitButton.disabled = false;
+  }
 });
