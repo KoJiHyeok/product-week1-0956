@@ -25,7 +25,7 @@
         </div>
         <div class="badge">
           <strong id="answeredCount">0/12</strong>
-          <span>응답 완료</span>
+          <span>문항 진행</span>
         </div>
       </div>
 
@@ -153,8 +153,10 @@
         <div class="actions">
           <div class="message" id="message" aria-live="polite"></div>
           <div class="buttons">
-            <button class="secondary" type="reset">다시 선택</button>
-            <button class="primary" type="submit">결과 보기</button>
+            <button class="secondary" type="reset">처음부터</button>
+            <button class="secondary" id="prevButton" type="button">이전</button>
+            <button class="primary" id="nextButton" type="button">다음</button>
+            <button class="primary hidden" id="submitButton" type="submit">결과 보기</button>
           </div>
         </div>
       </form>

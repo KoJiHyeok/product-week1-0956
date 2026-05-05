@@ -166,6 +166,10 @@ form {
   box-shadow: 0 10px 26px rgba(34, 34, 34, 0.06);
 }
 
+.question[hidden] {
+  display: none;
+}
+
 .question h2 {
   margin: 0 0 16px;
   font-size: 19px;
@@ -246,6 +250,11 @@ button {
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
 }
 
 .primary {

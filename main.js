@@ -5,8 +5,12 @@ const resultPage = document.getElementById("resultPage");
 const startButton = document.getElementById("start-button");
 const retryButton = document.getElementById("retryButton");
 const form = document.getElementById("quizForm");
+const questions = Array.from(form.querySelectorAll(".question"));
 const answeredCount = document.getElementById("answeredCount");
 const message = document.getElementById("message");
+const prevButton = document.getElementById("prevButton");
+const nextButton = document.getElementById("nextButton");
+const submitButton = document.getElementById("submitButton");
 const result = document.getElementById("result");
 const resultType = document.getElementById("resultType");
 const resultTitle = document.getElementById("resultTitle");
@@ -17,6 +21,7 @@ const partnershipForm = document.getElementById("partnershipForm");
 const partnershipStatus = document.getElementById("partnershipStatus");
 const savedTheme = localStorage.getItem("theme");
 const initialTheme = savedTheme || "light";
+let currentQuestionIndex = 0;
 
 const typeDescriptions = {
   ISTJ: ["책임감 있는 현실주의자", "차분하게 기준을 세우고 맡은 일을 안정적으로 끝내는 성향입니다. 구체적인 정보와 약속을 중요하게 여기며, 신뢰를 쌓는 방식이 꾸준합니다."],
@@ -59,6 +64,30 @@ function updateAnsweredCount() {
 
   answeredCount.textContent = `${count}/${totalQuestions}`;
   return count;
+}
+
+function hasAnswer(index) {
+  return new FormData(form).has(`q${index + 1}`);
+}
+
+function updateNavigation() {
+  prevButton.disabled = currentQuestionIndex === 0;
+  nextButton.classList.toggle("hidden", currentQuestionIndex === totalQuestions - 1);
+  submitButton.classList.toggle("hidden", currentQuestionIndex !== totalQuestions - 1);
+}
+
+function showQuestion(index) {
+  currentQuestionIndex = Math.min(Math.max(index, 0), totalQuestions - 1);
+
+  questions.forEach((question, questionIndex) => {
+    const isCurrent = questionIndex === currentQuestionIndex;
+
+    question.hidden = !isCurrent;
+    question.classList.toggle("active", isCurrent);
+  });
+
+  answeredCount.textContent = `${currentQuestionIndex + 1}/${totalQuestions}`;
+  updateNavigation();
 }
 
 function getScores(formData) {
@@ -109,6 +138,7 @@ startButton.addEventListener("click", () => {
   intro.classList.add("hidden");
   quiz.classList.remove("hidden");
   resultPage.classList.add("hidden");
+  showQuestion(0);
   quiz.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
@@ -116,20 +146,37 @@ retryButton.addEventListener("click", () => {
   resultPage.classList.add("hidden");
   quiz.classList.remove("hidden");
   form.reset();
-  updateAnsweredCount();
+  showQuestion(0);
   message.textContent = "";
   result.classList.remove("show");
   quiz.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
+prevButton.addEventListener("click", () => {
+  message.textContent = "";
+  showQuestion(currentQuestionIndex - 1);
+  quiz.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+nextButton.addEventListener("click", () => {
+  if (!hasAnswer(currentQuestionIndex)) {
+    message.textContent = "답을 선택한 뒤 다음으로 이동해주세요.";
+    return;
+  }
+
+  message.textContent = "";
+  showQuestion(currentQuestionIndex + 1);
+  quiz.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
 form.addEventListener("change", () => {
   message.textContent = "";
-  updateAnsweredCount();
+  updateNavigation();
 });
 
 form.addEventListener("reset", () => {
   setTimeout(() => {
-    updateAnsweredCount();
+    showQuestion(0);
     message.textContent = "";
     result.classList.remove("show");
   }, 0);
@@ -142,8 +189,11 @@ form.addEventListener("submit", (event) => {
   const answered = updateAnsweredCount();
 
   if (answered < totalQuestions) {
+    const firstUnansweredIndex = questions.findIndex((question, index) => !formData.has(`q${index + 1}`));
+
     message.textContent = `아직 ${totalQuestions - answered}개 문항이 남았습니다.`;
     result.classList.remove("show");
+    showQuestion(firstUnansweredIndex);
     return;
   }
 
@@ -160,6 +210,8 @@ form.addEventListener("submit", (event) => {
   result.classList.add("show");
   resultPage.scrollIntoView({ behavior: "smooth", block: "start" });
 });
+
+showQuestion(0);
 
 partnershipForm.addEventListener("submit", async (event) => {
   event.preventDefault();
