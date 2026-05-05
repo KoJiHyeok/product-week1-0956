@@ -1,5 +1,6 @@
 const totalQuestions = 12;
 const intro = document.getElementById("intro");
+const homeContent = document.getElementById("homeContent");
 const quiz = document.getElementById("quiz");
 const resultPage = document.getElementById("resultPage");
 const startButton = document.getElementById("start-button");
@@ -19,6 +20,7 @@ const scores = document.getElementById("scores");
 const themeToggle = document.getElementById("themeToggle");
 const partnershipForm = document.getElementById("partnershipForm");
 const partnershipStatus = document.getElementById("partnershipStatus");
+const headerLinks = document.querySelectorAll(".site-header a[href^='#']");
 const savedTheme = localStorage.getItem("theme");
 const initialTheme = savedTheme || "light";
 let currentQuestionIndex = 0;
@@ -128,14 +130,29 @@ function renderScores(score) {
   `).join("");
 }
 
+function showHome() {
+  intro.classList.remove("hidden");
+  homeContent.classList.remove("hidden");
+  quiz.classList.add("hidden");
+  resultPage.classList.add("hidden");
+  result.classList.remove("show");
+}
+
 setTheme(initialTheme);
 
 themeToggle.addEventListener("click", () => {
   setTheme(document.body.dataset.theme === "dark" ? "light" : "dark");
 });
 
+headerLinks.forEach((link) => {
+  link.addEventListener("click", () => {
+    showHome();
+  });
+});
+
 startButton.addEventListener("click", () => {
   intro.classList.add("hidden");
+  homeContent.classList.add("hidden");
   quiz.classList.remove("hidden");
   resultPage.classList.add("hidden");
   showQuestion(0);
