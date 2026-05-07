@@ -34,22 +34,23 @@ const toast = document.querySelector("#toast");
 const userStorageKey = "title-making-google-user";
 const guestStorageKey = "title-academy-guest-name";
 const submissionsStorageKey = "title-academy-submissions";
-const galleryImagesStorageKey = "title-academy-gallery-images";
-const slotCount = 20;
-const maxStoredImageSize = 1200;
-const storedImageQuality = 0.82;
-const galleryImages = loadGalleryImages();
-const imageUploadInput = document.createElement("input");
-
-imageUploadInput.type = "file";
-imageUploadInput.accept = "image/*";
-imageUploadInput.hidden = true;
-document.body.append(imageUploadInput);
+const galleryImages = [
+  { src: "assets/gallery/01-cat-smoke.png", alt: "Cat reaching through smoke" },
+  { src: "assets/gallery/02-memorial.png", alt: "People placing flowers outside a store" },
+  { src: "assets/gallery/03-alligators.jpeg", alt: "Alligators resting together" },
+  { src: "assets/gallery/04-field-portrait.jpg", alt: "Person walking in a field" },
+  { src: "assets/gallery/05-screaming-man.png", alt: "Man shouting in a suit" },
+  { src: "assets/gallery/06-husky-bowl.jpg", alt: "Husky staring at a food bowl" },
+  { src: "assets/gallery/07-puppy-oh-hi.jpg", alt: "Smiling puppy close to the camera" },
+  { src: "assets/gallery/08-convenience-store.jpg", alt: "Person reaching into a convenience store cooler" },
+  { src: "assets/gallery/09-reggae-singer.jpg", alt: "Reggae singer performing on stage" },
+  { src: "assets/gallery/10-sparkler.jpg", alt: "Person holding a lit sparkler" },
+];
+const slotCount = galleryImages.length;
 
 let currentUser = loadUser();
 let currentGuestName = sessionStorage.getItem(guestStorageKey) || "";
 let selectedImageIndex = null;
-let pendingUploadIndex = null;
 let pendingTitle = "";
 let toastTimer;
 const expandedCommentIds = new Set();
@@ -226,92 +227,6 @@ function loadSubmissions() {
 
 function saveSubmissions(submissions) {
   localStorage.setItem(submissionsStorageKey, JSON.stringify(submissions));
-}
-
-function loadGalleryImages() {
-  try {
-    const savedImages = JSON.parse(localStorage.getItem(galleryImagesStorageKey));
-
-    if (!Array.isArray(savedImages)) {
-      return Array.from({ length: slotCount }, () => null);
-    }
-
-    return Array.from({ length: slotCount }, (_, index) => {
-      const image = savedImages[index];
-
-      if (!image || typeof image.src !== "string") {
-        return null;
-      }
-
-      return {
-        src: image.src,
-        alt: typeof image.alt === "string" ? image.alt : `사용자 이미지 ${index + 1}`,
-      };
-    });
-  } catch {
-    return Array.from({ length: slotCount }, () => null);
-  }
-}
-
-function saveGalleryImages() {
-  localStorage.setItem(galleryImagesStorageKey, JSON.stringify(galleryImages));
-}
-
-function openImagePicker(index) {
-  pendingUploadIndex = index;
-  imageUploadInput.value = "";
-  imageUploadInput.click();
-}
-
-function saveUploadedImage(index, file) {
-  if (!file.type.startsWith("image/")) {
-    showToast("이미지 파일만 선택할 수 있습니다");
-    return;
-  }
-
-  const image = new Image();
-  const objectUrl = URL.createObjectURL(file);
-
-  image.addEventListener("load", () => {
-    const scale = Math.min(1, maxStoredImageSize / Math.max(image.naturalWidth, image.naturalHeight));
-    const width = Math.max(1, Math.round(image.naturalWidth * scale));
-    const height = Math.max(1, Math.round(image.naturalHeight * scale));
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
-
-    if (!context) {
-      URL.revokeObjectURL(objectUrl);
-      showToast("사진을 처리하지 못했습니다");
-      return;
-    }
-
-    canvas.width = width;
-    canvas.height = height;
-    context.drawImage(image, 0, 0, width, height);
-
-    galleryImages[index] = {
-      src: canvas.toDataURL("image/jpeg", storedImageQuality),
-      alt: file.name ? file.name.replace(/\.[^.]+$/, "") : `사용자 이미지 ${index + 1}`,
-    };
-
-    try {
-      saveGalleryImages();
-      renderGallery();
-      showToast("사진이 추가되었습니다");
-    } catch (error) {
-      galleryImages[index] = null;
-      showToast("사진 용량이 커서 저장하지 못했습니다");
-    } finally {
-      URL.revokeObjectURL(objectUrl);
-    }
-  });
-
-  image.addEventListener("error", () => {
-    URL.revokeObjectURL(objectUrl);
-    showToast("사진을 불러오지 못했습니다");
-  });
-
-  image.src = objectUrl;
 }
 
 function getInitials(name) {
@@ -778,7 +693,7 @@ galleryGrid.addEventListener("click", (event) => {
   const imageIndex = Number(card.dataset.imageIndex);
 
   if (card.classList.contains("is-empty")) {
-    openImagePicker(imageIndex);
+    showToast("준비된 사진이 없습니다");
     return;
   }
 
@@ -805,23 +720,11 @@ galleryGrid.addEventListener("keydown", (event) => {
   const imageIndex = Number(card.dataset.imageIndex);
 
   if (card.classList.contains("is-empty")) {
-    openImagePicker(imageIndex);
+    showToast("준비된 사진이 없습니다");
     return;
   }
 
   startTitleEntry(imageIndex);
-});
-
-imageUploadInput.addEventListener("change", () => {
-  const file = imageUploadInput.files?.[0];
-
-  if (pendingUploadIndex === null || !file) {
-    pendingUploadIndex = null;
-    return;
-  }
-
-  saveUploadedImage(pendingUploadIndex, file);
-  pendingUploadIndex = null;
 });
 
 titleForm.addEventListener("submit", (event) => {
