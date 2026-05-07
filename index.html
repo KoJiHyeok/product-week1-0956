@@ -20,344 +20,118 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="google-adsense-account" content="ca-pub-2571483149742375" />
-  <meta name="description" content="12개 문항으로 E/I, S/N, T/F, J/P 성향을 간단히 확인하고 결과 해석을 읽을 수 있는 무료 MBTI 성향 검사입니다." />
-  <title>MBTI 적성 검사</title>
+  <meta name="description" content="사진에 어울리는 제목을 만들고 랭킹과 댓글로 함께 즐기는 제목 학원입니다." />
+  <title>제목 학원</title>
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2571483149742375" crossorigin="anonymous"></script>
   <link href="style.css" rel="stylesheet" />
 </head>
 <body>
-  <header class="site-header">
-    <a class="brand" href="#intro">MBTI 적성 검사</a>
-    <nav aria-label="주요 메뉴">
-      <a href="#guide">검사 안내</a>
-      <a href="#dimensions">성향 설명</a>
-      <a href="#faq">FAQ</a>
-      <a href="#privacy">개인정보</a>
-    </nav>
-  </header>
+  <div class="page-dim" id="pageDim" hidden></div>
 
-  <button class="theme-toggle" id="themeToggle" type="button" aria-label="다크 모드로 변경" aria-pressed="false">
-    다크 모드
-  </button>
+  <main class="app-shell" id="appShell">
+    <header class="top-bar">
+      <a class="brand" id="homeLink" href="#" aria-label="제목 학원 홈">제목 학원</a>
 
-  <main>
-    <section class="intro" id="intro">
-      <h1>MBTI 적성 검사</h1>
-      <p>
-        12개 문항을 통해 에너지 방향, 정보 인식, 판단 기준, 생활 방식의 경향을
-        가볍게 확인합니다. 결과는 자기이해를 돕기 위한 참고 자료이며 의학적,
-        심리학적 진단을 대신하지 않습니다.
-      </p>
-      <button class="primary intro-button" id="start-button" type="button">MBTI 적성 검사 시작</button>
-    </section>
-
-    <section class="home-content" id="homeContent">
-      <section class="content-section" id="guide" aria-labelledby="guide-title">
-        <p class="eyebrow">Guide</p>
-        <h2 id="guide-title">검사는 어떻게 구성되나요?</h2>
-        <div class="text-columns">
-          <p>
-            이 검사는 MBTI에서 널리 알려진 네 가지 선호 축을 바탕으로 만들어진
-            간단한 자기 점검 도구입니다. 각 문항은 일상적인 선택 상황을 묻고,
-            사용자가 고른 답을 E/I, S/N, T/F, J/P 점수로 합산합니다.
-          </p>
-          <p>
-            문항은 한 페이지에 하나씩 표시되어 답을 서두르지 않고 고를 수 있습니다.
-            중간에 이전 문항으로 돌아가 선택을 바꿀 수 있으며, 모든 문항에 답한
-            뒤에만 결과가 계산됩니다.
-          </p>
-        </div>
-      </section>
-
-      <section class="content-section" id="dimensions" aria-labelledby="dimensions-title">
-        <p class="eyebrow">Dimensions</p>
-        <h2 id="dimensions-title">네 가지 성향 축 이해하기</h2>
-        <div class="info-grid">
-          <article>
-            <h3>E / I</h3>
-            <p>E는 사람과 활동 속에서 에너지를 얻는 경향, I는 혼자 생각하고 정리하는 시간에서 에너지를 회복하는 경향을 뜻합니다.</p>
-          </article>
-          <article>
-            <h3>S / N</h3>
-            <p>S는 구체적인 사실과 경험을 중시하고, N은 가능성, 의미, 패턴처럼 눈에 보이지 않는 연결을 먼저 봅니다.</p>
-          </article>
-          <article>
-            <h3>T / F</h3>
-            <p>T는 원칙과 논리적 일관성을 우선하고, F는 사람에게 미칠 영향과 관계의 균형을 함께 고려합니다.</p>
-          </article>
-          <article>
-            <h3>J / P</h3>
-            <p>J는 계획과 마감이 분명할 때 안정감을 느끼고, P는 상황 변화에 맞춰 유연하게 선택하는 방식을 선호합니다.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="content-section" id="quality" aria-labelledby="quality-title">
-        <p class="eyebrow">How to use</p>
-        <h2 id="quality-title">결과를 활용할 때의 기준</h2>
-        <div class="text-columns">
-          <p>
-            MBTI 결과는 사람을 고정된 틀에 넣기 위한 답이 아니라, 자신이 편하게
-            느끼는 의사소통 방식과 의사결정 습관을 돌아보기 위한 출발점입니다.
-            같은 유형이라도 직업, 경험, 관계 맥락에 따라 행동은 충분히 달라질 수 있습니다.
-          </p>
-          <p>
-            결과가 기대와 다르게 나오면 틀렸다고 보기보다 최근의 환경과 역할이
-            답변에 영향을 주었는지 살펴보세요. 중요한 결정에는 이 검사 하나만
-            사용하지 말고 실제 경험, 주변 피드백, 전문 상담을 함께 참고하는 편이 좋습니다.
-          </p>
-        </div>
-      </section>
-
-      <section class="content-section" id="faq" aria-labelledby="faq-title">
-        <p class="eyebrow">FAQ</p>
-        <h2 id="faq-title">자주 묻는 질문</h2>
-        <div class="faq-list">
-          <article>
-            <h3>이 검사는 무료인가요?</h3>
-            <p>네. 별도 가입 없이 무료로 사용할 수 있습니다. 사이트 운영을 위해 Google AdSense 광고 스크립트가 포함될 수 있습니다.</p>
-          </article>
-          <article>
-            <h3>답변 내용이 서버에 저장되나요?</h3>
-            <p>검사 답변과 결과 계산은 브라우저에서 처리됩니다. Feedback 양식을 제출하는 경우에만 입력한 연락처와 의견 내용이 전송됩니다.</p>
-          </article>
-          <article>
-            <h3>정식 심리 검사를 대신할 수 있나요?</h3>
-            <p>아니요. 이 사이트는 자기이해를 돕는 간단한 콘텐츠입니다. 진단, 상담, 채용, 평가 목적의 공식 자료로 사용하지 않는 것을 권장합니다.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="content-section policy-section" id="privacy" aria-labelledby="privacy-title">
-        <p class="eyebrow">Policy</p>
-        <h2 id="privacy-title">개인정보 및 광고 안내</h2>
-        <p>
-          이 사이트는 검사 답변을 별도 서버에 저장하지 않습니다. 다만 광고 제공 및
-          트래픽 분석 과정에서 Google 등 제3자 서비스가 쿠키 또는 유사 기술을 사용할
-          수 있습니다. 사용자는 브라우저 설정에서 쿠키 저장을 제한할 수 있습니다.
-          문의 양식을 이용하면 사용자가 입력한 이름, 이메일, 회사/서비스명, 문의 내용이
-          답변 목적 범위에서 처리됩니다.
-        </p>
-      </section>
-    </section>
-
-    <section class="quiz hidden" id="quiz" aria-live="polite">
-      <div class="top">
-        <div>
-          <h1>간단 MBTI 성향 검사</h1>
-          <p class="lead">각 문항에서 가장 나와 가까운 답을 하나씩 골라주세요.</p>
-        </div>
-        <div class="badge">
-          <strong id="answeredCount">0/12</strong>
-          <span>문항 진행</span>
-        </div>
+      <div class="auth-actions" id="authActions">
+        <a class="google-auth-link" id="googleAuthButton" href="#">Google 계정 연동</a>
       </div>
 
-      <form id="quizForm">
-        <section class="question">
-          <h2>1. 새로운 모임에 갔을 때 나는 보통</h2>
-          <div class="options">
-            <label class="option"><input type="radio" name="q1" value="E" /> <span>먼저 말을 걸며 분위기를 익힌다</span></label>
-            <label class="option"><input type="radio" name="q1" value="I" /> <span>조용히 관찰하다가 편해지면 말한다</span></label>
-            <label class="option"><input type="radio" name="q1" value="E" /> <span>여러 사람과 짧게라도 대화해본다</span></label>
-            <label class="option"><input type="radio" name="q1" value="I" /> <span>익숙한 사람 옆에서 천천히 적응한다</span></label>
-          </div>
-        </section>
+      <button class="user-chip" id="userChip" type="button" hidden aria-label="회원 정보 열기">
+        <span class="user-name" id="userName"></span>
+        <span class="profile-photo" id="profilePhoto" aria-hidden="true"></span>
+      </button>
+    </header>
 
-        <section class="question">
-          <h2>2. 휴일에 에너지를 회복하는 방식은</h2>
-          <div class="options">
-            <label class="option"><input type="radio" name="q2" value="E" /> <span>친구를 만나거나 밖에서 활동한다</span></label>
-            <label class="option"><input type="radio" name="q2" value="I" /> <span>혼자 있는 시간을 충분히 가진다</span></label>
-            <label class="option"><input type="radio" name="q2" value="E" /> <span>새로운 장소에 가면 기분이 살아난다</span></label>
-            <label class="option"><input type="radio" name="q2" value="I" /> <span>집에서 조용히 쉬는 편이 좋다</span></label>
-          </div>
-        </section>
-
-        <section class="question">
-          <h2>3. 정보를 받아들일 때 더 끌리는 것은</h2>
-          <div class="options">
-            <label class="option"><input type="radio" name="q3" value="S" /> <span>눈에 보이는 사실과 구체적인 예시</span></label>
-            <label class="option"><input type="radio" name="q3" value="N" /> <span>가능성, 의미, 큰 그림</span></label>
-            <label class="option"><input type="radio" name="q3" value="S" /> <span>지금 당장 확인할 수 있는 자료</span></label>
-            <label class="option"><input type="radio" name="q3" value="N" /> <span>앞으로 이어질 변화와 아이디어</span></label>
-          </div>
-        </section>
-
-        <section class="question">
-          <h2>4. 일을 시작할 때 나는</h2>
-          <div class="options">
-            <label class="option"><input type="radio" name="q4" value="S" /> <span>검증된 방법부터 따라 해본다</span></label>
-            <label class="option"><input type="radio" name="q4" value="N" /> <span>새로운 방식으로 바꿀 수 있을지 생각한다</span></label>
-            <label class="option"><input type="radio" name="q4" value="S" /> <span>순서와 세부 사항을 먼저 확인한다</span></label>
-            <label class="option"><input type="radio" name="q4" value="N" /> <span>전체 방향과 가능성을 먼저 잡는다</span></label>
-          </div>
-        </section>
-
-        <section class="question">
-          <h2>5. 결정을 내려야 할 때 더 중요하게 보는 것은</h2>
-          <div class="options">
-            <label class="option"><input type="radio" name="q5" value="T" /> <span>논리적으로 맞는지</span></label>
-            <label class="option"><input type="radio" name="q5" value="F" /> <span>사람들의 감정과 관계가 어떤지</span></label>
-            <label class="option"><input type="radio" name="q5" value="T" /> <span>기준과 원칙에 맞는지</span></label>
-            <label class="option"><input type="radio" name="q5" value="F" /> <span>누군가에게 상처가 되지 않는지</span></label>
-          </div>
-        </section>
-
-        <section class="question">
-          <h2>6. 친구가 고민을 털어놓으면 나는 먼저</h2>
-          <div class="options">
-            <label class="option"><input type="radio" name="q6" value="T" /> <span>문제의 원인과 해결책을 정리한다</span></label>
-            <label class="option"><input type="radio" name="q6" value="F" /> <span>감정을 공감하고 충분히 들어준다</span></label>
-            <label class="option"><input type="radio" name="q6" value="T" /> <span>현실적으로 가능한 선택지를 말해준다</span></label>
-            <label class="option"><input type="radio" name="q6" value="F" /> <span>상대가 어떤 마음인지부터 살핀다</span></label>
-          </div>
-        </section>
-
-        <section class="question">
-          <h2>7. 여행을 준비할 때 나는</h2>
-          <div class="options">
-            <label class="option"><input type="radio" name="q7" value="J" /> <span>일정과 예약을 미리 정리한다</span></label>
-            <label class="option"><input type="radio" name="q7" value="P" /> <span>그날의 기분에 맞게 움직이고 싶다</span></label>
-            <label class="option"><input type="radio" name="q7" value="J" /> <span>동선과 시간을 계획해두면 편하다</span></label>
-            <label class="option"><input type="radio" name="q7" value="P" /> <span>즉흥적으로 발견하는 재미가 좋다</span></label>
-          </div>
-        </section>
-
-        <section class="question">
-          <h2>8. 마감이 있는 과제를 할 때 나는</h2>
-          <div class="options">
-            <label class="option"><input type="radio" name="q8" value="J" /> <span>미리 나누어 끝내는 편이다</span></label>
-            <label class="option"><input type="radio" name="q8" value="P" /> <span>마감이 가까워질수록 집중이 잘 된다</span></label>
-            <label class="option"><input type="radio" name="q8" value="J" /> <span>체크리스트가 있으면 마음이 놓인다</span></label>
-            <label class="option"><input type="radio" name="q8" value="P" /> <span>상황에 따라 방식을 바꾸는 편이다</span></label>
-          </div>
-        </section>
-
-        <section class="question">
-          <h2>9. 회의나 토론에서 나는</h2>
-          <div class="options">
-            <label class="option"><input type="radio" name="q9" value="E" /> <span>말하면서 생각이 정리된다</span></label>
-            <label class="option"><input type="radio" name="q9" value="I" /> <span>생각을 정리한 뒤 말하고 싶다</span></label>
-            <label class="option"><input type="radio" name="q9" value="T" /> <span>핵심 쟁점과 근거를 먼저 따진다</span></label>
-            <label class="option"><input type="radio" name="q9" value="F" /> <span>분위기와 참여자의 반응을 함께 본다</span></label>
-          </div>
-        </section>
-
-        <section class="question">
-          <h2>10. 설명을 들을 때 더 편한 방식은</h2>
-          <div class="options">
-            <label class="option"><input type="radio" name="q10" value="S" /> <span>단계별로 차근차근 듣는 것</span></label>
-            <label class="option"><input type="radio" name="q10" value="N" /> <span>핵심 개념과 비유로 이해하는 것</span></label>
-            <label class="option"><input type="radio" name="q10" value="J" /> <span>결론과 해야 할 일이 명확한 것</span></label>
-            <label class="option"><input type="radio" name="q10" value="P" /> <span>여러 가능성을 열어두는 것</span></label>
-          </div>
-        </section>
-
-        <section class="question">
-          <h2>11. 갈등이 생기면 나는</h2>
-          <div class="options">
-            <label class="option"><input type="radio" name="q11" value="T" /> <span>사실관계와 책임을 명확히 하고 싶다</span></label>
-            <label class="option"><input type="radio" name="q11" value="F" /> <span>서로의 입장을 풀어내는 것이 중요하다</span></label>
-            <label class="option"><input type="radio" name="q11" value="J" /> <span>빠르게 정리하고 기준을 세우고 싶다</span></label>
-            <label class="option"><input type="radio" name="q11" value="P" /> <span>시간을 두고 유연하게 조율하고 싶다</span></label>
-          </div>
-        </section>
-
-        <section class="question">
-          <h2>12. 평소 더 자주 듣는 말은</h2>
-          <div class="options">
-            <label class="option"><input type="radio" name="q12" value="E" /> <span>활발하고 표현이 많은 편이다</span></label>
-            <label class="option"><input type="radio" name="q12" value="I" /> <span>차분하고 깊이 생각하는 편이다</span></label>
-            <label class="option"><input type="radio" name="q12" value="N" /> <span>상상력과 아이디어가 많은 편이다</span></label>
-            <label class="option"><input type="radio" name="q12" value="S" /> <span>현실적이고 꼼꼼한 편이다</span></label>
-          </div>
-        </section>
-
-        <div class="actions">
-          <div class="message" id="message" aria-live="polite"></div>
-          <div class="buttons">
-            <button class="secondary" type="reset">처음부터</button>
-            <button class="secondary" id="prevButton" type="button">이전</button>
-            <button class="primary" id="nextButton" type="button">다음</button>
-            <button class="primary hidden" id="submitButton" type="submit">결과 보기</button>
-          </div>
-        </div>
-      </form>
-
+    <section class="view gallery-view" id="homeView" aria-label="사진 선택">
+      <div class="gallery-grid" id="galleryGrid"></div>
     </section>
 
-    <section class="result-page hidden" id="resultPage" aria-live="polite">
-      <section class="result" id="result">
-        <p class="result-type" id="resultType"></p>
-        <h2 class="result-title" id="resultTitle"></h2>
-        <p class="result-text" id="resultText"></p>
-        <div class="scores" id="scores"></div>
-        <button class="secondary retry-button" id="retryButton" type="button">다시 검사하기</button>
-      </section>
+    <section class="view play-view" id="titleView" hidden aria-label="제목 입력">
+      <div class="selected-photo-frame">
+        <img class="selected-photo" id="selectedPhoto" alt="" />
+      </div>
 
-      <section class="feedback" aria-labelledby="feedback-title">
-        <div class="feedback-copy">
-          <p class="eyebrow">Feedback</p>
-          <h2 id="feedback-title">Feedback</h2>
-          <p>
-            검사 결과나 사이트 사용 중 느낀 점이 있다면 남겨주세요.
-          </p>
-          <button class="primary feedback-toggle" id="feedbackToggle" type="button" aria-expanded="false" aria-controls="feedbackPanel">
-            Feedback
-          </button>
+      <form class="entry-form" id="titleForm">
+        <label for="titleInput">제목</label>
+        <div class="entry-row">
+          <input id="titleInput" type="text" maxlength="60" autocomplete="off" placeholder="이 사진의 제목을 입력하세요" />
+          <button class="auth-button solid" type="submit">완료</button>
         </div>
+      </form>
+    </section>
 
-        <form class="feedback-form hidden" id="feedbackPanel" action="https://formspree.io/f/mpqbqyyv" method="POST">
-          <input type="hidden" name="_subject" value="MBTI 적성 검사 Feedback" />
+    <section class="view guest-view" id="guestView" hidden aria-label="비회원 이름 입력">
+      <form class="entry-form compact-form" id="guestForm">
+        <label for="guestNameInput">이름</label>
+        <p class="form-copy">비회원으로 등록할 이름을 입력하세요.</p>
+        <div class="entry-row">
+          <input id="guestNameInput" type="text" maxlength="24" autocomplete="nickname" placeholder="이름을 입력하세요" />
+          <button class="auth-button solid" type="submit">랭킹 보기</button>
+        </div>
+      </form>
+    </section>
 
-          <label>
-            <span>이름</span>
-            <input type="text" name="name" autocomplete="name" required />
-          </label>
+    <section class="view ranking-view" id="rankingView" hidden aria-label="랭킹">
+      <div class="ranking-head">
+        <div>
+          <p class="view-kicker">랭킹</p>
+          <h1>이 사진의 제목들</h1>
+        </div>
+        <button class="auth-button ghost" id="backToGalleryButton" type="button">다른 사진 선택</button>
+      </div>
 
-          <label>
-            <span>이메일</span>
-            <input type="email" name="email" autocomplete="email" required />
-          </label>
-
-          <label>
-            <span>Feedback</span>
-            <textarea name="message" rows="5" required></textarea>
-          </label>
-
-          <div class="feedback-actions">
-            <p class="form-status" id="feedbackStatus" aria-live="polite"></p>
-            <button class="primary" type="submit">Feedback 보내기</button>
-          </div>
-        </form>
-      </section>
-
-      <section class="comments" aria-labelledby="comments-title">
-        <h2 id="comments-title">댓글</h2>
-        <div id="disqus_thread"></div>
-        <noscript>
-          JavaScript를 활성화하면
-          <a href="https://disqus.com/?ref_noscript">Disqus 댓글</a>을 볼 수 있습니다.
-        </noscript>
-      </section>
+      <div class="ranking-layout">
+        <div class="ranking-photo-frame">
+          <img class="ranking-photo" id="rankingPhoto" alt="" />
+        </div>
+        <ol class="ranking-list" id="rankingList"></ol>
+      </div>
     </section>
   </main>
 
-  <script>
-    var disqus_config = function () {
-      this.page.url = window.location.href.split("#")[0];
-      this.page.identifier = "mbti-aptitude-check";
-    };
+  <aside class="profile-drawer" id="profileDrawer" aria-hidden="true" aria-label="회원 정보">
+    <div class="drawer-head">
+      <h2>회원 정보</h2>
+      <button class="drawer-close" id="drawerClose" type="button" aria-label="닫기"></button>
+    </div>
 
-    (function() {
-      var d = document;
-      var s = d.createElement("script");
-      s.src = "https://productbuileder.disqus.com/embed.js";
-      s.setAttribute("data-timestamp", +new Date());
-      (d.head || d.body).appendChild(s);
-    })();
-  </script>
+    <div class="drawer-profile">
+      <span class="profile-photo large" id="drawerPhoto" aria-hidden="true"></span>
+      <div>
+        <p class="drawer-name" id="drawerName"></p>
+        <p class="drawer-provider">Google 계정 연동 사용자</p>
+      </div>
+    </div>
+
+    <div class="drawer-placeholder">
+      회원 정보 메뉴는 이후 단계에서 추가합니다.
+    </div>
+  </aside>
+
+  <div class="auth-modal" id="authModal" hidden role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <div class="auth-card">
+      <button class="modal-close" id="modalClose" type="button" aria-label="닫기"></button>
+      <p class="modal-kicker">Google 계정 연동</p>
+      <h2 id="authTitle">Google 계정 연동</h2>
+
+      <div class="auth-step is-active" id="googleStep">
+        <p class="modal-copy">Google 로그인 연동 후 사용할 활동 이름을 설정합니다.</p>
+        <button class="google-button" id="googleConnectButton" type="button">
+          <span class="google-mark">G</span>
+          Google 로그인 창 열기
+        </button>
+      </div>
+
+      <form class="auth-step name-step" id="nameStep">
+        <label for="displayNameInput">활동 이름</label>
+        <input id="displayNameInput" type="text" autocomplete="nickname" placeholder="사용할 이름을 입력하세요" />
+        <button class="auth-button solid full" type="submit">저장하고 시작</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" aria-live="polite"></div>
+
   <script defer src="main.js"></script>
 </body>
 </html>
