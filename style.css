@@ -79,10 +79,13 @@ button {
 .auth-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
   grid-column: 3;
 }
 
-.google-auth-link {
+.auth-link-button {
+  border: 0;
+  background: transparent;
   color: var(--text);
   font-weight: 900;
   text-decoration: underline;
@@ -105,11 +108,15 @@ button {
   color: var(--text);
 }
 
-.auth-button.solid,
-.google-button {
+.auth-button.solid {
   border: 0;
   background: var(--accent);
   color: var(--text);
+}
+
+.auth-button.small {
+  min-height: 36px;
+  padding-inline: 14px;
 }
 
 .auth-button.full {
@@ -646,14 +653,9 @@ button {
   font-weight: 800;
 }
 
-.drawer-placeholder {
-  min-height: 180px;
-  border: 1px dashed #c7ccdc;
-  border-radius: 12px;
+.drawer-menu {
   display: grid;
-  place-items: center;
-  color: #68708a;
-  font-weight: 800;
+  gap: 12px;
 }
 
 .auth-modal {
@@ -668,7 +670,9 @@ button {
 
 .auth-card {
   position: relative;
-  width: min(430px, 100%);
+  width: min(460px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
   border-radius: 16px;
   background: #ffffff;
   color: var(--ink);
@@ -701,6 +705,31 @@ button {
   line-height: 1.55;
 }
 
+.auth-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #eef1fb;
+}
+
+.auth-switch-button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #5b637a;
+  font-weight: 900;
+}
+
+.auth-switch-button.is-active {
+  background: var(--paper);
+  color: var(--accent);
+  box-shadow: 0 5px 14px rgba(30, 36, 76, 0.12);
+}
+
 .auth-step {
   display: none;
 }
@@ -710,30 +739,29 @@ button {
   gap: 14px;
 }
 
-.google-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  min-height: 48px;
-  border-radius: 8px;
-  font-weight: 900;
-}
-
-.google-mark {
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--paper);
-  color: var(--accent);
-  font-weight: 900;
-}
-
-.name-step label {
+.auth-form label {
   color: #555d74;
   font-weight: 900;
+}
+
+.auth-form input {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid #d8dcec;
+  border-radius: 8px;
+  background: #fbfcff;
+  color: var(--ink);
+  padding: 0 14px;
+  outline: 0;
+}
+
+.auth-message {
+  min-height: 20px;
+  margin: 0;
+  color: #c6213a;
+  font-size: 0.92rem;
+  font-weight: 900;
+  line-height: 1.4;
 }
 
 .toast {
@@ -764,15 +792,15 @@ button {
 .photo-card:focus-visible,
 .photo-action:focus-visible,
 .auth-button:focus-visible,
-.google-auth-link:focus-visible,
-.google-button:focus-visible,
+.auth-link-button:focus-visible,
+.auth-switch-button:focus-visible,
 .heart-button:focus-visible,
 .comment-toggle:focus-visible,
 .user-chip:focus-visible,
 .drawer-close:focus-visible,
 .modal-close:focus-visible,
 .entry-row input:focus-visible,
-.name-step input:focus-visible,
+.auth-form input:focus-visible,
 .comment-form input:focus-visible {
   outline: 3px solid rgba(255, 199, 44, 0.82);
   outline-offset: 3px;

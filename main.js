@@ -13,25 +13,35 @@ const guestNameInput = document.querySelector("#guestNameInput");
 const rankingList = document.querySelector("#rankingList");
 const backToGalleryButton = document.querySelector("#backToGalleryButton");
 const authActions = document.querySelector("#authActions");
-const googleAuthButton = document.querySelector("#googleAuthButton");
+const loginButton = document.querySelector("#loginButton");
+const signupButton = document.querySelector("#signupButton");
 const userChip = document.querySelector("#userChip");
 const userName = document.querySelector("#userName");
 const profilePhoto = document.querySelector("#profilePhoto");
 const pageDim = document.querySelector("#pageDim");
 const profileDrawer = document.querySelector("#profileDrawer");
 const drawerClose = document.querySelector("#drawerClose");
+const logoutButton = document.querySelector("#logoutButton");
 const drawerName = document.querySelector("#drawerName");
 const drawerPhoto = document.querySelector("#drawerPhoto");
 const authModal = document.querySelector("#authModal");
 const authTitle = document.querySelector("#authTitle");
 const modalClose = document.querySelector("#modalClose");
-const googleStep = document.querySelector("#googleStep");
-const nameStep = document.querySelector("#nameStep");
-const googleConnectButton = document.querySelector("#googleConnectButton");
-const displayNameInput = document.querySelector("#displayNameInput");
+const loginTabButton = document.querySelector("#loginTabButton");
+const signupTabButton = document.querySelector("#signupTabButton");
+const loginForm = document.querySelector("#loginForm");
+const signupForm = document.querySelector("#signupForm");
+const loginIdInput = document.querySelector("#loginIdInput");
+const loginPasswordInput = document.querySelector("#loginPasswordInput");
+const signupLoginIdInput = document.querySelector("#signupLoginIdInput");
+const signupUsernameInput = document.querySelector("#signupUsernameInput");
+const signupPasswordInput = document.querySelector("#signupPasswordInput");
+const signupPasswordConfirmInput = document.querySelector("#signupPasswordConfirmInput");
+const loginMessage = document.querySelector("#loginMessage");
+const signupMessage = document.querySelector("#signupMessage");
 const toast = document.querySelector("#toast");
 
-const userStorageKey = "title-making-google-user";
+const legacyUserStorageKey = "title-making-google-user";
 const guestStorageKey = "title-academy-guest-name";
 const submissionsStorageKey = "title-academy-submissions";
 const galleryImages = [
@@ -46,9 +56,12 @@ const galleryImages = [
   { src: "assets/gallery/09-reggae-singer.jpg", alt: "Reggae singer performing on stage" },
   { src: "assets/gallery/10-sparkler.jpg", alt: "Person holding a lit sparkler" },
 ];
+const authModeButtons = [loginTabButton, signupTabButton];
 const slotCount = galleryImages.length;
 
-let currentUser = loadUser();
+localStorage.removeItem(legacyUserStorageKey);
+
+let currentUser = null;
 let currentGuestName = sessionStorage.getItem(guestStorageKey) || "";
 let selectedImageIndex = null;
 let pendingTitle = "";
@@ -63,107 +76,73 @@ function createId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function loadUser() {
+function getUserDisplayName() {
+  return currentUser?.username || "";
+}
+
+function setCurrentUser(user) {
+  currentUser = user || null;
+  renderUser();
+}
+
+async function requestAuth(path, options = {}) {
+  const response = await fetch(path, {
+    credentials: "include",
+    headers: {
+      "content-type": "application/json",
+      ...(options.headers || {}),
+    },
+    ...options,
+  });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.message || "요청 처리 중 오류가 발생했습니다.");
+  }
+
+  return data;
+}
+
+async function restoreSession() {
   try {
-    const user = JSON.parse(localStorage.getItem(userStorageKey));
-    return user && typeof user.name === "string" ? user : null;
+    const data = await requestAuth("/api/auth/me", { method: "GET", headers: {} });
+    setCurrentUser(data.authenticated ? data.user : null);
   } catch {
-    return null;
+    setCurrentUser(null);
   }
 }
 
-function saveUser(user) {
-  localStorage.setItem(userStorageKey, JSON.stringify(user));
-  currentUser = user;
-}
-
-function clearUser() {
-  localStorage.removeItem(userStorageKey);
-  currentUser = null;
-}
-
-function getFirebaseAuth() {
-  if (!globalThis.firebase?.auth) {
-    return null;
-  }
-
-  try {
-    return globalThis.firebase.auth();
-  } catch {
-    return null;
-  }
-}
-
-function userFromFirebase(firebaseUser) {
-  const name = firebaseUser.displayName || firebaseUser.email || "Google 사용자";
-
-  return {
-    uid: firebaseUser.uid,
-    name,
-    email: firebaseUser.email || "",
-    photoURL: firebaseUser.photoURL || "",
-    provider: "google",
-  };
-}
-
-async function signInWithGoogle() {
-  const auth = getFirebaseAuth();
-
-  if (!auth || !globalThis.firebase.auth.GoogleAuthProvider) {
-    showToast("Firebase 로그인을 불러오지 못했습니다");
-    return;
-  }
-
-  const provider = new globalThis.firebase.auth.GoogleAuthProvider();
-  provider.setCustomParameters({
-    prompt: "select_account",
+async function login(loginId, password) {
+  const data = await requestAuth("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ loginId, password }),
   });
 
-  googleConnectButton.disabled = true;
+  setCurrentUser(data.user);
+  closeAuthModal();
+  showToast(`${getUserDisplayName()}님으로 로그인됨`);
+}
 
+async function signup(loginId, username, password, passwordConfirm) {
+  const data = await requestAuth("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ loginId, username, password, passwordConfirm }),
+  });
+
+  setCurrentUser(data.user);
+  closeAuthModal();
+  showToast(`${getUserDisplayName()}님으로 가입됨`);
+}
+
+async function logout() {
   try {
-    const credential = await auth.signInWithPopup(provider);
-    const firebaseUser = credential.user;
-
-    if (!firebaseUser) {
-      showToast("Google 로그인 정보를 가져오지 못했습니다");
-      return;
-    }
-
-    const signedInUser = userFromFirebase(firebaseUser);
-    saveUser(signedInUser);
-    closeAuthModal();
-    renderUser();
-    showToast(`${signedInUser.name}님으로 로그인됨`);
-  } catch (error) {
-    if (error.code === "auth/popup-closed-by-user") {
-      showToast("Google 로그인이 취소되었습니다");
-      return;
-    }
-
-    showToast("Google 로그인에 실패했습니다");
+    await requestAuth("/api/auth/logout", { method: "POST", body: "{}" });
+  } catch {
+    showToast("로그아웃 처리 중 오류가 발생했습니다.");
   } finally {
-    googleConnectButton.disabled = false;
+    setCurrentUser(null);
+    closeDrawer();
   }
-}
-
-function watchFirebaseAuth() {
-  const auth = getFirebaseAuth();
-
-  if (!auth) {
-    renderUser();
-    return;
-  }
-
-  auth.onAuthStateChanged((firebaseUser) => {
-    if (firebaseUser) {
-      saveUser(userFromFirebase(firebaseUser));
-    } else if (currentUser?.provider === "google" && currentUser.uid) {
-      clearUser();
-    }
-
-    renderUser();
-  });
 }
 
 function normalizeSubmissions(submissions) {
@@ -239,7 +218,7 @@ function getSelectedImage() {
 }
 
 function getActiveAuthor() {
-  return currentUser?.name || currentGuestName || "비회원";
+  return getUserDisplayName() || currentGuestName || "비회원";
 }
 
 function getSortedEntries(entries) {
@@ -628,30 +607,50 @@ function renderUser() {
     return;
   }
 
+  const displayName = getUserDisplayName();
+
   authActions.hidden = true;
   userChip.hidden = false;
-  userName.textContent = currentUser.name;
-  profilePhoto.textContent = getInitials(currentUser.name);
-  drawerName.textContent = currentUser.name;
-  drawerPhoto.textContent = getInitials(currentUser.name);
+  userName.textContent = displayName;
+  profilePhoto.textContent = getInitials(displayName);
+  drawerName.textContent = displayName;
+  drawerPhoto.textContent = getInitials(displayName);
 }
 
-function openAuthModal() {
-  authTitle.textContent = "Google 계정 연동";
+function setAuthMode(mode) {
+  const isSignup = mode === "signup";
+
+  authTitle.textContent = isSignup ? "회원가입" : "로그인";
+  loginForm.classList.toggle("is-active", !isSignup);
+  signupForm.classList.toggle("is-active", isSignup);
+  authModeButtons.forEach((button) => {
+    const isActive = button.dataset.authMode === mode;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
+  });
+  loginMessage.textContent = "";
+  signupMessage.textContent = "";
+}
+
+function openAuthModal(mode = "login") {
+  setAuthMode(mode);
+  loginPasswordInput.value = "";
+  signupPasswordInput.value = "";
+  signupPasswordConfirmInput.value = "";
   authModal.hidden = false;
-  googleStep.classList.add("is-active");
-  nameStep.classList.remove("is-active");
-  displayNameInput.value = "";
-  googleConnectButton.focus();
+  (mode === "signup" ? signupLoginIdInput : loginIdInput).focus();
 }
 
 function closeAuthModal() {
+  loginPasswordInput.value = "";
+  signupPasswordInput.value = "";
+  signupPasswordConfirmInput.value = "";
   authModal.hidden = true;
 }
 
 function openDrawer() {
   if (!currentUser) {
-    openAuthModal();
+    openAuthModal("login");
     return;
   }
 
@@ -665,7 +664,10 @@ function closeDrawer() {
   pageDim.hidden = true;
   profileDrawer.classList.remove("is-open");
   profileDrawer.setAttribute("aria-hidden", "true");
-  userChip.focus();
+
+  if (currentUser) {
+    userChip.focus();
+  }
 }
 
 function showToast(message) {
@@ -740,7 +742,7 @@ titleForm.addEventListener("submit", (event) => {
   pendingTitle = title;
 
   if (currentUser) {
-    addSubmission(currentUser.name);
+    addSubmission(getUserDisplayName());
     return;
   }
 
@@ -822,9 +824,12 @@ rankingList.addEventListener("submit", (event) => {
 
 backToGalleryButton.addEventListener("click", goHome);
 
-googleAuthButton.addEventListener("click", (event) => {
-  event.preventDefault();
-  signInWithGoogle();
+loginButton.addEventListener("click", () => {
+  openAuthModal("login");
+});
+
+signupButton.addEventListener("click", () => {
+  openAuthModal("signup");
 });
 
 modalClose.addEventListener("click", closeAuthModal);
@@ -835,40 +840,68 @@ authModal.addEventListener("click", (event) => {
   }
 });
 
-googleConnectButton.addEventListener("click", () => {
-  if (currentUser) {
-    closeAuthModal();
-    renderUser();
-    showToast(`${currentUser.name}님으로 로그인됨`);
-    return;
-  }
-
-  signInWithGoogle();
+authModeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    setAuthMode(button.dataset.authMode);
+  });
 });
 
-nameStep.addEventListener("submit", (event) => {
+loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  loginMessage.textContent = "";
+  const loginId = loginIdInput.value.trim();
+  const password = loginPasswordInput.value;
 
-  const name = displayNameInput.value.trim();
+  try {
+    await login(loginId, password);
+  } catch (error) {
+    loginMessage.textContent = error.message;
+  }
+});
 
-  if (!name) {
-    displayNameInput.focus();
+signupForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  signupMessage.textContent = "";
+  const loginId = signupLoginIdInput.value.trim();
+  const username = signupUsernameInput.value.trim();
+  const password = signupPasswordInput.value;
+  const passwordConfirm = signupPasswordConfirmInput.value;
+
+  if (loginId.length < 8) {
+    signupMessage.textContent = "아이디는 8자리 이상이어야 합니다.";
+    signupLoginIdInput.focus();
     return;
   }
 
-  saveUser({
-    name,
-    provider: "google",
-  });
+  if (!username) {
+    signupMessage.textContent = "사용자 이름을 입력하세요.";
+    signupUsernameInput.focus();
+    return;
+  }
 
-  closeAuthModal();
-  renderUser();
-  showToast(`${name}님으로 시작합니다`);
+  if (password.length < 8 || !/[^A-Za-z0-9]/.test(password)) {
+    signupMessage.textContent = "비밀번호는 8자리 이상이며 특수문자를 1개 이상 포함해야 합니다.";
+    signupPasswordInput.focus();
+    return;
+  }
+
+  if (password !== passwordConfirm) {
+    signupMessage.textContent = "비밀번호가 일치하지 않습니다.";
+    signupPasswordConfirmInput.focus();
+    return;
+  }
+
+  try {
+    await signup(loginId, username, password, passwordConfirm);
+  } catch (error) {
+    signupMessage.textContent = error.message;
+  }
 });
 
 userChip.addEventListener("click", openDrawer);
 drawerClose.addEventListener("click", closeDrawer);
 pageDim.addEventListener("click", closeDrawer);
+logoutButton.addEventListener("click", logout);
 
 window.addEventListener("popstate", (event) => {
   applyRoute(getValidRoute(event.state) || parseRouteFromHash(window.location.hash) || { view: "home" });
@@ -890,5 +923,6 @@ window.addEventListener("keydown", (event) => {
 });
 
 renderGallery();
-watchFirebaseAuth();
+renderUser();
+restoreSession();
 initializeRoute();

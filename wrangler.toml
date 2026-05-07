@@ -1,0 +1,8 @@
+name = "product-week1-0956"
+pages_build_output_dir = "."
+compatibility_date = "2026-05-05"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "product-week1-0956-auth"
+database_id = "89ecb707-e9aa-47e8-8c1c-a2d769fe2f15"
