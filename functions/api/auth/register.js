@@ -14,7 +14,8 @@ import {
 export async function onRequestPost(context) {
   try {
     return await handleRegister(context);
-  } catch {
+  } catch (error) {
+    console.error("auth/register unhandled error", getErrorDetails(error));
     return json({ message: "회원가입 처리 중 오류가 발생했습니다." }, 500);
   }
 }
@@ -91,6 +92,7 @@ async function handleRegister(context) {
     );
   } catch (error) {
     const message = String(error?.message || "");
+    console.error("auth/register database error", getErrorDetails(error));
 
     if (message.includes("users.login_id")) {
       return json({ message: "이미 사용 중인 아이디입니다." }, 409);
@@ -102,4 +104,13 @@ async function handleRegister(context) {
 
     return json({ message: "회원가입 처리 중 오류가 발생했습니다." }, 500);
   }
+}
+
+function getErrorDetails(error) {
+  return {
+    name: error?.name || "Error",
+    message: error?.message || String(error),
+    stack: error?.stack || "",
+    cause: error?.cause ? String(error.cause) : "",
+  };
 }
