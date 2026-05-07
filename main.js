@@ -253,6 +253,10 @@ function isServerEntry(entry) {
   return /^\d+$/.test(String(entry?.id || ""));
 }
 
+function canDeleteLocalAuthor(author) {
+  return Boolean(currentUser && author === getUserDisplayName());
+}
+
 function getSortedEntries(entries) {
   return entries.slice().sort((left, right) => {
     const likeDifference = right.likes - left.likes;
@@ -508,6 +512,36 @@ function updateSubmission(entryId, updater) {
   renderRanking();
 }
 
+function removeLocalSubmission(entryId) {
+  const submissions = loadSubmissions();
+  const imageKey = String(selectedImageIndex);
+  const entries = Array.isArray(submissions[imageKey]) ? submissions[imageKey] : [];
+  const target = entries.find((entry) => entry.id === entryId);
+
+  if (!target || !canDeleteLocalAuthor(target.author)) {
+    showToast("본인이 작성한 제목만 삭제할 수 있습니다.");
+    return;
+  }
+
+  submissions[imageKey] = entries.filter((entry) => entry.id !== entryId);
+  saveSubmissions(submissions);
+  expandedCommentIds.delete(entryId);
+  renderRanking();
+}
+
+function removeLocalComment(entryId, commentId) {
+  updateSubmission(entryId, (entry) => {
+    const target = entry.comments.find((comment) => comment.id === commentId);
+
+    if (!target || !canDeleteLocalAuthor(target.author)) {
+      showToast("본인이 작성한 댓글만 삭제할 수 있습니다.");
+      return;
+    }
+
+    entry.comments = entry.comments.filter((comment) => comment.id !== commentId);
+  });
+}
+
 function renderGallery() {
   const fragment = document.createDocumentFragment();
 
@@ -607,6 +641,9 @@ function renderRanking() {
     const author = document.createElement("span");
     author.textContent = entry.author;
 
+    const actions = document.createElement("div");
+    actions.className = "rank-actions";
+
     const heartButton = document.createElement("button");
     heartButton.className = "heart-button";
     heartButton.type = "button";
@@ -624,8 +661,21 @@ function renderRanking() {
     toggleButton.setAttribute("aria-label", isExpanded ? "댓글 접기" : "댓글 펼치기");
     toggleButton.setAttribute("aria-expanded", String(isExpanded));
 
+    actions.append(heartButton);
+
+    if (entry.canDelete || canDeleteLocalAuthor(entry.author)) {
+      const deleteButton = document.createElement("button");
+      deleteButton.className = "delete-button";
+      deleteButton.type = "button";
+      deleteButton.dataset.action = "delete-submission";
+      deleteButton.dataset.entryId = entry.id;
+      deleteButton.textContent = "삭제";
+      deleteButton.setAttribute("aria-label", "제목 삭제");
+      actions.append(deleteButton);
+    }
+
     content.append(title, author);
-    item.append(rank, content, heartButton, toggleButton);
+    item.append(rank, content, actions, toggleButton);
 
     if (isExpanded) {
       item.append(createCommentsPanel(entry));
@@ -654,13 +704,30 @@ function createCommentsPanel(entry) {
       const item = document.createElement("li");
       item.className = "comment-item";
 
+      const commentHead = document.createElement("div");
+      commentHead.className = "comment-head";
+
       const author = document.createElement("strong");
       author.textContent = comment.author;
+
+      commentHead.append(author);
+
+      if (comment.canDelete || canDeleteLocalAuthor(comment.author)) {
+        const deleteButton = document.createElement("button");
+        deleteButton.className = "comment-delete";
+        deleteButton.type = "button";
+        deleteButton.dataset.action = "delete-comment";
+        deleteButton.dataset.entryId = entry.id;
+        deleteButton.dataset.commentId = comment.id;
+        deleteButton.textContent = "삭제";
+        deleteButton.setAttribute("aria-label", "댓글 삭제");
+        commentHead.append(deleteButton);
+      }
 
       const text = document.createElement("span");
       text.textContent = comment.text;
 
-      item.append(author, text);
+      item.append(commentHead, text);
       list.append(item);
     });
   }
@@ -814,13 +881,20 @@ function renderMyTitles(submissions) {
     meta.className = "my-title-meta";
     meta.textContent = `하트 ${entry.likes || 0}개`;
 
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "delete-button drawer-delete";
+    deleteButton.type = "button";
+    deleteButton.dataset.action = "delete-my-submission";
+    deleteButton.dataset.entryId = entry.id;
+    deleteButton.textContent = "삭제";
+
     const comments = document.createElement("p");
     comments.className = "my-title-comments";
     comments.textContent = entry.comments?.length
       ? entry.comments.map((comment) => `${comment.author}: ${comment.text}`).join(" / ")
       : "댓글이 없습니다.";
 
-    body.append(title, meta, comments);
+    body.append(title, meta, comments, deleteButton);
     card.append(image, body);
     fragment.append(card);
   });
@@ -1014,6 +1088,71 @@ rankingList.addEventListener("click", async (event) => {
     return;
   }
 
+  if (button.dataset.action === "delete-submission") {
+    if (!currentUser) {
+      showToast("로그인이 필요합니다.");
+      openAuthModal("login");
+      return;
+    }
+
+    const imageKey = String(selectedImageIndex);
+    const serverEntries = serverSubmissionsByImage[imageKey];
+    const entry = Array.isArray(serverEntries) ? serverEntries.find((item) => item.id === entryId) : null;
+
+    if (entry && isServerEntry(entry)) {
+      try {
+        await requestJson(`/api/submissions/${encodeURIComponent(entryId)}`, {
+          method: "DELETE",
+          headers: {},
+        });
+        serverSubmissionsByImage[imageKey] = serverEntries.filter((item) => item.id !== entryId);
+        expandedCommentIds.delete(entryId);
+        renderRanking();
+        showToast("제목을 삭제했습니다.");
+      } catch (error) {
+        showToast(error.message);
+      }
+      return;
+    }
+
+    removeLocalSubmission(entryId);
+    return;
+  }
+
+  if (button.dataset.action === "delete-comment") {
+    if (!currentUser) {
+      showToast("로그인이 필요합니다.");
+      openAuthModal("login");
+      return;
+    }
+
+    const commentId = button.dataset.commentId;
+    const imageKey = String(selectedImageIndex);
+    const serverEntries = serverSubmissionsByImage[imageKey];
+    const entry = Array.isArray(serverEntries) ? serverEntries.find((item) => item.id === entryId) : null;
+
+    if (entry && isServerEntry(entry)) {
+      try {
+        await requestJson(
+          `/api/submissions/${encodeURIComponent(entryId)}/comments/${encodeURIComponent(commentId)}`,
+          {
+            method: "DELETE",
+            headers: {},
+          }
+        );
+        entry.comments = entry.comments.filter((comment) => comment.id !== commentId);
+        renderRanking();
+        showToast("댓글을 삭제했습니다.");
+      } catch (error) {
+        showToast(error.message);
+      }
+      return;
+    }
+
+    removeLocalComment(entryId, commentId);
+    return;
+  }
+
   if (button.dataset.action === "toggle-comments") {
     if (expandedCommentIds.has(entryId)) {
       expandedCommentIds.delete(entryId);
@@ -1163,6 +1302,30 @@ profileEditButton.addEventListener("click", () => {
 });
 myTitlesButton.addEventListener("click", showMyTitles);
 drawerBackButton.addEventListener("click", showDrawerMenu);
+myTitleList.addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-action='delete-my-submission']");
+
+  if (!button) {
+    return;
+  }
+
+  const entryId = button.dataset.entryId;
+
+  try {
+    await requestJson(`/api/submissions/${encodeURIComponent(entryId)}`, {
+      method: "DELETE",
+      headers: {},
+    });
+    showToast("제목을 삭제했습니다.");
+    await showMyTitles();
+
+    if (Number.isInteger(selectedImageIndex)) {
+      await refreshRanking();
+    }
+  } catch (error) {
+    showToast(error.message);
+  }
+});
 avatarEditButton.addEventListener("click", () => {
   avatarInput.click();
 });

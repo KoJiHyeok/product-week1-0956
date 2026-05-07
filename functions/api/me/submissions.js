@@ -31,7 +31,8 @@ export async function onRequestGet(context) {
       (results || []).map(async (row) => {
         const comments = await db
           .prepare(
-            `SELECT comments.id, comments.text, comments.created_at, comments.guest_name, users.username
+            `SELECT comments.id, comments.text, comments.created_at, comments.author_user_id,
+                    comments.guest_name, users.username
              FROM comments
              LEFT JOIN users ON users.id = comments.author_user_id
              WHERE comments.submission_id = ?
@@ -47,11 +48,13 @@ export async function onRequestGet(context) {
           title: row.title,
           createdAt: row.created_at,
           likes: Number(row.like_count) || 0,
+          canDelete: true,
           comments: (comments.results || []).map((comment) => ({
             id: String(comment.id),
             author: comment.username || comment.guest_name || "비회원",
             text: comment.text,
             createdAt: comment.created_at,
+            canDelete: comment.author_user_id === user.id,
           })),
         };
       })

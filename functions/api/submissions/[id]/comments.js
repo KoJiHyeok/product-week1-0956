@@ -32,6 +32,7 @@ export async function onRequestPost(context) {
           author: user?.username || guestName || "비회원",
           text,
           createdAt: new Date().toISOString(),
+          canDelete: Boolean(user),
         },
       },
       201

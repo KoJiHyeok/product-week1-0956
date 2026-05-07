@@ -19,6 +19,7 @@ export async function onRequestGet(context) {
            submissions.image_index,
            submissions.image_src,
            submissions.title,
+           submissions.author_user_id,
            submissions.guest_name,
            submissions.created_at,
            users.username,
@@ -34,7 +35,7 @@ export async function onRequestGet(context) {
       .bind(user?.id || 0, imageIndex)
       .all();
 
-    const submissions = await Promise.all((results || []).map((row) => withComments(db, row)));
+    const submissions = await Promise.all((results || []).map((row) => withComments(db, row, user)));
     return json({ submissions });
   } catch {
     return json({ message: "제목 목록을 불러오지 못했습니다." }, 500);
@@ -70,6 +71,7 @@ export async function onRequestPost(context) {
     const row = await db
       .prepare(
         `SELECT submissions.id, submissions.image_index, submissions.image_src, submissions.title,
+                submissions.author_user_id,
                 submissions.guest_name, submissions.created_at, users.username,
                 0 AS like_count, 0 AS liked_by_me
          FROM submissions
@@ -79,16 +81,17 @@ export async function onRequestPost(context) {
       .bind(result.meta.last_row_id)
       .first();
 
-    return json({ submission: await withComments(db, row) }, 201);
+    return json({ submission: await withComments(db, row, user) }, 201);
   } catch {
     return json({ message: "제목을 저장하지 못했습니다." }, 500);
   }
 }
 
-async function withComments(db, row) {
+async function withComments(db, row, user) {
   const { results } = await db
     .prepare(
-      `SELECT comments.id, comments.text, comments.created_at, comments.guest_name, users.username
+      `SELECT comments.id, comments.text, comments.created_at, comments.author_user_id,
+              comments.guest_name, users.username
        FROM comments
        LEFT JOIN users ON users.id = comments.author_user_id
        WHERE comments.submission_id = ?
@@ -106,11 +109,13 @@ async function withComments(db, row) {
     createdAt: row.created_at,
     likes: Number(row.like_count) || 0,
     likedByMe: Boolean(row.liked_by_me),
+    canDelete: Boolean(user && row.author_user_id === user.id),
     comments: (results || []).map((comment) => ({
       id: String(comment.id),
       author: comment.username || comment.guest_name || "비회원",
       text: comment.text,
       createdAt: comment.created_at,
+      canDelete: Boolean(user && comment.author_user_id === user.id),
     })),
   };
 }
