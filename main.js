@@ -562,23 +562,17 @@ function renderGallery() {
       const actions = document.createElement("div");
       actions.className = "photo-card-actions";
 
-      const challengeButton = document.createElement("button");
-      challengeButton.className = "photo-action";
-      challengeButton.type = "button";
-      challengeButton.dataset.action = "challenge";
-      challengeButton.textContent = "도전";
-
       const rankingButton = document.createElement("button");
       rankingButton.className = "photo-action";
       rankingButton.type = "button";
       rankingButton.dataset.action = "ranking";
       rankingButton.textContent = "랭킹";
 
-      actions.append(challengeButton, rankingButton);
+      actions.append(rankingButton);
       card.classList.add("has-image");
       card.tabIndex = 0;
       card.setAttribute("role", "button");
-      card.setAttribute("aria-label", `${image.alt} 도전`);
+      card.setAttribute("aria-label", `${image.alt} 제목 입력`);
       card.append(photo, actions);
     } else {
       card.classList.add("is-empty");
@@ -615,7 +609,16 @@ function renderRanking() {
   if (entries.length === 0) {
     const empty = document.createElement("li");
     empty.className = "ranking-empty";
-    empty.textContent = "아직 등록된 제목이 없습니다.";
+    const emptyText = document.createElement("p");
+    emptyText.textContent = "아직 등록된 제목이 없습니다.";
+
+    const writeButton = document.createElement("button");
+    writeButton.className = "auth-button solid ranking-write-button";
+    writeButton.type = "button";
+    writeButton.dataset.action = "write-title";
+    writeButton.textContent = "제목 작성하기";
+
+    empty.append(emptyText, writeButton);
     rankingList.replaceChildren(empty);
     return;
   }
@@ -630,7 +633,16 @@ function renderRanking() {
 
     const rank = document.createElement("span");
     rank.className = "rank-number";
-    rank.textContent = String(index + 1);
+    const rankNumber = index + 1;
+    const crownRanks = ["gold", "silver", "bronze"];
+
+    if (rankNumber <= crownRanks.length) {
+      rank.classList.add("rank-crown", `rank-crown-${crownRanks[index]}`);
+      rank.textContent = "♛";
+      rank.setAttribute("aria-label", `${rankNumber}위`);
+    } else {
+      rank.textContent = String(rankNumber);
+    }
 
     const content = document.createElement("div");
     content.className = "rank-content";
@@ -996,6 +1008,10 @@ galleryGrid.addEventListener("keydown", (event) => {
     return;
   }
 
+  if (event.target.closest(".photo-action")) {
+    return;
+  }
+
   const card = event.target.closest(".photo-card");
 
   if (!card) {
@@ -1057,6 +1073,11 @@ rankingList.addEventListener("click", async (event) => {
   }
 
   const entryId = button.dataset.entryId;
+
+  if (button.dataset.action === "write-title") {
+    startTitleEntry(selectedImageIndex);
+    return;
+  }
 
   if (button.dataset.action === "like") {
     if (!currentUser) {
