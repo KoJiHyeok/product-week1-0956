@@ -76,6 +76,95 @@ function saveUser(user) {
   currentUser = user;
 }
 
+function clearUser() {
+  localStorage.removeItem(userStorageKey);
+  currentUser = null;
+}
+
+function getFirebaseAuth() {
+  if (!globalThis.firebase?.auth) {
+    return null;
+  }
+
+  try {
+    return globalThis.firebase.auth();
+  } catch {
+    return null;
+  }
+}
+
+function userFromFirebase(firebaseUser) {
+  const name = firebaseUser.displayName || firebaseUser.email || "Google 사용자";
+
+  return {
+    uid: firebaseUser.uid,
+    name,
+    email: firebaseUser.email || "",
+    photoURL: firebaseUser.photoURL || "",
+    provider: "google",
+  };
+}
+
+async function signInWithGoogle() {
+  const auth = getFirebaseAuth();
+
+  if (!auth || !globalThis.firebase.auth.GoogleAuthProvider) {
+    showToast("Firebase 로그인을 불러오지 못했습니다");
+    return;
+  }
+
+  const provider = new globalThis.firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({
+    prompt: "select_account",
+  });
+
+  googleConnectButton.disabled = true;
+
+  try {
+    const credential = await auth.signInWithPopup(provider);
+    const firebaseUser = credential.user;
+
+    if (!firebaseUser) {
+      showToast("Google 로그인 정보를 가져오지 못했습니다");
+      return;
+    }
+
+    const signedInUser = userFromFirebase(firebaseUser);
+    saveUser(signedInUser);
+    closeAuthModal();
+    renderUser();
+    showToast(`${signedInUser.name}님으로 로그인됨`);
+  } catch (error) {
+    if (error.code === "auth/popup-closed-by-user") {
+      showToast("Google 로그인이 취소되었습니다");
+      return;
+    }
+
+    showToast("Google 로그인에 실패했습니다");
+  } finally {
+    googleConnectButton.disabled = false;
+  }
+}
+
+function watchFirebaseAuth() {
+  const auth = getFirebaseAuth();
+
+  if (!auth) {
+    renderUser();
+    return;
+  }
+
+  auth.onAuthStateChanged((firebaseUser) => {
+    if (firebaseUser) {
+      saveUser(userFromFirebase(firebaseUser));
+    } else if (currentUser?.provider === "google" && currentUser.uid) {
+      clearUser();
+    }
+
+    renderUser();
+  });
+}
+
 function normalizeSubmissions(submissions) {
   let changed = false;
 
@@ -732,7 +821,7 @@ backToGalleryButton.addEventListener("click", goHome);
 
 googleAuthButton.addEventListener("click", (event) => {
   event.preventDefault();
-  openAuthModal();
+  signInWithGoogle();
 });
 
 modalClose.addEventListener("click", closeAuthModal);
@@ -751,9 +840,7 @@ googleConnectButton.addEventListener("click", () => {
     return;
   }
 
-  googleStep.classList.remove("is-active");
-  nameStep.classList.add("is-active");
-  displayNameInput.focus();
+  signInWithGoogle();
 });
 
 nameStep.addEventListener("submit", (event) => {
@@ -796,5 +883,5 @@ window.addEventListener("keydown", (event) => {
 });
 
 renderGallery();
-renderUser();
+watchFirebaseAuth();
 showView(homeView);
