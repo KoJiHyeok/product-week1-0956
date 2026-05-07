@@ -339,6 +339,68 @@ function getSortedEntries(entries) {
   });
 }
 
+function routeToHash(state) {
+  if (state.view === "title") {
+    return `#title/${state.imageIndex}`;
+  }
+
+  if (state.view === "guest") {
+    return `#guest/${state.imageIndex}`;
+  }
+
+  if (state.view === "ranking") {
+    return `#ranking/${state.imageIndex}`;
+  }
+
+  return "#home";
+}
+
+function parseRouteFromHash(hash) {
+  const cleanHash = hash.replace(/^#/, "");
+
+  if (!cleanHash || cleanHash === "home") {
+    return { view: "home" };
+  }
+
+  const [view, rawIndex] = cleanHash.split("/");
+  const imageIndex = Number(rawIndex);
+
+  if (!["title", "guest", "ranking"].includes(view) || !Number.isInteger(imageIndex)) {
+    return null;
+  }
+
+  return { view, imageIndex };
+}
+
+function getValidRoute(state) {
+  if (!state || typeof state !== "object") {
+    return null;
+  }
+
+  if (state.view === "home") {
+    return { view: "home" };
+  }
+
+  if (!["title", "guest", "ranking"].includes(state.view) || !Number.isInteger(state.imageIndex)) {
+    return null;
+  }
+
+  const image = galleryImages[state.imageIndex];
+
+  if (!image) {
+    return null;
+  }
+
+  if (state.view === "guest" && !pendingTitle) {
+    return null;
+  }
+
+  return {
+    view: state.view,
+    imageIndex: state.imageIndex,
+  };
+}
+
 function showView(viewToShow) {
   [homeView, titleView, guestView, rankingView].forEach((view) => {
     view.hidden = view !== viewToShow;
@@ -346,43 +408,84 @@ function showView(viewToShow) {
   window.scrollTo({ top: 0, behavior: "auto" });
 }
 
+function applyRoute(state) {
+  const route = getValidRoute(state);
+
+  if (!route) {
+    history.replaceState({ view: "home" }, "", routeToHash({ view: "home" }));
+    applyRoute({ view: "home" });
+    return;
+  }
+
+  if (route.view === "home") {
+    selectedImageIndex = null;
+    pendingTitle = "";
+    titleInput.value = "";
+    guestNameInput.value = "";
+    showView(homeView);
+    return;
+  }
+
+  selectedImageIndex = route.imageIndex;
+  const image = getSelectedImage();
+
+  if (route.view === "title") {
+    selectedPhoto.src = image.src;
+    selectedPhoto.alt = image.alt;
+    titleInput.value = pendingTitle;
+    showView(titleView);
+    titleInput.focus();
+    return;
+  }
+
+  if (route.view === "guest") {
+    guestNameInput.value = currentGuestName;
+    showView(guestView);
+    guestNameInput.focus();
+    return;
+  }
+
+  renderRanking();
+  showView(rankingView);
+}
+
+function navigateTo(state, options = {}) {
+  const route = getValidRoute(state) || { view: "home" };
+  const method = options.replace ? "replaceState" : "pushState";
+
+  history[method](route, "", routeToHash(route));
+  applyRoute(route);
+}
+
+function initializeRoute() {
+  const route = getValidRoute(parseRouteFromHash(window.location.hash)) || { view: "home" };
+
+  history.replaceState(route, "", routeToHash(route));
+  applyRoute(route);
+}
+
 function goHome() {
-  selectedImageIndex = null;
-  pendingTitle = "";
-  titleInput.value = "";
-  guestNameInput.value = "";
-  showView(homeView);
+  navigateTo({ view: "home" });
 }
 
 function startTitleEntry(index) {
-  const image = galleryImages[index];
-
-  if (!image) {
+  if (!galleryImages[index]) {
     showToast("사진이 없는 칸입니다");
     return;
   }
 
-  selectedImageIndex = index;
   pendingTitle = "";
-  selectedPhoto.src = image.src;
-  selectedPhoto.alt = image.alt;
   titleInput.value = "";
-  showView(titleView);
-  titleInput.focus();
+  navigateTo({ view: "title", imageIndex: index });
 }
 
 function showRanking(index) {
-  const image = galleryImages[index];
-
-  if (!image) {
+  if (!galleryImages[index]) {
     showToast("사진이 없는 칸입니다");
     return;
   }
 
-  selectedImageIndex = index;
-  pendingTitle = "";
-  renderRanking();
-  showView(rankingView);
+  navigateTo({ view: "ranking", imageIndex: index });
 }
 
 function addSubmission(author) {
@@ -410,9 +513,8 @@ function addSubmission(author) {
   ];
 
   saveSubmissions(submissions);
-  pendingTitle = "";
   renderRanking();
-  showView(rankingView);
+  navigateTo({ view: "ranking", imageIndex: selectedImageIndex });
 }
 
 function updateSubmission(entryId, updater) {
@@ -486,7 +588,6 @@ function renderRanking() {
   const image = getSelectedImage();
 
   if (!image) {
-    goHome();
     return;
   }
 
@@ -741,8 +842,7 @@ titleForm.addEventListener("submit", (event) => {
   }
 
   guestNameInput.value = currentGuestName;
-  showView(guestView);
-  guestNameInput.focus();
+  navigateTo({ view: "guest", imageIndex: selectedImageIndex });
 });
 
 guestForm.addEventListener("submit", (event) => {
@@ -867,6 +967,10 @@ userChip.addEventListener("click", openDrawer);
 drawerClose.addEventListener("click", closeDrawer);
 pageDim.addEventListener("click", closeDrawer);
 
+window.addEventListener("popstate", (event) => {
+  applyRoute(getValidRoute(event.state) || parseRouteFromHash(window.location.hash) || { view: "home" });
+});
+
 window.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") {
     return;
@@ -884,4 +988,4 @@ window.addEventListener("keydown", (event) => {
 
 renderGallery();
 watchFirebaseAuth();
-showView(homeView);
+initializeRoute();
