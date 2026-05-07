@@ -34,53 +34,22 @@ const toast = document.querySelector("#toast");
 const userStorageKey = "title-making-google-user";
 const guestStorageKey = "title-academy-guest-name";
 const submissionsStorageKey = "title-academy-submissions";
+const galleryImagesStorageKey = "title-academy-gallery-images";
 const slotCount = 20;
-const galleryImages = [
-  {
-    src: "assets/images/25ra4.png",
-    alt: "연기 속에서 손을 뻗는 고양이",
-  },
-  {
-    src: "assets/images/25ra3.png",
-    alt: "가게 앞 추모 꽃다발",
-  },
-  {
-    src: "assets/images/kyaw-tun-BYQejz-foZk-unsplash.jpeg",
-    alt: "나란히 있는 악어 세 마리",
-  },
-  {
-    src: "assets/images/celine-cao-TOvJ9JYQdTE-unsplash.jpg",
-    alt: "들판을 걷는 검은 옷의 사람",
-  },
-  {
-    src: "assets/images/cage-screaming-edited.png",
-    alt: "양팔을 벌리고 소리치는 남자",
-  },
-  {
-    src: "assets/images/40-completely-normal-objects-the-canine-community-says-turn-their-brave-doggos-into-big-babies.jpg",
-    alt: "밥그릇 앞에서 놀란 표정의 강아지",
-  },
-  {
-    src: "assets/images/26-snuggly-springtime-sweethearts-for-a-sunny-pet-filled-scroll.jpg",
-    alt: "노란 테두리 안의 웃는 강아지",
-  },
-  {
-    src: "assets/images/retail-convenience-store-employees-horrible-bosses-workplace-story-employment-employment-45281285.jpg",
-    alt: "냉장고에서 물병을 꺼내는 사람",
-  },
-  {
-    src: "assets/images/alwayswrite-reggae-10264258_1920.jpg",
-    alt: "무대에서 노래하는 레게 가수",
-  },
-  {
-    src: "assets/images/moroznaya_photo-woman-7999748_1920.jpg",
-    alt: "손에 폭죽을 들고 있는 사람",
-  },
-];
+const maxStoredImageSize = 1200;
+const storedImageQuality = 0.82;
+const galleryImages = loadGalleryImages();
+const imageUploadInput = document.createElement("input");
+
+imageUploadInput.type = "file";
+imageUploadInput.accept = "image/*";
+imageUploadInput.hidden = true;
+document.body.append(imageUploadInput);
 
 let currentUser = loadUser();
 let currentGuestName = sessionStorage.getItem(guestStorageKey) || "";
 let selectedImageIndex = null;
+let pendingUploadIndex = null;
 let pendingTitle = "";
 let toastTimer;
 const expandedCommentIds = new Set();
@@ -168,6 +137,92 @@ function loadSubmissions() {
 
 function saveSubmissions(submissions) {
   localStorage.setItem(submissionsStorageKey, JSON.stringify(submissions));
+}
+
+function loadGalleryImages() {
+  try {
+    const savedImages = JSON.parse(localStorage.getItem(galleryImagesStorageKey));
+
+    if (!Array.isArray(savedImages)) {
+      return Array.from({ length: slotCount }, () => null);
+    }
+
+    return Array.from({ length: slotCount }, (_, index) => {
+      const image = savedImages[index];
+
+      if (!image || typeof image.src !== "string") {
+        return null;
+      }
+
+      return {
+        src: image.src,
+        alt: typeof image.alt === "string" ? image.alt : `사용자 이미지 ${index + 1}`,
+      };
+    });
+  } catch {
+    return Array.from({ length: slotCount }, () => null);
+  }
+}
+
+function saveGalleryImages() {
+  localStorage.setItem(galleryImagesStorageKey, JSON.stringify(galleryImages));
+}
+
+function openImagePicker(index) {
+  pendingUploadIndex = index;
+  imageUploadInput.value = "";
+  imageUploadInput.click();
+}
+
+function saveUploadedImage(index, file) {
+  if (!file.type.startsWith("image/")) {
+    showToast("이미지 파일만 선택할 수 있습니다");
+    return;
+  }
+
+  const image = new Image();
+  const objectUrl = URL.createObjectURL(file);
+
+  image.addEventListener("load", () => {
+    const scale = Math.min(1, maxStoredImageSize / Math.max(image.naturalWidth, image.naturalHeight));
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      URL.revokeObjectURL(objectUrl);
+      showToast("사진을 처리하지 못했습니다");
+      return;
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+    context.drawImage(image, 0, 0, width, height);
+
+    galleryImages[index] = {
+      src: canvas.toDataURL("image/jpeg", storedImageQuality),
+      alt: file.name ? file.name.replace(/\.[^.]+$/, "") : `사용자 이미지 ${index + 1}`,
+    };
+
+    try {
+      saveGalleryImages();
+      renderGallery();
+      showToast("사진이 추가되었습니다");
+    } catch (error) {
+      galleryImages[index] = null;
+      showToast("사진 용량이 커서 저장하지 못했습니다");
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
+  });
+
+  image.addEventListener("error", () => {
+    URL.revokeObjectURL(objectUrl);
+    showToast("사진을 불러오지 못했습니다");
+  });
+
+  image.src = objectUrl;
 }
 
 function getInitials(name) {
@@ -327,7 +382,9 @@ function renderGallery() {
       card.append(photo, actions);
     } else {
       card.classList.add("is-empty");
-      card.setAttribute("aria-label", "비어 있는 사진 칸");
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
+      card.setAttribute("aria-label", "비어 있는 사진 칸에 사진 추가");
     }
 
     fragment.append(card);
@@ -524,11 +581,16 @@ galleryGrid.addEventListener("click", (event) => {
   const actionButton = event.target.closest(".photo-action");
   const card = event.target.closest(".photo-card");
 
-  if (!card || card.classList.contains("is-empty")) {
+  if (!card) {
     return;
   }
 
   const imageIndex = Number(card.dataset.imageIndex);
+
+  if (card.classList.contains("is-empty")) {
+    openImagePicker(imageIndex);
+    return;
+  }
 
   if (actionButton?.dataset.action === "ranking") {
     showRanking(imageIndex);
@@ -545,12 +607,31 @@ galleryGrid.addEventListener("keydown", (event) => {
 
   const card = event.target.closest(".photo-card");
 
-  if (!card || card.classList.contains("is-empty")) {
+  if (!card) {
     return;
   }
 
   event.preventDefault();
-  startTitleEntry(Number(card.dataset.imageIndex));
+  const imageIndex = Number(card.dataset.imageIndex);
+
+  if (card.classList.contains("is-empty")) {
+    openImagePicker(imageIndex);
+    return;
+  }
+
+  startTitleEntry(imageIndex);
+});
+
+imageUploadInput.addEventListener("change", () => {
+  const file = imageUploadInput.files?.[0];
+
+  if (pendingUploadIndex === null || !file) {
+    pendingUploadIndex = null;
+    return;
+  }
+
+  saveUploadedImage(pendingUploadIndex, file);
+  pendingUploadIndex = null;
 });
 
 titleForm.addEventListener("submit", (event) => {

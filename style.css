@@ -198,7 +198,7 @@ button {
 
 .photo-card.is-empty {
   opacity: 0.45;
-  cursor: default;
+  cursor: pointer;
 }
 
 .photo-card.is-empty::after {
@@ -216,7 +216,8 @@ button {
   box-shadow: 0 3px 9px rgba(3, 8, 39, 0.16);
 }
 
-.photo-card:not(.is-empty):hover {
+.photo-card:not(.is-empty):hover,
+.photo-card.is-empty:hover {
   transform: translateY(-3px);
   box-shadow: 0 24px 42px rgba(3, 8, 39, 0.34);
 }
