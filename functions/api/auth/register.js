@@ -12,6 +12,14 @@ import {
 } from "./_shared.js";
 
 export async function onRequestPost(context) {
+  try {
+    return await handleRegister(context);
+  } catch {
+    return json({ message: "회원가입 처리 중 오류가 발생했습니다." }, 500);
+  }
+}
+
+async function handleRegister(context) {
   const body = await readJson(context.request);
 
   if (!body) {

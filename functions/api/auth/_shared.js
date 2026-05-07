@@ -1,7 +1,7 @@
 const SESSION_COOKIE_NAME = "title_school_session";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 const PASSWORD_HASH_ALGORITHM = "pbkdf2_sha256";
-const PASSWORD_HASH_ITERATIONS = 210000;
+const PASSWORD_HASH_ITERATIONS = 120000;
 const PASSWORD_KEY_BITS = 256;
 const textEncoder = new TextEncoder();
 
@@ -173,7 +173,7 @@ async function derivePassword(password, salt, iterations) {
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
     textEncoder.encode(password),
-    "PBKDF2",
+    { name: "PBKDF2" },
     false,
     ["deriveBits"]
   );

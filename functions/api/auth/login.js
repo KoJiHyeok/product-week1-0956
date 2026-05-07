@@ -9,6 +9,14 @@ import {
 } from "./_shared.js";
 
 export async function onRequestPost(context) {
+  try {
+    return await handleLogin(context);
+  } catch {
+    return json({ message: "로그인 처리 중 오류가 발생했습니다." }, 500);
+  }
+}
+
+async function handleLogin(context) {
   const body = await readJson(context.request);
 
   if (!body) {
