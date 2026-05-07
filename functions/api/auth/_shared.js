@@ -65,6 +65,7 @@ export function publicUser(user) {
     id: user.id,
     loginId: user.login_id,
     username: user.username,
+    profileImageUrl: user.profile_image_url || "",
   };
 }
 
@@ -116,16 +117,29 @@ export async function getCurrentUser(context) {
   const sessionId = await sha256Base64Url(token);
   const now = new Date().toISOString();
 
-  return db
-    .prepare(
-      `SELECT users.id, users.login_id, users.username
-       FROM sessions
-       JOIN users ON users.id = sessions.user_id
-       WHERE sessions.id = ? AND sessions.expires_at > ?
-       LIMIT 1`
-    )
-    .bind(sessionId, now)
-    .first();
+  try {
+    return await db
+      .prepare(
+        `SELECT users.id, users.login_id, users.username, users.profile_image_url
+         FROM sessions
+         JOIN users ON users.id = sessions.user_id
+         WHERE sessions.id = ? AND sessions.expires_at > ?
+         LIMIT 1`
+      )
+      .bind(sessionId, now)
+      .first();
+  } catch {
+    return db
+      .prepare(
+        `SELECT users.id, users.login_id, users.username
+         FROM sessions
+         JOIN users ON users.id = sessions.user_id
+         WHERE sessions.id = ? AND sessions.expires_at > ?
+         LIMIT 1`
+      )
+      .bind(sessionId, now)
+      .first();
+  }
 }
 
 export async function deleteCurrentSession(context) {

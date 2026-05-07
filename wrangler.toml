@@ -6,3 +6,9 @@ compatibility_date = "2026-05-05"
 binding = "DB"
 database_name = "product-week1-0956-auth"
 database_id = "89ecb707-e9aa-47e8-8c1c-a2d769fe2f15"
+
+# Avatar uploads use an R2 binding named AVATARS.
+# Create an R2 bucket such as product-week1-0956-avatars and bind it to Pages as AVATARS.
+# [[r2_buckets]]
+# binding = "AVATARS"
+# bucket_name = "product-week1-0956-avatars"

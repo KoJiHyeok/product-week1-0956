@@ -31,10 +31,19 @@ async function handleLogin(context) {
   }
 
   const db = getDb(context);
-  const user = await db
-    .prepare("SELECT id, login_id, username, password_hash FROM users WHERE login_id = ? LIMIT 1")
-    .bind(loginId)
-    .first();
+  let user;
+
+  try {
+    user = await db
+      .prepare("SELECT id, login_id, username, password_hash, profile_image_url FROM users WHERE login_id = ? LIMIT 1")
+      .bind(loginId)
+      .first();
+  } catch {
+    user = await db
+      .prepare("SELECT id, login_id, username, password_hash FROM users WHERE login_id = ? LIMIT 1")
+      .bind(loginId)
+      .first();
+  }
 
   if (!user || !(await verifyPassword(password, user.password_hash))) {
     return json({ message: "아이디 또는 비밀번호가 올바르지 않습니다." }, 401);

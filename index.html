@@ -91,21 +91,37 @@
   </main>
 
   <aside class="profile-drawer" id="profileDrawer" aria-hidden="true" aria-label="회원 정보">
+    <button class="drawer-edge-close" id="drawerEdgeClose" type="button" aria-label="닫기">&gt;</button>
     <div class="drawer-head">
       <h2>회원 정보</h2>
-      <button class="drawer-close" id="drawerClose" type="button" aria-label="닫기"></button>
     </div>
 
-    <div class="drawer-profile">
-      <span class="profile-photo large" id="drawerPhoto" aria-hidden="true"></span>
+    <div class="drawer-view is-active" id="drawerMenuView">
+      <div class="drawer-profile">
+      <button class="avatar-edit-button" id="avatarEditButton" type="button" aria-label="프로필 이미지 수정">
+        <span class="profile-photo large" id="drawerPhoto" aria-hidden="true"></span>
+        <span class="avatar-edit-overlay" aria-hidden="true">수정</span>
+      </button>
+      <input id="avatarInput" type="file" accept="image/png,image/jpeg,image/webp" hidden />
       <div>
         <p class="drawer-name" id="drawerName"></p>
         <p class="drawer-provider">일반 계정</p>
       </div>
+      </div>
+
+      <div class="drawer-menu">
+        <button class="drawer-menu-row" id="profileEditButton" type="button">개인정보 수정</button>
+        <button class="drawer-menu-row" id="myTitlesButton" type="button">나의 제목들</button>
+        <button class="drawer-menu-row danger" id="logoutButton" type="button">로그아웃</button>
+      </div>
     </div>
 
-    <div class="drawer-menu">
-      <button class="auth-button solid full" id="logoutButton" type="button">로그아웃</button>
+    <div class="drawer-view" id="myTitlesView" hidden>
+      <div class="drawer-subhead">
+        <button class="drawer-back" id="drawerBackButton" type="button">메뉴로</button>
+        <h3>나의 제목들</h3>
+      </div>
+      <div class="my-title-list" id="myTitleList"></div>
     </div>
   </aside>
 

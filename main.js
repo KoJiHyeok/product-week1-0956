@@ -20,10 +20,18 @@ const userName = document.querySelector("#userName");
 const profilePhoto = document.querySelector("#profilePhoto");
 const pageDim = document.querySelector("#pageDim");
 const profileDrawer = document.querySelector("#profileDrawer");
-const drawerClose = document.querySelector("#drawerClose");
+const drawerEdgeClose = document.querySelector("#drawerEdgeClose");
 const logoutButton = document.querySelector("#logoutButton");
 const drawerName = document.querySelector("#drawerName");
 const drawerPhoto = document.querySelector("#drawerPhoto");
+const avatarEditButton = document.querySelector("#avatarEditButton");
+const avatarInput = document.querySelector("#avatarInput");
+const profileEditButton = document.querySelector("#profileEditButton");
+const myTitlesButton = document.querySelector("#myTitlesButton");
+const drawerMenuView = document.querySelector("#drawerMenuView");
+const myTitlesView = document.querySelector("#myTitlesView");
+const drawerBackButton = document.querySelector("#drawerBackButton");
+const myTitleList = document.querySelector("#myTitleList");
 const authModal = document.querySelector("#authModal");
 const authTitle = document.querySelector("#authTitle");
 const modalClose = document.querySelector("#modalClose");
@@ -58,6 +66,7 @@ const galleryImages = [
 ];
 const authModeButtons = [loginTabButton, signupTabButton];
 const slotCount = galleryImages.length;
+const maxAvatarBytes = 5 * 1024 * 1024;
 
 localStorage.removeItem(legacyUserStorageKey);
 
@@ -66,6 +75,7 @@ let currentGuestName = sessionStorage.getItem(guestStorageKey) || "";
 let selectedImageIndex = null;
 let pendingTitle = "";
 let toastTimer;
+let serverSubmissionsByImage = {};
 const expandedCommentIds = new Set();
 
 function createId(prefix) {
@@ -86,6 +96,24 @@ function setCurrentUser(user) {
 }
 
 async function requestAuth(path, options = {}) {
+  const response = await fetch(path, {
+    credentials: "include",
+    headers: {
+      "content-type": "application/json",
+      ...(options.headers || {}),
+    },
+    ...options,
+  });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.message || "요청 처리 중 오류가 발생했습니다.");
+  }
+
+  return data;
+}
+
+async function requestJson(path, options = {}) {
   const response = await fetch(path, {
     credentials: "include",
     headers: {
@@ -221,6 +249,10 @@ function getActiveAuthor() {
   return getUserDisplayName() || currentGuestName || "비회원";
 }
 
+function isServerEntry(entry) {
+  return /^\d+$/.test(String(entry?.id || ""));
+}
+
 function getSortedEntries(entries) {
   return entries.slice().sort((left, right) => {
     const likeDifference = right.likes - left.likes;
@@ -340,6 +372,7 @@ function applyRoute(state) {
   }
 
   renderRanking();
+  refreshRanking();
   showView(rankingView);
 }
 
@@ -382,12 +415,59 @@ function showRanking(index) {
   navigateTo({ view: "ranking", imageIndex: index });
 }
 
-function addSubmission(author) {
+async function fetchServerSubmissions(imageIndex) {
+  const data = await requestJson(`/api/submissions?imageIndex=${encodeURIComponent(imageIndex)}`, {
+    method: "GET",
+    headers: {},
+  });
+  serverSubmissionsByImage[String(imageIndex)] = data.submissions || [];
+}
+
+async function refreshRanking() {
+  if (!Number.isInteger(selectedImageIndex)) {
+    return;
+  }
+
+  try {
+    await fetchServerSubmissions(selectedImageIndex);
+  } catch {
+    delete serverSubmissionsByImage[String(selectedImageIndex)];
+  }
+
+  renderRanking();
+}
+
+async function addSubmission(author) {
   const image = getSelectedImage();
 
   if (!image || !pendingTitle) {
     goHome();
     return;
+  }
+
+  try {
+    const data = await requestJson("/api/submissions", {
+      method: "POST",
+      body: JSON.stringify({
+        imageIndex: selectedImageIndex,
+        imageSrc: image.src,
+        title: pendingTitle,
+        guestName: currentUser ? "" : author,
+      }),
+    });
+    const imageKey = String(selectedImageIndex);
+    const currentList = Array.isArray(serverSubmissionsByImage[imageKey]) ? serverSubmissionsByImage[imageKey] : [];
+    serverSubmissionsByImage[imageKey] = [data.submission, ...currentList].filter(Boolean);
+    pendingTitle = "";
+    renderRanking();
+    navigateTo({ view: "ranking", imageIndex: selectedImageIndex });
+    refreshRanking();
+    return;
+  } catch {
+    if (currentUser) {
+      showToast("서버 저장소를 사용할 수 없습니다.");
+      return;
+    }
   }
 
   const submissions = loadSubmissions();
@@ -407,6 +487,7 @@ function addSubmission(author) {
   ];
 
   saveSubmissions(submissions);
+  pendingTitle = "";
   renderRanking();
   navigateTo({ view: "ranking", imageIndex: selectedImageIndex });
 }
@@ -488,10 +569,14 @@ function renderRanking() {
   rankingPhoto.src = image.src;
   rankingPhoto.alt = image.alt;
 
+  const imageKey = String(selectedImageIndex);
+  const cachedEntries = serverSubmissionsByImage[imageKey];
   const submissions = loadSubmissions();
-  const entries = Array.isArray(submissions[String(selectedImageIndex)])
-    ? getSortedEntries(submissions[String(selectedImageIndex)])
-    : [];
+  const entries = Array.isArray(cachedEntries)
+    ? getSortedEntries(cachedEntries)
+    : Array.isArray(submissions[imageKey])
+      ? getSortedEntries(submissions[imageKey])
+      : [];
 
   if (entries.length === 0) {
     const empty = document.createElement("li");
@@ -527,7 +612,8 @@ function renderRanking() {
     heartButton.type = "button";
     heartButton.dataset.action = "like";
     heartButton.dataset.entryId = entry.id;
-    heartButton.setAttribute("aria-label", "하트 누르기");
+    heartButton.classList.toggle("is-liked", Boolean(entry.likedByMe));
+    heartButton.setAttribute("aria-label", entry.likedByMe ? "하트 취소" : "하트 누르기");
     heartButton.innerHTML = `<span class="heart-icon" aria-hidden="true"></span><span>${entry.likes}</span>`;
 
     const toggleButton = document.createElement("button");
@@ -612,9 +698,16 @@ function renderUser() {
   authActions.hidden = true;
   userChip.hidden = false;
   userName.textContent = displayName;
-  profilePhoto.textContent = getInitials(displayName);
+  renderAvatar(profilePhoto, currentUser);
   drawerName.textContent = displayName;
-  drawerPhoto.textContent = getInitials(displayName);
+  renderAvatar(drawerPhoto, currentUser);
+}
+
+function renderAvatar(target, user) {
+  const displayName = user?.username || "";
+  const imageUrl = user?.profileImageUrl || "";
+  target.textContent = imageUrl ? "" : getInitials(displayName);
+  target.style.backgroundImage = imageUrl ? `url("${imageUrl}")` : "";
 }
 
 function setAuthMode(mode) {
@@ -657,7 +750,8 @@ function openDrawer() {
   pageDim.hidden = false;
   profileDrawer.classList.add("is-open");
   profileDrawer.setAttribute("aria-hidden", "false");
-  drawerClose.focus();
+  showDrawerMenu();
+  drawerEdgeClose.focus();
 }
 
 function closeDrawer() {
@@ -667,6 +761,122 @@ function closeDrawer() {
 
   if (currentUser) {
     userChip.focus();
+  }
+}
+
+function showDrawerMenu() {
+  drawerMenuView.hidden = false;
+  myTitlesView.hidden = true;
+  drawerMenuView.classList.add("is-active");
+  myTitlesView.classList.remove("is-active");
+}
+
+async function showMyTitles() {
+  drawerMenuView.hidden = true;
+  myTitlesView.hidden = false;
+  drawerMenuView.classList.remove("is-active");
+  myTitlesView.classList.add("is-active");
+  myTitleList.replaceChildren(createMyTitleMessage("불러오는 중입니다."));
+
+  try {
+    const data = await requestJson("/api/me/submissions", { method: "GET", headers: {} });
+    renderMyTitles(data.submissions || []);
+  } catch (error) {
+    myTitleList.replaceChildren(createMyTitleMessage(error.message));
+  }
+}
+
+function renderMyTitles(submissions) {
+  if (submissions.length === 0) {
+    myTitleList.replaceChildren(createMyTitleMessage("아직 작성한 제목이 없습니다."));
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  submissions.forEach((entry) => {
+    const card = document.createElement("article");
+    card.className = "my-title-card";
+
+    const image = document.createElement("img");
+    image.className = "my-title-thumb";
+    image.src = entry.imageSrc || galleryImages[entry.imageIndex]?.src || "";
+    image.alt = "";
+    image.loading = "lazy";
+
+    const body = document.createElement("div");
+    body.className = "my-title-body";
+
+    const title = document.createElement("strong");
+    title.textContent = entry.title;
+
+    const meta = document.createElement("p");
+    meta.className = "my-title-meta";
+    meta.textContent = `하트 ${entry.likes || 0}개`;
+
+    const comments = document.createElement("p");
+    comments.className = "my-title-comments";
+    comments.textContent = entry.comments?.length
+      ? entry.comments.map((comment) => `${comment.author}: ${comment.text}`).join(" / ")
+      : "댓글이 없습니다.";
+
+    body.append(title, meta, comments);
+    card.append(image, body);
+    fragment.append(card);
+  });
+
+  myTitleList.replaceChildren(fragment);
+}
+
+function createMyTitleMessage(message) {
+  const paragraph = document.createElement("p");
+  paragraph.className = "my-title-empty";
+  paragraph.textContent = message;
+  return paragraph;
+}
+
+async function uploadAvatar(file) {
+  if (!file) {
+    return;
+  }
+
+  if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+    showToast("PNG, JPEG, WEBP 이미지만 가능합니다.");
+    return;
+  }
+
+  if (file.size > maxAvatarBytes) {
+    showToast("이미지는 5MB 이하만 가능합니다.");
+    return;
+  }
+
+  const previousUser = currentUser;
+  const previewUrl = URL.createObjectURL(file);
+  currentUser = { ...currentUser, profileImageUrl: previewUrl };
+  renderUser();
+
+  try {
+    const formData = new FormData();
+    formData.append("avatar", file);
+    const response = await fetch("/api/profile/avatar", {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.message || "프로필 이미지를 저장하지 못했습니다.");
+    }
+
+    setCurrentUser(data.user);
+    showToast("프로필 이미지가 변경되었습니다.");
+  } catch (error) {
+    setCurrentUser(previousUser);
+    showToast(error.message);
+  } finally {
+    URL.revokeObjectURL(previewUrl);
+    avatarInput.value = "";
   }
 }
 
@@ -729,7 +939,7 @@ galleryGrid.addEventListener("keydown", (event) => {
   startTitleEntry(imageIndex);
 });
 
-titleForm.addEventListener("submit", (event) => {
+titleForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const title = titleInput.value.trim();
@@ -742,7 +952,7 @@ titleForm.addEventListener("submit", (event) => {
   pendingTitle = title;
 
   if (currentUser) {
-    addSubmission(getUserDisplayName());
+    await addSubmission(getUserDisplayName());
     return;
   }
 
@@ -750,7 +960,7 @@ titleForm.addEventListener("submit", (event) => {
   navigateTo({ view: "guest", imageIndex: selectedImageIndex });
 });
 
-guestForm.addEventListener("submit", (event) => {
+guestForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const guestName = guestNameInput.value.trim();
@@ -762,10 +972,10 @@ guestForm.addEventListener("submit", (event) => {
 
   currentGuestName = guestName;
   sessionStorage.setItem(guestStorageKey, guestName);
-  addSubmission(guestName);
+  await addSubmission(guestName);
 });
 
-rankingList.addEventListener("click", (event) => {
+rankingList.addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-action]");
 
   if (!button) {
@@ -775,9 +985,32 @@ rankingList.addEventListener("click", (event) => {
   const entryId = button.dataset.entryId;
 
   if (button.dataset.action === "like") {
-    updateSubmission(entryId, (entry) => {
-      entry.likes += 1;
-    });
+    if (!currentUser) {
+      showToast("로그인 후 하트를 누를 수 있습니다.");
+      openAuthModal("login");
+      return;
+    }
+
+    const imageKey = String(selectedImageIndex);
+    const serverEntries = serverSubmissionsByImage[imageKey];
+    const entry = Array.isArray(serverEntries) ? serverEntries.find((item) => item.id === entryId) : null;
+
+    if (!entry || !isServerEntry(entry)) {
+      showToast("서버에 저장된 제목만 하트를 누를 수 있습니다.");
+      return;
+    }
+
+    try {
+      const data = await requestJson(`/api/submissions/${encodeURIComponent(entryId)}/like`, {
+        method: "POST",
+        body: "{}",
+      });
+      entry.likes = data.likes;
+      entry.likedByMe = data.liked;
+      renderRanking();
+    } catch (error) {
+      showToast(error.message);
+    }
     return;
   }
 
@@ -792,7 +1025,7 @@ rankingList.addEventListener("click", (event) => {
   }
 });
 
-rankingList.addEventListener("submit", (event) => {
+rankingList.addEventListener("submit", async (event) => {
   const form = event.target.closest(".comment-form");
 
   if (!form) {
@@ -812,6 +1045,28 @@ rankingList.addEventListener("submit", (event) => {
   const entryId = form.dataset.entryId;
   expandedCommentIds.add(entryId);
 
+  const imageKey = String(selectedImageIndex);
+  const serverEntries = serverSubmissionsByImage[imageKey];
+  const entry = Array.isArray(serverEntries) ? serverEntries.find((item) => item.id === entryId) : null;
+
+  if (entry && isServerEntry(entry)) {
+    try {
+      const data = await requestJson(`/api/submissions/${encodeURIComponent(entryId)}/comments`, {
+        method: "POST",
+        body: JSON.stringify({
+          text,
+          guestName: currentUser ? "" : getActiveAuthor(),
+        }),
+      });
+      entry.comments.push(data.comment);
+      input.value = "";
+      renderRanking();
+    } catch (error) {
+      showToast(error.message);
+    }
+    return;
+  }
+
   updateSubmission(entryId, (entry) => {
     entry.comments.push({
       id: createId("comment"),
@@ -820,6 +1075,7 @@ rankingList.addEventListener("submit", (event) => {
       createdAt: new Date().toISOString(),
     });
   });
+  input.value = "";
 });
 
 backToGalleryButton.addEventListener("click", goHome);
@@ -899,9 +1155,20 @@ signupForm.addEventListener("submit", async (event) => {
 });
 
 userChip.addEventListener("click", openDrawer);
-drawerClose.addEventListener("click", closeDrawer);
+drawerEdgeClose.addEventListener("click", closeDrawer);
 pageDim.addEventListener("click", closeDrawer);
 logoutButton.addEventListener("click", logout);
+profileEditButton.addEventListener("click", () => {
+  showToast("프로필 사진은 상단 사진을 눌러 수정할 수 있습니다.");
+});
+myTitlesButton.addEventListener("click", showMyTitles);
+drawerBackButton.addEventListener("click", showDrawerMenu);
+avatarEditButton.addEventListener("click", () => {
+  avatarInput.click();
+});
+avatarInput.addEventListener("change", () => {
+  uploadAvatar(avatarInput.files?.[0]);
+});
 
 window.addEventListener("popstate", (event) => {
   applyRoute(getValidRoute(event.state) || parseRouteFromHash(window.location.hash) || { view: "home" });

@@ -75,6 +75,7 @@ async function handleRegister(context) {
       id: result.meta.last_row_id,
       login_id: loginId,
       username,
+      profile_image_url: "",
     };
     const session = await createSession(db, context.request, user.id);
 
