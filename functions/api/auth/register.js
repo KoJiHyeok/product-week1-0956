@@ -92,6 +92,8 @@ async function handleRegister(context) {
       email,
       email_verified_at: null,
       username,
+      bio: "",
+      is_profile_public: 1,
       profile_image_url: "",
       auth_provider: "password",
     };

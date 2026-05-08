@@ -91,7 +91,8 @@ async function upsertGoogleUser(db, profile) {
 
   let user = await db
     .prepare(
-      `SELECT id, login_id, username, email, email_verified_at, profile_image_url, auth_provider
+      `SELECT id, login_id, username, email, email_verified_at, bio, is_profile_public,
+              profile_image_url, auth_provider
        FROM users
        WHERE google_sub = ? OR email = ?
        LIMIT 1`
@@ -130,11 +131,13 @@ async function upsertGoogleUser(db, profile) {
   return {
     id: result.meta.last_row_id,
     login_id: loginId,
-    email,
-    username,
-    email_verified_at: emailVerifiedAt,
-    profile_image_url: "",
-    auth_provider: "google",
+      email,
+      username,
+      email_verified_at: emailVerifiedAt,
+      bio: "",
+      is_profile_public: 1,
+      profile_image_url: "",
+      auth_provider: "google",
   };
 }
 

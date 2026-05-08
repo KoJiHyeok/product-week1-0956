@@ -168,7 +168,68 @@
       </div>
       <div class="my-title-list" id="myTitleList"></div>
     </div>
+
+    <div class="drawer-view" id="profileEditView" hidden>
+      <div class="drawer-subhead">
+        <button class="drawer-back" id="profileEditBackButton" type="button">메뉴로</button>
+        <h3>개인정보 수정</h3>
+      </div>
+
+      <form class="profile-edit-form" id="profileEditForm">
+        <button class="profile-edit-photo-button" id="profileEditPhotoButton" type="button" aria-label="프로필 사진 변경">
+          <span class="profile-photo large edit-photo" id="profileEditPhoto" aria-hidden="true"></span>
+          <span class="avatar-edit-overlay" aria-hidden="true">사진 변경</span>
+        </button>
+
+        <label for="profileNameInput">프로필 이름</label>
+        <input id="profileNameInput" name="username" type="text" maxlength="24" autocomplete="nickname" />
+
+        <label for="profileBioInput">자기소개글</label>
+        <textarea id="profileBioInput" name="bio" rows="4" maxlength="240"></textarea>
+
+        <label class="profile-public-toggle" for="profilePublicInput">
+          <input id="profilePublicInput" type="checkbox" />
+          <span>내 정보 공개</span>
+        </label>
+        <p class="profile-public-hint" id="profilePublicHint">공개: 사용자 이름, 나의 제목들 목록 공개</p>
+
+        <p class="profile-edit-message" id="profileEditMessage" aria-live="polite"></p>
+        <button class="auth-button solid full" id="profileSaveButton" type="submit">저장</button>
+        <button class="auth-button ghost full" id="passwordChangeButton" type="button">비밀번호 변경</button>
+        <button class="auth-button danger full" id="accountDeleteButton" type="button">회원 탈퇴</button>
+      </form>
+    </div>
   </aside>
+
+  <div class="confirm-modal" id="deleteAccountModal" hidden role="dialog" aria-modal="true" aria-labelledby="deleteAccountTitle">
+    <div class="confirm-card">
+      <h2 id="deleteAccountTitle">회원 탈퇴</h2>
+      <p>탈퇴하면 계정과 로그인 세션이 삭제됩니다. 이 작업은 되돌릴 수 없습니다.</p>
+      <div class="confirm-actions">
+        <button class="auth-button ghost" id="deleteCancelButton" type="button">취소</button>
+        <button class="auth-button danger" id="deleteConfirmButton" type="button">탈퇴하기</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="confirm-modal" id="passwordChangeModal" hidden role="dialog" aria-modal="true" aria-labelledby="passwordChangeTitle">
+    <div class="confirm-card">
+      <h2 id="passwordChangeTitle">비밀번호 변경</h2>
+      <form class="password-change-form" id="passwordChangeForm">
+        <label for="currentPasswordInput">현재 비밀번호</label>
+        <input id="currentPasswordInput" type="password" autocomplete="current-password" />
+        <label for="newPasswordInput">새 비밀번호</label>
+        <input id="newPasswordInput" type="password" autocomplete="new-password" />
+        <label for="newPasswordConfirmInput">새 비밀번호 확인</label>
+        <input id="newPasswordConfirmInput" type="password" autocomplete="new-password" />
+        <p class="profile-edit-message" id="passwordChangeMessage" aria-live="polite"></p>
+        <div class="confirm-actions">
+          <button class="auth-button ghost" id="passwordCancelButton" type="button">취소</button>
+          <button class="auth-button solid" type="submit">변경</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <div class="auth-modal" id="authModal" hidden role="dialog" aria-modal="true" aria-labelledby="authTitle">
     <div class="auth-card">

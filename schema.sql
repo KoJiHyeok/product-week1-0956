@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS users (
   email_verified_at TEXT,
   google_sub TEXT UNIQUE,
   auth_provider TEXT NOT NULL DEFAULT 'password',
+  bio TEXT NOT NULL DEFAULT '',
+  is_profile_public INTEGER NOT NULL DEFAULT 1,
   profile_image_url TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

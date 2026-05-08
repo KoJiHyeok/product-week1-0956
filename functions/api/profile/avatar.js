@@ -1,4 +1,4 @@
-import { getCurrentUser, getDb, json } from "../auth/_shared.js";
+import { getCurrentUser, getDb, json, publicUser } from "../auth/_shared.js";
 
 const allowedTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
 const maxAvatarBytes = 5 * 1024 * 1024;
@@ -43,12 +43,7 @@ export async function onRequestPost(context) {
     await db.prepare("UPDATE users SET profile_image_url = ? WHERE id = ?").bind(avatarUrl, user.id).run();
 
     return json({
-      user: {
-        id: user.id,
-        loginId: user.login_id,
-        username: user.username,
-        profileImageUrl: avatarUrl,
-      },
+      user: publicUser({ ...user, profile_image_url: avatarUrl }),
     });
   } catch {
     return json({ message: "프로필 이미지를 저장하지 못했습니다." }, 500);

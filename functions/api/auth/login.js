@@ -37,7 +37,7 @@ async function handleLogin(context) {
     user = await db
       .prepare(
         `SELECT id, login_id, username, email, email_verified_at, password_hash,
-                profile_image_url, auth_provider
+                bio, is_profile_public, profile_image_url, auth_provider
          FROM users
          WHERE login_id = ?
          LIMIT 1`

@@ -949,6 +949,128 @@ button {
   color: #c6213a;
 }
 
+.profile-edit-form,
+.password-change-form {
+  display: grid;
+  gap: 12px;
+}
+
+.profile-edit-photo-button {
+  position: relative;
+  justify-self: center;
+  width: 112px;
+  height: 112px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  padding: 0;
+  overflow: hidden;
+}
+
+.profile-edit-photo-button .edit-photo {
+  width: 112px;
+  height: 112px;
+  font-size: 2rem;
+}
+
+.profile-edit-form label,
+.password-change-form label {
+  color: #555d74;
+  font-weight: 900;
+}
+
+.profile-edit-form input[type="text"],
+.profile-edit-form textarea,
+.password-change-form input {
+  width: 100%;
+  border: 1px solid #d8dcec;
+  border-radius: 8px;
+  background: #fbfcff;
+  color: var(--ink);
+  padding: 11px 12px;
+  font: inherit;
+  font-weight: 800;
+  outline: 0;
+}
+
+.profile-edit-form textarea {
+  resize: vertical;
+  min-height: 96px;
+  line-height: 1.45;
+}
+
+.profile-public-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.profile-public-toggle input {
+  width: 18px;
+  height: 18px;
+}
+
+.profile-public-hint,
+.profile-edit-message {
+  margin: 0;
+  color: #68708a;
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.profile-edit-message {
+  min-height: 20px;
+  color: #c6213a;
+}
+
+.profile-edit-message.is-success {
+  color: #237a3b;
+}
+
+.auth-button.danger {
+  border: 1px solid #f0c7d0;
+  background: #fff4f6;
+  color: #c6213a;
+}
+
+.confirm-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(6, 8, 28, 0.58);
+}
+
+.confirm-card {
+  width: min(420px, 100%);
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 24px;
+  box-shadow: 0 24px 70px rgba(3, 8, 39, 0.32);
+}
+
+.confirm-card h2 {
+  margin: 0 0 10px;
+  font-size: 1.35rem;
+}
+
+.confirm-card p {
+  margin: 0 0 18px;
+  color: #68708a;
+  font-weight: 800;
+  line-height: 1.55;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .my-title-list {
   display: grid;
   gap: 12px;

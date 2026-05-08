@@ -34,6 +34,29 @@ const drawerMenuView = document.querySelector("#drawerMenuView");
 const myTitlesView = document.querySelector("#myTitlesView");
 const drawerBackButton = document.querySelector("#drawerBackButton");
 const myTitleList = document.querySelector("#myTitleList");
+const profileEditView = document.querySelector("#profileEditView");
+const profileEditBackButton = document.querySelector("#profileEditBackButton");
+const profileEditForm = document.querySelector("#profileEditForm");
+const profileEditPhotoButton = document.querySelector("#profileEditPhotoButton");
+const profileEditPhoto = document.querySelector("#profileEditPhoto");
+const profileNameInput = document.querySelector("#profileNameInput");
+const profileBioInput = document.querySelector("#profileBioInput");
+const profilePublicInput = document.querySelector("#profilePublicInput");
+const profilePublicHint = document.querySelector("#profilePublicHint");
+const profileEditMessage = document.querySelector("#profileEditMessage");
+const profileSaveButton = document.querySelector("#profileSaveButton");
+const passwordChangeButton = document.querySelector("#passwordChangeButton");
+const accountDeleteButton = document.querySelector("#accountDeleteButton");
+const deleteAccountModal = document.querySelector("#deleteAccountModal");
+const deleteCancelButton = document.querySelector("#deleteCancelButton");
+const deleteConfirmButton = document.querySelector("#deleteConfirmButton");
+const passwordChangeModal = document.querySelector("#passwordChangeModal");
+const passwordChangeForm = document.querySelector("#passwordChangeForm");
+const currentPasswordInput = document.querySelector("#currentPasswordInput");
+const newPasswordInput = document.querySelector("#newPasswordInput");
+const newPasswordConfirmInput = document.querySelector("#newPasswordConfirmInput");
+const passwordChangeMessage = document.querySelector("#passwordChangeMessage");
+const passwordCancelButton = document.querySelector("#passwordCancelButton");
 const authModal = document.querySelector("#authModal");
 const authTitle = document.querySelector("#authTitle");
 const modalClose = document.querySelector("#modalClose");
@@ -818,6 +841,7 @@ function renderUser() {
   renderAvatar(profilePhoto, currentUser);
   drawerName.textContent = displayName;
   renderAvatar(drawerPhoto, currentUser);
+  renderAvatar(profileEditPhoto, currentUser);
 }
 
 function renderAvatar(target, user) {
@@ -917,6 +941,8 @@ function closeDrawer() {
   pageDim.hidden = true;
   profileDrawer.classList.remove("is-open");
   profileDrawer.setAttribute("aria-hidden", "true");
+  closeDeleteAccountModal();
+  closePasswordChangeModal();
 
   if (currentUser) {
     userChip.focus();
@@ -926,15 +952,19 @@ function closeDrawer() {
 function showDrawerMenu() {
   drawerMenuView.hidden = false;
   myTitlesView.hidden = true;
+  profileEditView.hidden = true;
   drawerMenuView.classList.add("is-active");
   myTitlesView.classList.remove("is-active");
+  profileEditView.classList.remove("is-active");
 }
 
 async function showMyTitles() {
   drawerMenuView.hidden = true;
   myTitlesView.hidden = false;
+  profileEditView.hidden = true;
   drawerMenuView.classList.remove("is-active");
   myTitlesView.classList.add("is-active");
+  profileEditView.classList.remove("is-active");
   myTitleList.replaceChildren(createMyTitleMessage("불러오는 중입니다."));
 
   try {
@@ -942,6 +972,134 @@ async function showMyTitles() {
     renderMyTitles(data.submissions || []);
   } catch (error) {
     myTitleList.replaceChildren(createMyTitleMessage(error.message));
+  }
+}
+
+function showProfileEdit() {
+  if (!currentUser) {
+    openAuthModal("login");
+    return;
+  }
+
+  drawerMenuView.hidden = true;
+  myTitlesView.hidden = true;
+  profileEditView.hidden = false;
+  drawerMenuView.classList.remove("is-active");
+  myTitlesView.classList.remove("is-active");
+  profileEditView.classList.add("is-active");
+  profileNameInput.value = currentUser.username || "";
+  profileBioInput.value = currentUser.bio || "";
+  profilePublicInput.checked = currentUser.isProfilePublic !== false;
+  updateProfilePublicHint();
+  profileEditMessage.textContent = "";
+  profileEditMessage.classList.remove("is-success");
+  renderAvatar(profileEditPhoto, currentUser);
+  profileNameInput.focus();
+}
+
+function updateProfilePublicHint() {
+  profilePublicHint.textContent = profilePublicInput.checked
+    ? "공개: 사용자 이름, 나의 제목들 목록 공개"
+    : "비공개: 사용자 이름을 제외한 모든 사용자 정보 비공개";
+}
+
+async function saveProfile() {
+  const username = profileNameInput.value.trim();
+  const bio = profileBioInput.value.trim();
+  const isProfilePublic = profilePublicInput.checked;
+
+  if (!username) {
+    profileEditMessage.textContent = "프로필 이름을 입력하세요.";
+    profileNameInput.focus();
+    return;
+  }
+
+  profileSaveButton.disabled = true;
+  profileEditMessage.textContent = "";
+  profileEditMessage.classList.remove("is-success");
+
+  try {
+    const data = await requestJson("/api/profile", {
+      method: "PATCH",
+      body: JSON.stringify({ username, bio, isProfilePublic }),
+    });
+    setCurrentUser(data.user);
+    profileEditMessage.textContent = "프로필 정보가 저장되었습니다.";
+    profileEditMessage.classList.add("is-success");
+  } catch (error) {
+    profileEditMessage.textContent = error.message;
+  } finally {
+    profileSaveButton.disabled = false;
+  }
+}
+
+function openDeleteAccountModal() {
+  deleteAccountModal.hidden = false;
+  deleteConfirmButton.focus();
+}
+
+function closeDeleteAccountModal() {
+  deleteAccountModal.hidden = true;
+}
+
+async function deleteAccount() {
+  deleteConfirmButton.disabled = true;
+
+  try {
+    await requestJson("/api/profile", { method: "DELETE", headers: {} });
+    closeDeleteAccountModal();
+    closeDrawer();
+    setCurrentUser(null);
+    showToast("회원 탈퇴가 완료되었습니다.");
+  } catch (error) {
+    showToast(error.message);
+  } finally {
+    deleteConfirmButton.disabled = false;
+  }
+}
+
+function openPasswordChangeModal() {
+  passwordChangeForm.reset();
+  passwordChangeMessage.textContent = "";
+  passwordChangeMessage.classList.remove("is-success");
+  passwordChangeModal.hidden = false;
+  currentPasswordInput.focus();
+}
+
+function closePasswordChangeModal() {
+  passwordChangeModal.hidden = true;
+}
+
+async function changePassword() {
+  const currentPassword = currentPasswordInput.value;
+  const newPassword = newPasswordInput.value;
+  const newPasswordConfirm = newPasswordConfirmInput.value;
+
+  passwordChangeMessage.textContent = "";
+  passwordChangeMessage.classList.remove("is-success");
+
+  if (newPassword.length < 8) {
+    passwordChangeMessage.textContent = "새 비밀번호는 8자리 이상이어야 합니다.";
+    newPasswordInput.focus();
+    return;
+  }
+
+  if (newPassword !== newPasswordConfirm) {
+    passwordChangeMessage.textContent = "새 비밀번호가 일치하지 않습니다.";
+    newPasswordConfirmInput.focus();
+    return;
+  }
+
+  try {
+    await requestJson("/api/profile/password", {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword, newPasswordConfirm }),
+    });
+    passwordChangeForm.reset();
+    passwordChangeMessage.textContent = "비밀번호가 변경되었습니다.";
+    passwordChangeMessage.classList.add("is-success");
+  } catch (error) {
+    passwordChangeMessage.textContent = error.message;
   }
 }
 
@@ -1469,11 +1627,37 @@ userChip.addEventListener("click", openDrawer);
 drawerEdgeClose.addEventListener("click", closeDrawer);
 pageDim.addEventListener("click", closeDrawer);
 logoutButton.addEventListener("click", logout);
-profileEditButton.addEventListener("click", () => {
-  showToast("프로필 사진은 상단 사진을 눌러 수정할 수 있습니다.");
-});
+profileEditButton.addEventListener("click", showProfileEdit);
 myTitlesButton.addEventListener("click", showMyTitles);
 drawerBackButton.addEventListener("click", showDrawerMenu);
+profileEditBackButton.addEventListener("click", showDrawerMenu);
+profileEditPhotoButton.addEventListener("click", () => {
+  avatarInput.click();
+});
+profilePublicInput.addEventListener("change", updateProfilePublicHint);
+profileEditForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await saveProfile();
+});
+passwordChangeButton.addEventListener("click", openPasswordChangeModal);
+accountDeleteButton.addEventListener("click", openDeleteAccountModal);
+deleteCancelButton.addEventListener("click", closeDeleteAccountModal);
+deleteConfirmButton.addEventListener("click", deleteAccount);
+deleteAccountModal.addEventListener("click", (event) => {
+  if (event.target === deleteAccountModal) {
+    closeDeleteAccountModal();
+  }
+});
+passwordCancelButton.addEventListener("click", closePasswordChangeModal);
+passwordChangeModal.addEventListener("click", (event) => {
+  if (event.target === passwordChangeModal) {
+    closePasswordChangeModal();
+  }
+});
+passwordChangeForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await changePassword();
+});
 myTitleList.addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-action='delete-my-submission']");
 
@@ -1516,6 +1700,16 @@ window.addEventListener("keydown", (event) => {
 
   if (!authModal.hidden) {
     closeAuthModal();
+    return;
+  }
+
+  if (!deleteAccountModal.hidden) {
+    closeDeleteAccountModal();
+    return;
+  }
+
+  if (!passwordChangeModal.hidden) {
+    closePasswordChangeModal();
     return;
   }
 

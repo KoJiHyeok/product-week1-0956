@@ -16,6 +16,9 @@
 필요한 DB 마이그레이션:
 
 - `migrations/0003_auth_email_google.sql`
+- `migrations/0004_profile_editing.sql`
+
+`0004_profile_editing.sql`은 프로필 자기소개(`bio`)와 내 정보 공개 여부(`is_profile_public`) 필드를 추가합니다.
 
 추가 환경변수:
 
