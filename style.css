@@ -82,9 +82,9 @@ button {
 }
 
 .brand-logo {
-  width: 44px;
-  height: 44px;
-  flex: 0 0 44px;
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
   object-fit: contain;
 }
 
@@ -1302,9 +1302,9 @@ a[href]:focus-visible {
   }
 
   .brand-logo {
-    width: 34px;
-    height: 34px;
-    flex-basis: 34px;
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
   }
 
   .auth-actions,
