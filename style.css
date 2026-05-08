@@ -43,7 +43,9 @@ body::before {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
@@ -378,6 +380,104 @@ button {
   margin: 0;
   font-size: clamp(1.7rem, 4vw, 3rem);
   line-height: 1.05;
+}
+
+.contact-view {
+  padding-inline: 6px;
+}
+
+.contact-head {
+  margin-bottom: 24px;
+}
+
+.contact-head h1 {
+  margin: 0;
+  font-size: clamp(1.7rem, 4vw, 3rem);
+  line-height: 1.05;
+}
+
+.contact-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 390px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.contact-notice,
+.contact-form {
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 14px 32px rgba(3, 8, 39, 0.18);
+}
+
+.contact-notice {
+  padding: 20px;
+}
+
+.contact-notice h2 {
+  margin: 0 0 14px;
+  font-size: 1.16rem;
+}
+
+.contact-notice ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.55;
+}
+
+.contact-form {
+  display: grid;
+  gap: 12px;
+  padding: 22px;
+}
+
+.contact-form label {
+  font-weight: 900;
+}
+
+.contact-form input,
+.contact-form select,
+.contact-form textarea {
+  width: 100%;
+  border: 1px solid #d8dcec;
+  border-radius: 8px;
+  background: #fbfcff;
+  color: var(--ink);
+  padding: 0 14px;
+  outline: 0;
+}
+
+.contact-form input,
+.contact-form select {
+  min-height: 48px;
+}
+
+.contact-form textarea {
+  min-height: 190px;
+  padding-block: 12px;
+  resize: vertical;
+}
+
+.contact-message {
+  min-height: 20px;
+  margin: 2px 0 0;
+  color: #ffe5ea;
+  font-size: 0.92rem;
+  font-weight: 900;
+  line-height: 1.4;
+}
+
+.contact-message.is-success {
+  color: #dfffe8;
+}
+
+.contact-submit {
+  justify-self: start;
 }
 
 .ranking-layout {
@@ -1042,6 +1142,9 @@ button:focus-visible,
 .compact-form input:focus-visible,
 .auth-form input:focus-visible,
 .comment-form input:focus-visible,
+.contact-form input:focus-visible,
+.contact-form select:focus-visible,
+.contact-form textarea:focus-visible,
 a[href]:focus-visible {
   outline: 3px solid rgba(255, 199, 44, 0.82);
   outline-offset: 3px;
@@ -1058,6 +1161,10 @@ a[href]:focus-visible {
 
   .ranking-layout {
     grid-template-columns: minmax(240px, 360px) minmax(0, 1fr);
+  }
+
+  .contact-layout {
+    grid-template-columns: minmax(240px, 340px) minmax(0, 1fr);
   }
 }
 
@@ -1111,6 +1218,10 @@ a[href]:focus-visible {
   }
 
   .ranking-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-layout {
     grid-template-columns: 1fr;
   }
 

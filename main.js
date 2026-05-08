@@ -1,8 +1,10 @@
 const homeLink = document.querySelector("#homeLink");
+const contactLink = document.querySelector("#contactLink");
 const homeView = document.querySelector("#homeView");
 const titleView = document.querySelector("#titleView");
 const guestView = document.querySelector("#guestView");
 const rankingView = document.querySelector("#rankingView");
+const contactView = document.querySelector("#contactView");
 const galleryGrid = document.querySelector("#galleryGrid");
 const selectedPhoto = document.querySelector("#selectedPhoto");
 const rankingPhoto = document.querySelector("#rankingPhoto");
@@ -47,6 +49,12 @@ const signupPasswordInput = document.querySelector("#signupPasswordInput");
 const signupPasswordConfirmInput = document.querySelector("#signupPasswordConfirmInput");
 const loginMessage = document.querySelector("#loginMessage");
 const signupMessage = document.querySelector("#signupMessage");
+const contactForm = document.querySelector("#contactForm");
+const contactTypeInput = document.querySelector("#contactTypeInput");
+const contactTitleInput = document.querySelector("#contactTitleInput");
+const contactBodyInput = document.querySelector("#contactBodyInput");
+const contactMessage = document.querySelector("#contactMessage");
+const contactSubmitButton = document.querySelector("#contactSubmitButton");
 const toast = document.querySelector("#toast");
 
 const legacyUserStorageKey = "title-making-google-user";
@@ -282,6 +290,10 @@ function routeToHash(state) {
     return `#ranking/${state.imageIndex}`;
   }
 
+  if (state.view === "contact") {
+    return "#contact";
+  }
+
   return "#home";
 }
 
@@ -290,6 +302,10 @@ function parseRouteFromHash(hash) {
 
   if (!cleanHash || cleanHash === "home") {
     return { view: "home" };
+  }
+
+  if (cleanHash === "contact") {
+    return { view: "contact" };
   }
 
   const [view, rawIndex] = cleanHash.split("/");
@@ -309,6 +325,10 @@ function getValidRoute(state) {
 
   if (state.view === "home") {
     return { view: "home" };
+  }
+
+  if (state.view === "contact") {
+    return { view: "contact" };
   }
 
   if (!["title", "guest", "ranking"].includes(state.view) || !Number.isInteger(state.imageIndex)) {
@@ -332,7 +352,7 @@ function getValidRoute(state) {
 }
 
 function showView(viewToShow) {
-  [homeView, titleView, guestView, rankingView].forEach((view) => {
+  [homeView, titleView, guestView, rankingView, contactView].forEach((view) => {
     view.hidden = view !== viewToShow;
   });
   window.scrollTo({ top: 0, behavior: "auto" });
@@ -353,6 +373,14 @@ function applyRoute(state) {
     titleInput.value = "";
     guestNameInput.value = "";
     showView(homeView);
+    return;
+  }
+
+  if (route.view === "contact") {
+    selectedImageIndex = null;
+    pendingTitle = "";
+    showView(contactView);
+    contactTypeInput.focus();
     return;
   }
 
@@ -397,6 +425,10 @@ function initializeRoute() {
 
 function goHome() {
   navigateTo({ view: "home" });
+}
+
+function goContact() {
+  navigateTo({ view: "contact" });
 }
 
 function startTitleEntry(index) {
@@ -980,6 +1012,11 @@ homeLink.addEventListener("click", (event) => {
   goHome();
 });
 
+contactLink.addEventListener("click", (event) => {
+  event.preventDefault();
+  goContact();
+});
+
 galleryGrid.addEventListener("click", (event) => {
   const actionButton = event.target.closest(".photo-action");
   const card = event.target.closest(".photo-card");
@@ -1311,6 +1348,52 @@ signupForm.addEventListener("submit", async (event) => {
     await signup(loginId, username, password, passwordConfirm);
   } catch (error) {
     signupMessage.textContent = error.message;
+  }
+});
+
+contactForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  contactMessage.textContent = "";
+  contactMessage.classList.remove("is-success");
+
+  const type = contactTypeInput.value.trim();
+  const title = contactTitleInput.value.trim();
+  const body = contactBodyInput.value.trim();
+
+  if (!type) {
+    contactMessage.textContent = "문의 유형을 선택하세요.";
+    contactTypeInput.focus();
+    return;
+  }
+
+  if (!title) {
+    contactMessage.textContent = "문의 제목을 입력하세요.";
+    contactTitleInput.focus();
+    return;
+  }
+
+  if (!body) {
+    contactMessage.textContent = "문의 내용을 입력하세요.";
+    contactBodyInput.focus();
+    return;
+  }
+
+  contactSubmitButton.disabled = true;
+  contactSubmitButton.textContent = "제출 중";
+
+  try {
+    const data = await requestJson("/api/contact", {
+      method: "POST",
+      body: JSON.stringify({ type, title, body }),
+    });
+    contactForm.reset();
+    contactMessage.textContent = data.message || "문의가 접수되었습니다.";
+    contactMessage.classList.add("is-success");
+  } catch (error) {
+    contactMessage.textContent = error.message;
+  } finally {
+    contactSubmitButton.disabled = false;
+    contactSubmitButton.textContent = "문의 제출";
   }
 });
 
