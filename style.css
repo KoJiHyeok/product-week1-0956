@@ -71,11 +71,21 @@ button {
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   color: var(--text);
   font-size: 1.28rem;
   font-weight: 900;
   text-decoration: none;
   white-space: nowrap;
+}
+
+.brand-logo {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  object-fit: contain;
 }
 
 .auth-actions {
@@ -1076,6 +1086,14 @@ button {
   font-weight: 900;
 }
 
+.field-hint {
+  margin: -8px 0 0;
+  color: #7a8298;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
 .auth-form input {
   width: 100%;
   min-height: 46px;
@@ -1085,6 +1103,106 @@ button {
   color: var(--ink);
   padding: 0 14px;
   outline: 0;
+}
+
+.oauth-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  border: 1px solid #d8dcec;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #2f3648;
+  font-weight: 900;
+}
+
+.oauth-button span {
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f3f5fb;
+  color: #1a73e8;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #8a91a6;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #e1e5f1;
+}
+
+.auth-text-link {
+  justify-self: end;
+  min-height: 28px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  padding: 0;
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.terms-panel {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #e1e5f1;
+  border-radius: 10px;
+  background: #fbfcff;
+}
+
+.terms-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #454d63;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.terms-check input {
+  width: 16px;
+  min-height: 16px;
+  margin-top: 2px;
+  padding: 0;
+}
+
+.terms-accordion {
+  border-radius: 8px;
+  background: #f0f3fb;
+}
+
+.terms-accordion summary {
+  cursor: pointer;
+  padding: 9px 10px;
+  color: #555d74;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.terms-accordion p {
+  margin: 0;
+  padding: 0 10px 10px;
+  color: #667087;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.55;
 }
 
 .auth-message {
@@ -1180,6 +1298,13 @@ a[href]:focus-visible {
 
   .brand {
     font-size: 1.15rem;
+    gap: 8px;
+  }
+
+  .brand-logo {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
   }
 
   .auth-actions,
@@ -1245,6 +1370,86 @@ a[href]:focus-visible {
   }
 }
 
+@media (max-width: 640px) {
+  .gallery-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .photo-card {
+    aspect-ratio: 4 / 3;
+    border-radius: 12px;
+    box-shadow: 0 10px 22px rgba(3, 8, 39, 0.22);
+  }
+
+  .photo-card::before {
+    background: linear-gradient(to bottom, transparent 0 58%, rgba(0, 0, 0, 0.22));
+  }
+
+  .photo-card-image {
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .photo-card-actions {
+    top: 7px;
+    right: 7px;
+    gap: 4px;
+  }
+
+  .photo-action {
+    min-width: 44px;
+    min-height: 28px;
+    padding: 0 7px;
+    font-size: 0.72rem;
+  }
+
+  .photo-card.is-empty::after {
+    width: 38px;
+    height: 30px;
+    right: 10px;
+    bottom: 10px;
+    border-radius: 6px;
+    background:
+      linear-gradient(var(--paper) 0 0) 8px 8px / 6px 6px no-repeat,
+      linear-gradient(135deg, transparent 46%, var(--paper) 47% 56%, transparent 57%) 7px 14px / 21px 11px no-repeat,
+      #45b95b;
+  }
+
+  .ranking-list {
+    gap: 10px;
+  }
+
+  .ranking-item,
+  .ranking-empty {
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .rank-number {
+    width: 28px;
+    height: 28px;
+    font-size: 0.82rem;
+  }
+
+  .rank-content {
+    gap: 4px;
+  }
+
+  .rank-content strong {
+    font-size: 0.95rem;
+  }
+
+  .rank-content span {
+    font-size: 0.78rem;
+  }
+
+  .rank-actions {
+    gap: 6px;
+  }
+}
+
 @media (max-width: 430px) {
   .top-actions,
   .auth-actions {
@@ -1260,17 +1465,13 @@ a[href]:focus-visible {
     min-height: 34px;
   }
 
-  .gallery-grid {
-    grid-template-columns: 1fr;
-  }
-
   .gallery-guide {
     margin-bottom: 18px;
     font-size: 1.35rem;
   }
 
   .ranking-item {
-    grid-template-columns: 44px minmax(0, 1fr);
+    grid-template-columns: 34px minmax(0, 1fr);
   }
 
   .rank-actions {

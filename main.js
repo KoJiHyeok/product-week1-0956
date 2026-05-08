@@ -44,9 +44,15 @@ const signupForm = document.querySelector("#signupForm");
 const loginIdInput = document.querySelector("#loginIdInput");
 const loginPasswordInput = document.querySelector("#loginPasswordInput");
 const signupLoginIdInput = document.querySelector("#signupLoginIdInput");
+const signupEmailInput = document.querySelector("#signupEmailInput");
 const signupUsernameInput = document.querySelector("#signupUsernameInput");
 const signupPasswordInput = document.querySelector("#signupPasswordInput");
 const signupPasswordConfirmInput = document.querySelector("#signupPasswordConfirmInput");
+const privacyAgreeInput = document.querySelector("#privacyAgreeInput");
+const termsAgreeInput = document.querySelector("#termsAgreeInput");
+const passwordResetLink = document.querySelector("#passwordResetLink");
+const loginGoogleButton = document.querySelector("#loginGoogleButton");
+const signupGoogleButton = document.querySelector("#signupGoogleButton");
 const loginMessage = document.querySelector("#loginMessage");
 const signupMessage = document.querySelector("#signupMessage");
 const contactForm = document.querySelector("#contactForm");
@@ -159,15 +165,15 @@ async function login(loginId, password) {
   showToast(`${getUserDisplayName()}님으로 로그인됨`);
 }
 
-async function signup(loginId, username, password, passwordConfirm) {
+async function signup(loginId, email, username, password, passwordConfirm) {
   const data = await requestAuth("/api/auth/register", {
     method: "POST",
-    body: JSON.stringify({ loginId, username, password, passwordConfirm }),
+    body: JSON.stringify({ loginId, email, username, password, passwordConfirm }),
   });
 
   setCurrentUser(data.user);
   closeAuthModal();
-  showToast(`${getUserDisplayName()}님으로 가입됨`);
+  showToast(data.emailVerificationSent ? "가입 완료. 인증 메일을 확인해주세요." : "가입 완료. 인증 메일 설정이 필요합니다.");
 }
 
 async function logout() {
@@ -839,17 +845,59 @@ function setAuthMode(mode) {
 function openAuthModal(mode = "login") {
   setAuthMode(mode);
   loginPasswordInput.value = "";
+  signupEmailInput.value = "";
   signupPasswordInput.value = "";
   signupPasswordConfirmInput.value = "";
+  privacyAgreeInput.checked = false;
+  termsAgreeInput.checked = false;
   authModal.hidden = false;
   (mode === "signup" ? signupLoginIdInput : loginIdInput).focus();
 }
 
 function closeAuthModal() {
   loginPasswordInput.value = "";
+  signupEmailInput.value = "";
   signupPasswordInput.value = "";
   signupPasswordConfirmInput.value = "";
+  privacyAgreeInput.checked = false;
+  termsAgreeInput.checked = false;
   authModal.hidden = true;
+}
+
+async function verifyEmailFromUrl() {
+  const url = new URL(window.location.href);
+  const token = url.searchParams.get("verifyEmailToken");
+  const authMessage = url.searchParams.get("authMessage");
+
+  if (authMessage === "google_not_configured") {
+    showToast("Google 로그인 설정이 필요합니다.");
+  } else if (authMessage === "google_failed") {
+    showToast("Google 로그인에 실패했습니다.");
+  }
+
+  if (!token) {
+    return;
+  }
+
+  try {
+    const data = await requestAuth("/api/auth/email/verify", {
+      method: "POST",
+      body: JSON.stringify({ token }),
+    });
+    showToast(data.message || "이메일 인증이 완료되었습니다.");
+    await restoreSession();
+  } catch (error) {
+    showToast(error.message);
+  } finally {
+    url.searchParams.delete("verifyEmailToken");
+    url.searchParams.delete("authMessage");
+    history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+}
+
+function startGoogleLogin() {
+  const next = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  window.location.href = `/api/auth/google?next=${encodeURIComponent(next)}`;
 }
 
 function openDrawer() {
@@ -1312,10 +1360,18 @@ loginForm.addEventListener("submit", async (event) => {
   }
 });
 
+passwordResetLink.addEventListener("click", () => {
+  loginMessage.textContent = "비밀번호 재설정 기능은 준비 중입니다.";
+});
+
+loginGoogleButton.addEventListener("click", startGoogleLogin);
+signupGoogleButton.addEventListener("click", startGoogleLogin);
+
 signupForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   signupMessage.textContent = "";
   const loginId = signupLoginIdInput.value.trim();
+  const email = signupEmailInput.value.trim();
   const username = signupUsernameInput.value.trim();
   const password = signupPasswordInput.value;
   const passwordConfirm = signupPasswordConfirmInput.value;
@@ -1326,14 +1382,20 @@ signupForm.addEventListener("submit", async (event) => {
     return;
   }
 
+  if (!email) {
+    signupMessage.textContent = "이메일을 입력하세요.";
+    signupEmailInput.focus();
+    return;
+  }
+
   if (!username) {
     signupMessage.textContent = "사용자 이름을 입력하세요.";
     signupUsernameInput.focus();
     return;
   }
 
-  if (password.length < 8 || !/[^A-Za-z0-9]/.test(password)) {
-    signupMessage.textContent = "비밀번호는 8자리 이상이며 특수문자를 1개 이상 포함해야 합니다.";
+  if (password.length < 8) {
+    signupMessage.textContent = "비밀번호는 8자리 이상이어야 합니다.";
     signupPasswordInput.focus();
     return;
   }
@@ -1344,8 +1406,14 @@ signupForm.addEventListener("submit", async (event) => {
     return;
   }
 
+  if (!privacyAgreeInput.checked || !termsAgreeInput.checked) {
+    signupMessage.textContent = "개인정보 처리방침과 서비스 이용약관에 동의해주세요.";
+    (privacyAgreeInput.checked ? termsAgreeInput : privacyAgreeInput).focus();
+    return;
+  }
+
   try {
-    await signup(loginId, username, password, passwordConfirm);
+    await signup(loginId, email, username, password, passwordConfirm);
   } catch (error) {
     signupMessage.textContent = error.message;
   }
@@ -1458,5 +1526,6 @@ window.addEventListener("keydown", (event) => {
 
 renderGallery();
 renderUser();
+verifyEmailFromUrl();
 restoreSession();
 initializeRoute();

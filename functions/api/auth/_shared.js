@@ -44,6 +44,10 @@ export function normalizeUsername(username) {
   return typeof username === "string" ? username.trim() : "";
 }
 
+export function normalizeEmail(email) {
+  return typeof email === "string" ? email.trim().toLowerCase() : "";
+}
+
 export function validateLoginId(loginId) {
   if (loginId.length < 8) {
     return "아이디는 8자리 이상이어야 합니다.";
@@ -53,8 +57,16 @@ export function validateLoginId(loginId) {
 }
 
 export function validatePassword(password) {
-  if (typeof password !== "string" || password.length < 8 || !/[^A-Za-z0-9]/.test(password)) {
-    return "비밀번호는 8자리 이상이며 특수문자를 1개 이상 포함해야 합니다.";
+  if (typeof password !== "string" || password.length < 8) {
+    return "비밀번호는 8자리 이상이어야 합니다.";
+  }
+
+  return "";
+}
+
+export function validateEmail(email) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return "올바른 이메일을 입력하세요.";
   }
 
   return "";
@@ -65,7 +77,10 @@ export function publicUser(user) {
     id: user.id,
     loginId: user.login_id,
     username: user.username,
+    email: user.email || "",
+    emailVerified: Boolean(user.email_verified_at),
     profileImageUrl: user.profile_image_url || "",
+    authProvider: user.auth_provider || "password",
   };
 }
 
@@ -120,7 +135,8 @@ export async function getCurrentUser(context) {
   try {
     return await db
       .prepare(
-        `SELECT users.id, users.login_id, users.username, users.profile_image_url
+        `SELECT users.id, users.login_id, users.username, users.email, users.email_verified_at,
+                users.profile_image_url, users.auth_provider
          FROM sessions
          JOIN users ON users.id = sessions.user_id
          WHERE sessions.id = ? AND sessions.expires_at > ?
@@ -164,6 +180,14 @@ export async function hashPassword(password) {
     bytesToBase64Url(salt),
     bytesToBase64Url(hash),
   ].join("$");
+}
+
+export async function hashToken(token) {
+  return sha256Base64Url(token);
+}
+
+export function createRandomToken(byteLength = 32) {
+  return randomToken(byteLength);
 }
 
 export async function verifyPassword(password, storedHash) {

@@ -35,7 +35,13 @@ async function handleLogin(context) {
 
   try {
     user = await db
-      .prepare("SELECT id, login_id, username, password_hash, profile_image_url FROM users WHERE login_id = ? LIMIT 1")
+      .prepare(
+        `SELECT id, login_id, username, email, email_verified_at, password_hash,
+                profile_image_url, auth_provider
+         FROM users
+         WHERE login_id = ?
+         LIMIT 1`
+      )
       .bind(loginId)
       .first();
   } catch {

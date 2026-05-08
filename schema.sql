@@ -1,8 +1,12 @@
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   login_id TEXT NOT NULL UNIQUE,
+  email TEXT UNIQUE,
   username TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
+  email_verified_at TEXT,
+  google_sub TEXT UNIQUE,
+  auth_provider TEXT NOT NULL DEFAULT 'password',
   profile_image_url TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -17,6 +21,20 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+
+CREATE TABLE IF NOT EXISTS email_verification_tokens (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  token_hash TEXT NOT NULL UNIQUE,
+  user_id INTEGER NOT NULL,
+  email TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at TEXT NOT NULL,
+  used_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_verification_tokens_user_id ON email_verification_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_email_verification_tokens_expires_at ON email_verification_tokens(expires_at);
 
 CREATE TABLE IF NOT EXISTS submissions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
