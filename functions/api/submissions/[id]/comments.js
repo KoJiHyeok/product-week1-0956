@@ -29,6 +29,7 @@ export async function onRequestPost(context) {
       {
         comment: {
           id: String(result.meta.last_row_id),
+          authorUserId: user ? String(user.id) : "",
           author: user?.username || guestName || "비회원",
           authorIsProfilePublic: user ? user.is_profile_public !== 0 : true,
           authorProfileImageUrl: user && user.is_profile_public !== 0 ? user.profile_image_url || "" : "",

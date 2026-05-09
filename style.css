@@ -152,6 +152,43 @@ button {
   width: 100%;
 }
 
+.member-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notification-button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.13);
+  color: var(--text);
+  font-size: 1.05rem;
+}
+
+.notification-unread {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: inline-grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 999px;
+  background: #ff4d6d;
+  color: #ffffff;
+  padding: 0 5px;
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
 .user-chip {
   display: flex;
   align-items: center;
@@ -164,6 +201,138 @@ button {
   color: var(--text);
   padding: 5px 6px 5px 14px;
   font-weight: 900;
+}
+
+.notification-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 18;
+  display: grid;
+  width: min(380px, calc(100vw - 24px));
+  max-height: min(560px, calc(100vh - 92px));
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--ink);
+  box-shadow: 0 18px 48px rgba(3, 8, 39, 0.32);
+}
+
+.notification-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 0 14px;
+  border-bottom: 1px solid #e3e7f2;
+}
+
+.notification-head strong {
+  color: #23283a;
+  font-size: 1rem;
+}
+
+.notification-close {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: #eef1f8;
+}
+
+.notification-close::before,
+.notification-close::after {
+  content: "";
+  position: absolute;
+  top: 13px;
+  left: 8px;
+  width: 12px;
+  height: 2px;
+  border-radius: 999px;
+  background: #454d63;
+}
+
+.notification-close::before {
+  transform: rotate(45deg);
+}
+
+.notification-close::after {
+  transform: rotate(-45deg);
+}
+
+.message-list {
+  display: grid;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.message-list-item {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid #edf0f7;
+  background: #ffffff;
+  color: #343b52;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.message-list-item.is-unread {
+  background: #f2f7ff;
+}
+
+.message-list-item strong {
+  color: #202334;
+  font-size: 0.94rem;
+}
+
+.message-list-item span,
+.message-list-item small,
+.message-list-status,
+.message-detail-meta {
+  color: #6f778d;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.message-list-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message-list-status {
+  margin: 0;
+  padding: 18px 14px;
+}
+
+.message-detail {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-top: 1px solid #e3e7f2;
+  background: #fbfcff;
+}
+
+.message-detail h3,
+.message-detail p {
+  margin: 0;
+}
+
+.message-detail h3 {
+  color: #202334;
+  font-size: 1rem;
+}
+
+.message-detail-body {
+  color: #343b52;
+  font-size: 0.94rem;
+  font-weight: 700;
+  line-height: 1.55;
+  white-space: pre-wrap;
 }
 
 .user-name {
@@ -660,6 +829,19 @@ button {
   font-weight: 800;
 }
 
+.user-name-button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font: inherit;
+  font-weight: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
 .rank-actions {
   display: flex;
   flex-wrap: wrap;
@@ -671,14 +853,6 @@ button {
   display: grid;
   justify-items: end;
   gap: 4px;
-}
-
-.vote-hint {
-  color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 800;
-  line-height: 1.25;
-  text-align: right;
 }
 
 .heart-button {
@@ -1425,6 +1599,85 @@ button {
   line-height: 1.55;
 }
 
+.user-popover {
+  position: fixed;
+  z-index: 19;
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 14px;
+  box-shadow: 0 18px 48px rgba(3, 8, 39, 0.32);
+}
+
+.user-popover-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.user-popover-head div,
+.user-popover-details {
+  display: grid;
+  gap: 4px;
+}
+
+.user-popover-head strong {
+  color: #202334;
+  font-size: 1rem;
+}
+
+.user-popover-head span,
+.user-popover-details p,
+.message-recipient {
+  margin: 0;
+  color: #606a82;
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.message-compose-card {
+  gap: 16px;
+}
+
+.message-compose-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.message-compose-head h2 {
+  margin: 4px 0 0;
+}
+
+.message-compose-form {
+  display: grid;
+  gap: 10px;
+}
+
+.message-compose-form label {
+  color: #4c556b;
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.message-compose-form textarea {
+  width: 100%;
+  min-height: 150px;
+  resize: vertical;
+  border: 1px solid #d7ddeb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #202334;
+  padding: 10px 12px;
+  line-height: 1.5;
+}
+
 .auth-message {
   min-height: 20px;
   margin: 0;
@@ -1467,6 +1720,10 @@ button:focus-visible,
 .contact-link:focus-visible,
 .auth-switch-button:focus-visible,
 .heart-button:focus-visible,
+.notification-button:focus-visible,
+.notification-close:focus-visible,
+.message-list-item:focus-visible,
+.user-name-button:focus-visible,
 .ranking-self-link:focus-visible,
 .delete-button:focus-visible,
 .comment-delete:focus-visible,
@@ -1484,6 +1741,7 @@ button:focus-visible,
 .comment-form input:focus-visible,
 .profile-edit-form input:focus-visible,
 .profile-edit-form textarea:focus-visible,
+.message-compose-form textarea:focus-visible,
 .contact-form input:focus-visible,
 .contact-form select:focus-visible,
 .contact-form textarea:focus-visible,
@@ -1532,6 +1790,7 @@ a[href]:focus-visible {
   }
 
   .auth-actions,
+  .member-actions,
   .user-chip,
   .top-actions {
     grid-column: auto;
@@ -1541,6 +1800,11 @@ a[href]:focus-visible {
   .top-actions {
     flex-wrap: wrap;
     justify-content: flex-start;
+  }
+
+  .notification-panel {
+    right: auto;
+    left: 0;
   }
 
   .view {
@@ -1680,11 +1944,13 @@ a[href]:focus-visible {
 
 @media (max-width: 430px) {
   .top-actions,
-  .auth-actions {
+  .auth-actions,
+  .member-actions {
     width: 100%;
   }
 
-  .auth-actions {
+  .auth-actions,
+  .member-actions {
     flex-wrap: wrap;
   }
 

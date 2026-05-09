@@ -36,7 +36,6 @@ export async function onRequestPost(context) {
           liked: Number(existing.submission_id) === submissionId,
           likes: count,
           dailyVoteUsed: true,
-          message: "투표는 하루에 한 번만 가능합니다.",
         },
         409,
         guestVote.cookie ? { "set-cookie": guestVote.cookie } : {}

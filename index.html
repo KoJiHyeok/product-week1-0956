@@ -43,10 +43,26 @@
           <button class="auth-button solid small" id="signupButton" type="button">회원가입</button>
         </div>
 
-        <button class="user-chip" id="userChip" type="button" hidden aria-label="회원 정보 열기">
-          <span class="user-name" id="userName"></span>
-          <span class="profile-photo" id="profilePhoto" aria-hidden="true"></span>
-        </button>
+        <div class="member-actions" id="memberActions" hidden>
+          <button class="notification-button" id="notificationButton" type="button" aria-label="쪽지 알림" aria-expanded="false">
+            <span aria-hidden="true">🔔</span>
+            <span class="notification-unread" id="notificationUnread" hidden></span>
+          </button>
+
+          <button class="user-chip" id="userChip" type="button" aria-label="회원 정보 열기">
+            <span class="user-name" id="userName"></span>
+            <span class="profile-photo" id="profilePhoto" aria-hidden="true"></span>
+          </button>
+
+          <section class="notification-panel" id="notificationPanel" hidden aria-label="쪽지 목록">
+            <div class="notification-head">
+              <strong>쪽지</strong>
+              <button class="notification-close" id="notificationCloseButton" type="button" aria-label="쪽지 목록 닫기"></button>
+            </div>
+            <div class="message-list" id="messageList"></div>
+            <article class="message-detail" id="messageDetail" hidden></article>
+          </section>
+        </div>
       </div>
     </header>
 
@@ -323,6 +339,30 @@
 
         <p class="auth-message" id="signupMessage" aria-live="polite"></p>
         <button class="auth-button solid full" type="submit">회원가입</button>
+      </form>
+    </div>
+  </div>
+
+  <section class="user-popover" id="userInfoPopover" hidden aria-label="사용자 정보"></section>
+
+  <div class="confirm-modal" id="messageComposeModal" hidden role="dialog" aria-modal="true" aria-labelledby="messageComposeTitle">
+    <div class="confirm-card message-compose-card">
+      <div class="message-compose-head">
+        <div>
+          <p class="modal-kicker">쪽지</p>
+          <h2 id="messageComposeTitle">쪽지 보내기</h2>
+        </div>
+        <button class="modal-close" id="messageComposeCloseButton" type="button" aria-label="닫기"></button>
+      </div>
+      <form class="message-compose-form" id="messageComposeForm">
+        <p class="message-recipient" id="messageRecipient"></p>
+        <label for="messageBodyInput">내용</label>
+        <textarea id="messageBodyInput" rows="7" maxlength="1000" required></textarea>
+        <p class="profile-edit-message" id="messageComposeMessage" aria-live="polite"></p>
+        <div class="confirm-actions">
+          <button class="auth-button ghost" id="messageComposeCancelButton" type="button">취소</button>
+          <button class="auth-button solid" id="messageSendButton" type="submit">보내기</button>
+        </div>
       </form>
     </div>
   </div>

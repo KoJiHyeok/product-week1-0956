@@ -118,6 +118,7 @@ async function withComments(db, row, user) {
     imageIndex: row.image_index,
     imageSrc: row.image_src,
     title: row.title,
+    authorUserId: row.author_user_id ? String(row.author_user_id) : "",
     author: row.username || row.guest_name || "비회원",
     authorIsProfilePublic: row.author_user_id ? row.is_profile_public !== 0 : true,
     authorProfileImageUrl: row.is_profile_public !== 0 ? row.profile_image_url || "" : "",
@@ -127,6 +128,7 @@ async function withComments(db, row, user) {
     canDelete: Boolean(user && row.author_user_id === user.id),
     comments: (results || []).map((comment) => ({
       id: String(comment.id),
+      authorUserId: comment.author_user_id ? String(comment.author_user_id) : "",
       author: comment.username || comment.guest_name || "비회원",
       authorIsProfilePublic: comment.author_user_id ? comment.is_profile_public !== 0 : true,
       authorProfileImageUrl: comment.is_profile_public !== 0 ? comment.profile_image_url || "" : "",

@@ -19,6 +19,13 @@ const rankingSelfLink = document.querySelector("#rankingSelfLink");
 const authActions = document.querySelector("#authActions");
 const loginButton = document.querySelector("#loginButton");
 const signupButton = document.querySelector("#signupButton");
+const memberActions = document.querySelector("#memberActions");
+const notificationButton = document.querySelector("#notificationButton");
+const notificationUnread = document.querySelector("#notificationUnread");
+const notificationPanel = document.querySelector("#notificationPanel");
+const notificationCloseButton = document.querySelector("#notificationCloseButton");
+const messageList = document.querySelector("#messageList");
+const messageDetail = document.querySelector("#messageDetail");
 const userChip = document.querySelector("#userChip");
 const userName = document.querySelector("#userName");
 const profilePhoto = document.querySelector("#profilePhoto");
@@ -88,6 +95,16 @@ const contactTitleInput = document.querySelector("#contactTitleInput");
 const contactBodyInput = document.querySelector("#contactBodyInput");
 const contactMessage = document.querySelector("#contactMessage");
 const contactSubmitButton = document.querySelector("#contactSubmitButton");
+const userInfoPopover = document.querySelector("#userInfoPopover");
+const messageComposeModal = document.querySelector("#messageComposeModal");
+const messageComposeTitle = document.querySelector("#messageComposeTitle");
+const messageComposeForm = document.querySelector("#messageComposeForm");
+const messageComposeCloseButton = document.querySelector("#messageComposeCloseButton");
+const messageComposeCancelButton = document.querySelector("#messageComposeCancelButton");
+const messageRecipient = document.querySelector("#messageRecipient");
+const messageBodyInput = document.querySelector("#messageBodyInput");
+const messageComposeMessage = document.querySelector("#messageComposeMessage");
+const messageSendButton = document.querySelector("#messageSendButton");
 const toast = document.querySelector("#toast");
 
 const legacyUserStorageKey = "title-making-google-user";
@@ -119,6 +136,8 @@ let toastTimer;
 let serverSubmissionsByImage = {};
 const expandedCommentIds = new Set();
 let pendingRankingFocus = null;
+let activeUserProfile = null;
+let activeMessageRecipient = null;
 
 function createId(prefix) {
   if (globalThis.crypto?.randomUUID) {
@@ -135,9 +154,17 @@ function getUserDisplayName() {
 function setCurrentUser(user) {
   currentUser = user || null;
   renderUser();
+  closeUserPopover();
+  closeNotificationPanel();
 
   if (!profileView.hidden) {
     hydrateProfileForm();
+  }
+
+  if (currentUser) {
+    refreshUnreadCount();
+  } else {
+    renderUnreadCount(0);
   }
 }
 
@@ -233,7 +260,10 @@ function normalizeSubmissions(submissions) {
       const comments = Array.isArray(entry.comments)
         ? entry.comments.map((comment, commentIndex) => ({
             id: typeof comment.id === "string" ? comment.id : `legacy-comment-${imageKey}-${index}-${commentIndex}`,
+            authorUserId: typeof comment.authorUserId === "string" ? comment.authorUserId : "",
             author: typeof comment.author === "string" && comment.author.trim() ? comment.author.trim() : "비회원",
+            authorIsProfilePublic: comment.authorIsProfilePublic !== false,
+            authorProfileImageUrl: typeof comment.authorProfileImageUrl === "string" ? comment.authorProfileImageUrl : "",
             text: typeof comment.text === "string" ? comment.text : "",
             createdAt: typeof comment.createdAt === "string" ? comment.createdAt : new Date().toISOString(),
           }))
@@ -241,7 +271,10 @@ function normalizeSubmissions(submissions) {
 
       const normalized = {
         id: typeof entry.id === "string" ? entry.id : `legacy-title-${imageKey}-${index}`,
+        authorUserId: typeof entry.authorUserId === "string" ? entry.authorUserId : "",
         author: typeof entry.author === "string" && entry.author.trim() ? entry.author.trim() : "비회원",
+        authorIsProfilePublic: entry.authorIsProfilePublic !== false,
+        authorProfileImageUrl: typeof entry.authorProfileImageUrl === "string" ? entry.authorProfileImageUrl : "",
         title: typeof entry.title === "string" ? entry.title : "",
         createdAt: typeof entry.createdAt === "string" ? entry.createdAt : new Date().toISOString(),
         likes: Number.isFinite(entry.likes) ? entry.likes : 0,
@@ -599,7 +632,10 @@ async function addSubmission(author) {
   submissions[imageKey] = [
     {
       id: createId("title"),
+      authorUserId: "",
       author,
+      authorIsProfilePublic: true,
+      authorProfileImageUrl: "",
       title: pendingTitle,
       createdAt: new Date().toISOString(),
       likes: 0,
@@ -774,8 +810,7 @@ function renderRanking() {
     const title = document.createElement("strong");
     title.textContent = entry.title;
 
-    const author = document.createElement("span");
-    author.textContent = isMine ? `${entry.author} · 내 제목` : entry.author;
+    const author = createAuthorButton(entry, isMine ? "내 제목" : "");
 
     const actions = document.createElement("div");
     actions.className = "rank-actions";
@@ -792,10 +827,6 @@ function renderRanking() {
     heartButton.setAttribute("aria-label", entry.likedByMe ? "하트 취소" : "하트 누르기");
     heartButton.innerHTML = `<span class="heart-icon" aria-hidden="true"></span><span>${entry.likes}</span>`;
 
-    const voteHint = document.createElement("span");
-    voteHint.className = "vote-hint";
-    voteHint.textContent = "투표는 하루에 한 번만 가능합니다.";
-
     const toggleButton = document.createElement("button");
     toggleButton.className = "comment-toggle";
     toggleButton.type = "button";
@@ -804,7 +835,7 @@ function renderRanking() {
     toggleButton.setAttribute("aria-label", isExpanded ? "댓글 접기" : "댓글 펼치기");
     toggleButton.setAttribute("aria-expanded", String(isExpanded));
 
-    voteGroup.append(heartButton, voteHint);
+    voteGroup.append(heartButton);
     actions.append(voteGroup);
 
     if (isMine) {
@@ -853,8 +884,7 @@ function createCommentsPanel(entry) {
       const commentHead = document.createElement("div");
       commentHead.className = "comment-head";
 
-      const author = document.createElement("strong");
-      author.textContent = comment.author;
+      const author = createAuthorButton(comment, "", "strong");
 
       commentHead.append(author);
 
@@ -897,6 +927,28 @@ function createCommentsPanel(entry) {
   form.append(input, button);
   panel.append(list, form);
   return panel;
+}
+
+function createAuthorButton(source, suffix = "", tagName = "span") {
+  const wrapper = document.createElement(tagName);
+  const button = document.createElement("button");
+  button.className = "user-name-button";
+  button.type = "button";
+  button.dataset.action = "show-user-info";
+  button.dataset.userId = source.authorUserId || "";
+  button.dataset.username = source.author || "비회원";
+  button.dataset.memberType = source.authorUserId ? "회원" : "비회원";
+  button.dataset.isProfilePublic = source.authorIsProfilePublic === false ? "false" : "true";
+  button.dataset.profileImageUrl = source.authorProfileImageUrl || "";
+  button.textContent = source.author || "비회원";
+
+  wrapper.append(button);
+
+  if (suffix) {
+    wrapper.append(document.createTextNode(` · ${suffix}`));
+  }
+
+  return wrapper;
 }
 
 function applyPendingRankingFocus() {
@@ -957,7 +1009,7 @@ function scrollToMyRanking() {
 function renderUser() {
   if (!currentUser) {
     authActions.hidden = false;
-    userChip.hidden = true;
+    memberActions.hidden = true;
     drawerName.textContent = "";
     renderAvatar(drawerPhoto, null);
     renderAvatar(profileEditPhoto, null);
@@ -967,7 +1019,7 @@ function renderUser() {
   const displayName = getUserDisplayName();
 
   authActions.hidden = true;
-  userChip.hidden = false;
+  memberActions.hidden = false;
   userName.textContent = displayName;
   renderAvatar(profilePhoto, currentUser);
   drawerName.textContent = displayName;
@@ -984,6 +1036,296 @@ function renderAvatar(target, user) {
   const imageUrl = user?.profileImageUrl || "";
   target.textContent = imageUrl ? "" : getInitials(displayName);
   target.style.backgroundImage = imageUrl ? `url("${imageUrl}")` : "";
+}
+
+async function openUserPopover(trigger) {
+  closeNotificationPanel();
+
+  const fallbackProfile = getProfileFromTrigger(trigger);
+  activeUserProfile = fallbackProfile;
+  renderUserPopover(fallbackProfile);
+  positionUserPopover(trigger);
+
+  if (!fallbackProfile.id) {
+    return;
+  }
+
+  try {
+    const data = await requestJson(`/api/users/${encodeURIComponent(fallbackProfile.id)}`, {
+      method: "GET",
+      headers: {},
+    });
+    activeUserProfile = data.user;
+    renderUserPopover(activeUserProfile);
+    positionUserPopover(trigger);
+  } catch (error) {
+    showToast(error.message);
+  }
+}
+
+function getProfileFromTrigger(trigger) {
+  return {
+    id: trigger.dataset.userId || "",
+    username: trigger.dataset.username || "비회원",
+    memberType: trigger.dataset.memberType || (trigger.dataset.userId ? "회원" : "비회원"),
+    isProfilePublic: trigger.dataset.isProfilePublic !== "false",
+    bio: "",
+    profileImageUrl: trigger.dataset.profileImageUrl || "",
+    canReceiveMessages: Boolean(trigger.dataset.userId),
+  };
+}
+
+function renderUserPopover(profile) {
+  const head = document.createElement("div");
+  head.className = "user-popover-head";
+
+  const nameBlock = document.createElement("div");
+  const name = document.createElement("strong");
+  name.textContent = profile.username || "비회원";
+  const type = document.createElement("span");
+  type.textContent = profile.memberType || "비회원";
+  nameBlock.append(name, type);
+
+  const messageButton = document.createElement("button");
+  messageButton.className = "auth-button solid small";
+  messageButton.type = "button";
+  messageButton.dataset.action = "compose-message";
+  messageButton.textContent = "쪽지";
+
+  head.append(nameBlock, messageButton);
+
+  const details = document.createElement("div");
+  details.className = "user-popover-details";
+
+  const visibility = document.createElement("p");
+  visibility.textContent = profile.id
+    ? profile.isProfilePublic
+      ? "공개 프로필"
+      : "비공개 프로필"
+    : "비회원 작성자";
+  details.append(visibility);
+
+  if (profile.id && profile.isProfilePublic) {
+    const bio = document.createElement("p");
+    bio.textContent = profile.bio || "공개된 자기소개가 없습니다.";
+    details.append(bio);
+  } else if (profile.id) {
+    const privateInfo = document.createElement("p");
+    privateInfo.textContent = "사용자가 공개한 정보만 표시됩니다.";
+    details.append(privateInfo);
+  } else {
+    const guestInfo = document.createElement("p");
+    guestInfo.textContent = "비회원은 공개 프로필과 쪽지를 사용할 수 없습니다.";
+    details.append(guestInfo);
+  }
+
+  userInfoPopover.replaceChildren(head, details);
+  userInfoPopover.hidden = false;
+}
+
+function positionUserPopover(trigger) {
+  const triggerRect = trigger.getBoundingClientRect();
+  const popoverWidth = Math.min(320, window.innerWidth - 24);
+  const left = Math.min(Math.max(12, triggerRect.left), window.innerWidth - popoverWidth - 12);
+  const top = Math.min(triggerRect.bottom + 8, window.innerHeight - 180);
+
+  userInfoPopover.style.left = `${left}px`;
+  userInfoPopover.style.top = `${Math.max(12, top)}px`;
+  userInfoPopover.style.width = `${popoverWidth}px`;
+}
+
+function closeUserPopover() {
+  userInfoPopover.hidden = true;
+  userInfoPopover.replaceChildren();
+  activeUserProfile = null;
+}
+
+function openMessageCompose(profile) {
+  if (!currentUser) {
+    showToast("로그인 후 쪽지를 보낼 수 있습니다.");
+    openAuthModal("login");
+    return;
+  }
+
+  if (!profile?.id) {
+    showToast("회원에게만 쪽지를 보낼 수 있습니다.");
+    return;
+  }
+
+  if (String(profile.id) === String(currentUser.id)) {
+    showToast("본인에게는 쪽지를 보낼 수 없습니다.");
+    return;
+  }
+
+  activeMessageRecipient = profile;
+  closeUserPopover();
+  messageComposeTitle.textContent = `${profile.username}님에게 쪽지`;
+  messageRecipient.textContent = `받는 사람: ${profile.username}`;
+  messageBodyInput.value = "";
+  messageComposeMessage.textContent = "";
+  messageComposeModal.hidden = false;
+  messageBodyInput.focus();
+}
+
+function closeMessageCompose() {
+  messageComposeModal.hidden = true;
+  messageBodyInput.value = "";
+  messageComposeMessage.textContent = "";
+  activeMessageRecipient = null;
+}
+
+async function sendMessage() {
+  if (!activeMessageRecipient) {
+    return;
+  }
+
+  const body = messageBodyInput.value.trim();
+
+  if (!body) {
+    messageComposeMessage.textContent = "쪽지 내용을 입력하세요.";
+    messageBodyInput.focus();
+    return;
+  }
+
+  messageSendButton.disabled = true;
+  messageSendButton.textContent = "전송 중";
+  messageComposeMessage.textContent = "";
+
+  try {
+    await requestJson("/api/messages", {
+      method: "POST",
+      body: JSON.stringify({
+        recipientUserId: activeMessageRecipient.id,
+        body,
+      }),
+    });
+    closeMessageCompose();
+    closeUserPopover();
+    showToast("쪽지를 보냈습니다.");
+  } catch (error) {
+    messageComposeMessage.textContent = error.message;
+  } finally {
+    messageSendButton.disabled = false;
+    messageSendButton.textContent = "보내기";
+  }
+}
+
+function renderUnreadCount(count) {
+  const unreadCount = Number(count) || 0;
+  notificationUnread.hidden = unreadCount <= 0;
+  notificationUnread.textContent = unreadCount > 99 ? "99+" : String(unreadCount);
+}
+
+async function refreshUnreadCount() {
+  if (!currentUser) {
+    renderUnreadCount(0);
+    return;
+  }
+
+  try {
+    const data = await requestJson("/api/messages/unread-count", { method: "GET", headers: {} });
+    renderUnreadCount(data.unreadCount);
+  } catch {
+    renderUnreadCount(0);
+  }
+}
+
+async function openNotificationPanel() {
+  if (!currentUser) {
+    openAuthModal("login");
+    return;
+  }
+
+  closeUserPopover();
+  notificationPanel.hidden = false;
+  notificationButton.setAttribute("aria-expanded", "true");
+  await loadMessageList();
+}
+
+function closeNotificationPanel() {
+  notificationPanel.hidden = true;
+  notificationButton.setAttribute("aria-expanded", "false");
+  messageDetail.hidden = true;
+}
+
+async function loadMessageList() {
+  messageList.replaceChildren(createMessageListStatus("쪽지를 불러오는 중입니다."));
+  messageDetail.hidden = true;
+
+  try {
+    const data = await requestJson("/api/messages", { method: "GET", headers: {} });
+    renderMessageList(data.messages || []);
+    await refreshUnreadCount();
+  } catch (error) {
+    messageList.replaceChildren(createMessageListStatus(error.message));
+  }
+}
+
+function renderMessageList(messages) {
+  if (messages.length === 0) {
+    messageList.replaceChildren(createMessageListStatus("받은 쪽지가 없습니다."));
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  messages.forEach((message) => {
+    const button = document.createElement("button");
+    button.className = `message-list-item${message.readAt ? "" : " is-unread"}`;
+    button.type = "button";
+    button.dataset.messageId = message.id;
+
+    const sender = document.createElement("strong");
+    sender.textContent = message.sender?.username || "알 수 없음";
+
+    const preview = document.createElement("span");
+    preview.textContent = message.preview || "";
+
+    const date = document.createElement("small");
+    date.textContent = formatDate(message.createdAt);
+
+    button.append(sender, preview, date);
+    fragment.append(button);
+  });
+
+  messageList.replaceChildren(fragment);
+}
+
+function createMessageListStatus(text) {
+  const paragraph = document.createElement("p");
+  paragraph.className = "message-list-status";
+  paragraph.textContent = text;
+  return paragraph;
+}
+
+async function showMessageDetail(messageId) {
+  try {
+    const data = await requestJson(`/api/messages/${encodeURIComponent(messageId)}`, {
+      method: "GET",
+      headers: {},
+    });
+    const message = data.message;
+
+    const title = document.createElement("h3");
+    title.textContent = `${message.sender.username}님의 쪽지`;
+
+    const meta = document.createElement("p");
+    meta.className = "message-detail-meta";
+    meta.textContent = formatDate(message.createdAt);
+
+    const body = document.createElement("p");
+    body.className = "message-detail-body";
+    body.textContent = message.body;
+
+    messageDetail.replaceChildren(title, meta, body);
+    messageDetail.hidden = false;
+
+    const listItem = messageList.querySelector(`[data-message-id="${escapeSelector(messageId)}"]`);
+    listItem?.classList.remove("is-unread");
+    await refreshUnreadCount();
+  } catch (error) {
+    showToast(error.message);
+  }
 }
 
 function setAuthMode(mode) {
@@ -1547,6 +1889,11 @@ rankingList.addEventListener("click", async (event) => {
     return;
   }
 
+  if (button.dataset.action === "show-user-info") {
+    await openUserPopover(button);
+    return;
+  }
+
   const entryId = button.dataset.entryId;
 
   if (button.dataset.action === "write-title") {
@@ -1565,10 +1912,27 @@ rankingList.addEventListener("click", async (event) => {
     }
 
     try {
-      const data = await requestJson(`/api/submissions/${encodeURIComponent(entryId)}/like`, {
+      const response = await fetch(`/api/submissions/${encodeURIComponent(entryId)}/like`, {
+        credentials: "include",
+        headers: {
+          "content-type": "application/json",
+        },
         method: "POST",
         body: "{}",
       });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        if (response.status === 409 && data.dailyVoteUsed) {
+          entry.likes = data.likes;
+          entry.likedByMe = data.liked;
+          renderRanking();
+          return;
+        }
+
+        throw new Error(data.message || "요청 처리 중 오류가 발생했습니다.");
+      }
+
       entry.likes = data.likes;
       entry.likedByMe = data.liked;
       renderRanking();
@@ -1699,7 +2063,10 @@ rankingList.addEventListener("submit", async (event) => {
   updateSubmission(entryId, (entry) => {
     entry.comments.push({
       id: createId("comment"),
+      authorUserId: "",
       author: getActiveAuthor(),
+      authorIsProfilePublic: true,
+      authorProfileImageUrl: "",
       text,
       createdAt: new Date().toISOString(),
     });
@@ -1850,6 +2217,60 @@ contactForm.addEventListener("submit", async (event) => {
   }
 });
 
+notificationButton.addEventListener("click", async () => {
+  if (notificationPanel.hidden) {
+    await openNotificationPanel();
+  } else {
+    closeNotificationPanel();
+  }
+});
+notificationCloseButton.addEventListener("click", closeNotificationPanel);
+messageList.addEventListener("click", async (event) => {
+  const item = event.target.closest(".message-list-item[data-message-id]");
+
+  if (!item) {
+    return;
+  }
+
+  await showMessageDetail(item.dataset.messageId);
+});
+userInfoPopover.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-action='compose-message']");
+
+  if (!button) {
+    return;
+  }
+
+  openMessageCompose(activeUserProfile);
+});
+messageComposeCloseButton.addEventListener("click", closeMessageCompose);
+messageComposeCancelButton.addEventListener("click", closeMessageCompose);
+messageComposeModal.addEventListener("click", (event) => {
+  if (event.target === messageComposeModal) {
+    closeMessageCompose();
+  }
+});
+messageComposeForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await sendMessage();
+});
+document.addEventListener("click", (event) => {
+  if (
+    !userInfoPopover.hidden &&
+    !event.target.closest("#userInfoPopover") &&
+    !event.target.closest("button[data-action='show-user-info']")
+  ) {
+    closeUserPopover();
+  }
+
+  if (
+    !notificationPanel.hidden &&
+    !event.target.closest("#notificationPanel") &&
+    !event.target.closest("#notificationButton")
+  ) {
+    closeNotificationPanel();
+  }
+});
 userChip.addEventListener("click", openDrawer);
 drawerEdgeClose.addEventListener("click", closeDrawer);
 pageDim.addEventListener("click", closeDrawer);
@@ -2008,6 +2429,21 @@ window.addEventListener("keydown", (event) => {
 
   if (!passwordChangeModal.hidden) {
     closePasswordChangeModal();
+    return;
+  }
+
+  if (!messageComposeModal.hidden) {
+    closeMessageCompose();
+    return;
+  }
+
+  if (!userInfoPopover.hidden) {
+    closeUserPopover();
+    return;
+  }
+
+  if (!notificationPanel.hidden) {
+    closeNotificationPanel();
     return;
   }
 
