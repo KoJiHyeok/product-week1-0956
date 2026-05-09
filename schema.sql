@@ -63,14 +63,19 @@ CREATE TABLE IF NOT EXISTS comments (
 CREATE TABLE IF NOT EXISTS likes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   submission_id INTEGER NOT NULL,
-  user_id INTEGER NOT NULL,
+  user_id INTEGER,
+  guest_identifier TEXT,
+  vote_date TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (submission_id) REFERENCES submissions(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  UNIQUE(user_id, submission_id)
+  CHECK (user_id IS NOT NULL OR guest_identifier IS NOT NULL)
 );
 
 CREATE INDEX IF NOT EXISTS idx_submissions_image_index ON submissions(image_index);
 CREATE INDEX IF NOT EXISTS idx_submissions_author_user_id ON submissions(author_user_id);
 CREATE INDEX IF NOT EXISTS idx_comments_submission_id ON comments(submission_id);
 CREATE INDEX IF NOT EXISTS idx_likes_submission_id ON likes(submission_id);
+CREATE INDEX IF NOT EXISTS idx_likes_vote_date ON likes(vote_date);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_likes_user_vote_date ON likes(user_id, vote_date) WHERE user_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_likes_guest_vote_date ON likes(guest_identifier, vote_date) WHERE guest_identifier IS NOT NULL;

@@ -15,6 +15,7 @@ const guestForm = document.querySelector("#guestForm");
 const guestNameInput = document.querySelector("#guestNameInput");
 const rankingList = document.querySelector("#rankingList");
 const backToGalleryButton = document.querySelector("#backToGalleryButton");
+const rankingSelfLink = document.querySelector("#rankingSelfLink");
 const authActions = document.querySelector("#authActions");
 const loginButton = document.querySelector("#loginButton");
 const signupButton = document.querySelector("#signupButton");
@@ -534,7 +535,10 @@ function showRanking(index) {
 }
 
 async function fetchServerSubmissions(imageIndex) {
-  const data = await requestJson(`/api/submissions?imageIndex=${encodeURIComponent(imageIndex)}`, {
+  const params = new URLSearchParams({
+    imageIndex: String(imageIndex),
+  });
+  const data = await requestJson(`/api/submissions?${params.toString()}`, {
     method: "GET",
     headers: {},
   });
@@ -656,6 +660,18 @@ function removeLocalComment(entryId, commentId) {
   });
 }
 
+function getCurrentRankingEntries() {
+  const imageKey = String(selectedImageIndex);
+  const cachedEntries = serverSubmissionsByImage[imageKey];
+  const submissions = loadSubmissions();
+
+  return Array.isArray(cachedEntries)
+    ? getSortedEntries(cachedEntries)
+    : Array.isArray(submissions[imageKey])
+      ? getSortedEntries(submissions[imageKey])
+      : [];
+}
+
 function renderGallery() {
   const fragment = document.createDocumentFragment();
 
@@ -711,14 +727,7 @@ function renderRanking() {
   rankingPhoto.src = image.src;
   rankingPhoto.alt = image.alt;
 
-  const imageKey = String(selectedImageIndex);
-  const cachedEntries = serverSubmissionsByImage[imageKey];
-  const submissions = loadSubmissions();
-  const entries = Array.isArray(cachedEntries)
-    ? getSortedEntries(cachedEntries)
-    : Array.isArray(submissions[imageKey])
-      ? getSortedEntries(submissions[imageKey])
-      : [];
+  const entries = getCurrentRankingEntries();
 
   if (entries.length === 0) {
     const empty = document.createElement("li");
@@ -771,6 +780,9 @@ function renderRanking() {
     const actions = document.createElement("div");
     actions.className = "rank-actions";
 
+    const voteGroup = document.createElement("div");
+    voteGroup.className = "vote-group";
+
     const heartButton = document.createElement("button");
     heartButton.className = "heart-button";
     heartButton.type = "button";
@@ -780,6 +792,10 @@ function renderRanking() {
     heartButton.setAttribute("aria-label", entry.likedByMe ? "하트 취소" : "하트 누르기");
     heartButton.innerHTML = `<span class="heart-icon" aria-hidden="true"></span><span>${entry.likes}</span>`;
 
+    const voteHint = document.createElement("span");
+    voteHint.className = "vote-hint";
+    voteHint.textContent = "투표는 하루에 한 번만 가능합니다.";
+
     const toggleButton = document.createElement("button");
     toggleButton.className = "comment-toggle";
     toggleButton.type = "button";
@@ -788,7 +804,8 @@ function renderRanking() {
     toggleButton.setAttribute("aria-label", isExpanded ? "댓글 접기" : "댓글 펼치기");
     toggleButton.setAttribute("aria-expanded", String(isExpanded));
 
-    actions.append(heartButton);
+    voteGroup.append(heartButton, voteHint);
+    actions.append(voteGroup);
 
     if (isMine) {
       const deleteButton = document.createElement("button");
@@ -918,6 +935,23 @@ function openRankingLocation(imageIndex, entryId, commentId = "") {
   };
   closeDrawer();
   navigateTo({ view: "ranking", imageIndex });
+}
+
+function scrollToMyRanking() {
+  const entries = getCurrentRankingEntries();
+  const target = entries.find((entry) => entry.canDelete || canDeleteLocalAuthor(entry.author));
+
+  if (!target) {
+    showToast("현재 랭킹에서 본인의 제목을 찾지 못했습니다.");
+    return;
+  }
+
+  pendingRankingFocus = {
+    imageIndex: selectedImageIndex,
+    entryId: target.id,
+    commentId: "",
+  };
+  renderRanking();
 }
 
 function renderUser() {
@@ -1521,12 +1555,6 @@ rankingList.addEventListener("click", async (event) => {
   }
 
   if (button.dataset.action === "like") {
-    if (!currentUser) {
-      showToast("로그인 후 하트를 누를 수 있습니다.");
-      openAuthModal("login");
-      return;
-    }
-
     const imageKey = String(selectedImageIndex);
     const serverEntries = serverSubmissionsByImage[imageKey];
     const entry = Array.isArray(serverEntries) ? serverEntries.find((item) => item.id === entryId) : null;
@@ -1680,6 +1708,7 @@ rankingList.addEventListener("submit", async (event) => {
 });
 
 backToGalleryButton.addEventListener("click", goHome);
+rankingSelfLink.addEventListener("click", scrollToMyRanking);
 
 loginButton.addEventListener("click", () => {
   openAuthModal("login");

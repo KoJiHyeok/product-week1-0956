@@ -392,6 +392,32 @@ button {
   line-height: 1.05;
 }
 
+.ranking-sort-note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.ranking-head-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ranking-self-link {
+  border: 0;
+  background: transparent;
+  color: var(--yellow);
+  padding: 0;
+  font-weight: 900;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+}
+
 .contact-view {
   padding-inline: 6px;
 }
@@ -641,6 +667,20 @@ button {
   gap: 8px;
 }
 
+.vote-group {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+.vote-hint {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: right;
+}
+
 .heart-button {
   display: inline-flex;
   align-items: center;
@@ -656,7 +696,6 @@ button {
   font-weight: 900;
 }
 
-.edit-button,
 .delete-button,
 .comment-delete {
   min-height: 34px;
@@ -669,14 +708,9 @@ button {
   font-weight: 900;
 }
 
-.edit-button:hover,
 .delete-button:hover,
 .comment-delete:hover {
   background: rgba(198, 33, 58, 0.3);
-}
-
-.edit-button:hover {
-  background: rgba(255, 199, 44, 0.24);
 }
 
 .heart-icon {
@@ -1433,7 +1467,7 @@ button:focus-visible,
 .contact-link:focus-visible,
 .auth-switch-button:focus-visible,
 .heart-button:focus-visible,
-.edit-button:focus-visible,
+.ranking-self-link:focus-visible,
 .delete-button:focus-visible,
 .comment-delete:focus-visible,
 .comment-toggle:focus-visible,
@@ -1530,6 +1564,10 @@ a[href]:focus-visible {
   .ranking-head {
     align-items: start;
     flex-direction: column;
+  }
+
+  .ranking-head-actions {
+    justify-content: flex-start;
   }
 
   .ranking-layout {

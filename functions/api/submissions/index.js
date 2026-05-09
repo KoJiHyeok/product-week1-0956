@@ -1,4 +1,5 @@
 import { getCurrentUser, getDb, json, readJson } from "../auth/_shared.js";
+import { getOrCreateGuestVoteIdentifier, getVoteDate } from "./_vote.js";
 
 export async function onRequestGet(context) {
   try {
@@ -7,6 +8,8 @@ export async function onRequestGet(context) {
     const url = new URL(context.request.url);
     const rawImageIndex = url.searchParams.get("imageIndex");
     const imageIndex = Number(rawImageIndex);
+    const guestVote = user ? { identifier: "", cookie: "" } : await getOrCreateGuestVoteIdentifier(context.request);
+    const voteDate = getVoteDate();
 
     if (!Number.isInteger(imageIndex)) {
       return json({ message: "사진 번호가 올바르지 않습니다." }, 400);
@@ -26,7 +29,14 @@ export async function onRequestGet(context) {
            users.is_profile_public,
            users.profile_image_url,
            COUNT(DISTINCT likes.id) AS like_count,
-           MAX(CASE WHEN likes.user_id = ? THEN 1 ELSE 0 END) AS liked_by_me
+           MAX(
+             CASE
+               WHEN likes.vote_date = ?
+                AND ((? IS NOT NULL AND likes.user_id = ?) OR (? != '' AND likes.guest_identifier = ?))
+               THEN 1
+               ELSE 0
+             END
+           ) AS liked_by_me
          FROM submissions
          LEFT JOIN users ON users.id = submissions.author_user_id
          LEFT JOIN likes ON likes.submission_id = submissions.id
@@ -34,11 +44,11 @@ export async function onRequestGet(context) {
          GROUP BY submissions.id
          ORDER BY like_count DESC, submissions.created_at DESC`
       )
-      .bind(user?.id || 0, imageIndex)
+      .bind(voteDate, user?.id || null, user?.id || null, guestVote.identifier, guestVote.identifier, imageIndex)
       .all();
 
     const submissions = await Promise.all((results || []).map((row) => withComments(db, row, user)));
-    return json({ submissions });
+    return json({ submissions }, 200, guestVote.cookie ? { "set-cookie": guestVote.cookie } : {});
   } catch {
     return json({ message: "제목 목록을 불러오지 못했습니다." }, 500);
   }
