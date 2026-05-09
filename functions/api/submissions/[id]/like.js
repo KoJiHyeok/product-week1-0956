@@ -29,15 +29,31 @@ export async function onRequestPost(context) {
       .first();
 
     if (existing) {
-      const count = await countLikes(db, submissionId);
+      if (Number(existing.submission_id) === submissionId) {
+        await db.prepare("DELETE FROM likes WHERE id = ?").bind(existing.id).run();
+
+        return json(
+          {
+            liked: false,
+            likes: await countLikes(db, submissionId),
+            dailyVoteUsed: false,
+          },
+          200,
+          guestVote.cookie ? { "set-cookie": guestVote.cookie } : {}
+        );
+      }
+
+      await db.prepare("UPDATE likes SET submission_id = ?, created_at = CURRENT_TIMESTAMP WHERE id = ?").bind(submissionId, existing.id).run();
 
       return json(
         {
-          liked: Number(existing.submission_id) === submissionId,
-          likes: count,
+          liked: true,
+          likes: await countLikes(db, submissionId),
+          previousSubmissionId: String(existing.submission_id),
+          previousLikes: await countLikes(db, existing.submission_id),
           dailyVoteUsed: true,
         },
-        409,
+        200,
         guestVote.cookie ? { "set-cookie": guestVote.cookie } : {}
       );
     }

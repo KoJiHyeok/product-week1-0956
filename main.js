@@ -2046,6 +2046,7 @@ rankingList.addEventListener("click", async (event) => {
 
       entry.likes = data.likes;
       entry.likedByMe = data.liked;
+      updatePreviousLikedEntry(serverEntries, data);
       renderRanking();
     } catch (error) {
       showToast(error.message);
@@ -2184,6 +2185,21 @@ rankingList.addEventListener("submit", async (event) => {
   });
   input.value = "";
 });
+
+function updatePreviousLikedEntry(entries, data) {
+  if (!data.previousSubmissionId || !Array.isArray(entries)) {
+    return;
+  }
+
+  const previousEntry = entries.find((item) => item.id === String(data.previousSubmissionId));
+
+  if (!previousEntry) {
+    return;
+  }
+
+  previousEntry.likes = data.previousLikes;
+  previousEntry.likedByMe = false;
+}
 
 backToGalleryButton.addEventListener("click", goHome);
 rankingSelfLink.addEventListener("click", scrollToMyRanking);
