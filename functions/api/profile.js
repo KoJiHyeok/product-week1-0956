@@ -1,5 +1,4 @@
 import {
-  deleteCurrentSession,
   getCurrentUser,
   getDb,
   getExpiredSessionCookieHeader,
@@ -81,7 +80,17 @@ async function deleteProfile(context) {
   }
 
   const db = getDb(context);
-  await deleteCurrentSession(context);
+  await db
+    .prepare("UPDATE submissions SET author_user_id = NULL, guest_name = ? WHERE author_user_id = ?")
+    .bind("탈퇴한 회원", user.id)
+    .run();
+  await db
+    .prepare("UPDATE comments SET author_user_id = NULL, guest_name = ? WHERE author_user_id = ?")
+    .bind("탈퇴한 회원", user.id)
+    .run();
+  await db.prepare("DELETE FROM likes WHERE user_id = ?").bind(user.id).run();
+  await db.prepare("DELETE FROM email_verification_tokens WHERE user_id = ?").bind(user.id).run();
+  await db.prepare("DELETE FROM sessions WHERE user_id = ?").bind(user.id).run();
   await db.prepare("DELETE FROM users WHERE id = ?").bind(user.id).run();
 
   return json(

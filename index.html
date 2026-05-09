@@ -133,6 +133,37 @@
         </form>
       </div>
     </section>
+
+    <section class="view profile-view" id="profileView" hidden aria-label="개인정보 수정">
+      <div class="profile-page-head">
+        <p class="view-kicker">프로필</p>
+        <h1>개인정보 수정</h1>
+      </div>
+
+      <form class="profile-edit-form profile-edit-panel" id="profileEditForm">
+        <button class="profile-edit-photo-button" id="profileEditPhotoButton" type="button" aria-label="프로필 사진 변경">
+          <span class="profile-photo large edit-photo" id="profileEditPhoto" aria-hidden="true"></span>
+          <span class="avatar-edit-overlay" aria-hidden="true">사진 변경</span>
+        </button>
+
+        <label for="profileNameInput">프로필 이름</label>
+        <input id="profileNameInput" name="username" type="text" maxlength="24" autocomplete="nickname" />
+
+        <label for="profileBioInput">자기소개글</label>
+        <textarea id="profileBioInput" name="bio" rows="4" maxlength="240"></textarea>
+
+        <label class="profile-public-toggle" for="profilePublicInput">
+          <input id="profilePublicInput" type="checkbox" />
+          <span>내 정보 공개</span>
+        </label>
+        <p class="profile-public-hint" id="profilePublicHint">공개: 사용자 이름, 나의 제목들 목록 공개</p>
+
+        <p class="profile-edit-message" id="profileEditMessage" aria-live="polite"></p>
+        <button class="auth-button solid full" id="profileSaveButton" type="submit">저장</button>
+        <button class="auth-button ghost full" id="passwordChangeButton" type="button">비밀번호 변경</button>
+        <button class="auth-button danger full" id="accountDeleteButton" type="button">회원 탈퇴</button>
+      </form>
+    </section>
   </main>
 
   <aside class="profile-drawer" id="profileDrawer" aria-hidden="true" aria-label="회원 정보">
@@ -167,37 +198,6 @@
         <h3>나의 제목들</h3>
       </div>
       <div class="my-title-list" id="myTitleList"></div>
-    </div>
-
-    <div class="drawer-view" id="profileEditView" hidden>
-      <div class="drawer-subhead">
-        <button class="drawer-back" id="profileEditBackButton" type="button">메뉴로</button>
-        <h3>개인정보 수정</h3>
-      </div>
-
-      <form class="profile-edit-form" id="profileEditForm">
-        <button class="profile-edit-photo-button" id="profileEditPhotoButton" type="button" aria-label="프로필 사진 변경">
-          <span class="profile-photo large edit-photo" id="profileEditPhoto" aria-hidden="true"></span>
-          <span class="avatar-edit-overlay" aria-hidden="true">사진 변경</span>
-        </button>
-
-        <label for="profileNameInput">프로필 이름</label>
-        <input id="profileNameInput" name="username" type="text" maxlength="24" autocomplete="nickname" />
-
-        <label for="profileBioInput">자기소개글</label>
-        <textarea id="profileBioInput" name="bio" rows="4" maxlength="240"></textarea>
-
-        <label class="profile-public-toggle" for="profilePublicInput">
-          <input id="profilePublicInput" type="checkbox" />
-          <span>내 정보 공개</span>
-        </label>
-        <p class="profile-public-hint" id="profilePublicHint">공개: 사용자 이름, 나의 제목들 목록 공개</p>
-
-        <p class="profile-edit-message" id="profileEditMessage" aria-live="polite"></p>
-        <button class="auth-button solid full" id="profileSaveButton" type="submit">저장</button>
-        <button class="auth-button ghost full" id="passwordChangeButton" type="button">비밀번호 변경</button>
-        <button class="auth-button danger full" id="accountDeleteButton" type="button">회원 탈퇴</button>
-      </form>
     </div>
   </aside>
 

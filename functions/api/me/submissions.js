@@ -32,7 +32,7 @@ export async function onRequestGet(context) {
         const comments = await db
           .prepare(
             `SELECT comments.id, comments.text, comments.created_at, comments.author_user_id,
-                    comments.guest_name, users.username
+                    comments.guest_name, users.username, users.is_profile_public, users.profile_image_url
              FROM comments
              LEFT JOIN users ON users.id = comments.author_user_id
              WHERE comments.submission_id = ?
@@ -52,6 +52,8 @@ export async function onRequestGet(context) {
           comments: (comments.results || []).map((comment) => ({
             id: String(comment.id),
             author: comment.username || comment.guest_name || "비회원",
+            authorIsProfilePublic: comment.author_user_id ? comment.is_profile_public !== 0 : true,
+            authorProfileImageUrl: comment.is_profile_public !== 0 ? comment.profile_image_url || "" : "",
             text: comment.text,
             createdAt: comment.created_at,
             canDelete: comment.author_user_id === user.id,

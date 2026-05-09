@@ -23,6 +23,8 @@ export async function onRequestGet(context) {
            submissions.guest_name,
            submissions.created_at,
            users.username,
+           users.is_profile_public,
+           users.profile_image_url,
            COUNT(DISTINCT likes.id) AS like_count,
            MAX(CASE WHEN likes.user_id = ? THEN 1 ELSE 0 END) AS liked_by_me
          FROM submissions
@@ -73,6 +75,7 @@ export async function onRequestPost(context) {
         `SELECT submissions.id, submissions.image_index, submissions.image_src, submissions.title,
                 submissions.author_user_id,
                 submissions.guest_name, submissions.created_at, users.username,
+                users.is_profile_public, users.profile_image_url,
                 0 AS like_count, 0 AS liked_by_me
          FROM submissions
          LEFT JOIN users ON users.id = submissions.author_user_id
@@ -91,7 +94,7 @@ async function withComments(db, row, user) {
   const { results } = await db
     .prepare(
       `SELECT comments.id, comments.text, comments.created_at, comments.author_user_id,
-              comments.guest_name, users.username
+              comments.guest_name, users.username, users.is_profile_public, users.profile_image_url
        FROM comments
        LEFT JOIN users ON users.id = comments.author_user_id
        WHERE comments.submission_id = ?
@@ -106,6 +109,8 @@ async function withComments(db, row, user) {
     imageSrc: row.image_src,
     title: row.title,
     author: row.username || row.guest_name || "비회원",
+    authorIsProfilePublic: row.author_user_id ? row.is_profile_public !== 0 : true,
+    authorProfileImageUrl: row.is_profile_public !== 0 ? row.profile_image_url || "" : "",
     createdAt: row.created_at,
     likes: Number(row.like_count) || 0,
     likedByMe: Boolean(row.liked_by_me),
@@ -113,6 +118,8 @@ async function withComments(db, row, user) {
     comments: (results || []).map((comment) => ({
       id: String(comment.id),
       author: comment.username || comment.guest_name || "비회원",
+      authorIsProfilePublic: comment.author_user_id ? comment.is_profile_public !== 0 : true,
+      authorProfileImageUrl: comment.is_profile_public !== 0 ? comment.profile_image_url || "" : "",
       text: comment.text,
       createdAt: comment.created_at,
       canDelete: Boolean(user && comment.author_user_id === user.id),

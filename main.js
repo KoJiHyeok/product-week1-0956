@@ -5,6 +5,7 @@ const titleView = document.querySelector("#titleView");
 const guestView = document.querySelector("#guestView");
 const rankingView = document.querySelector("#rankingView");
 const contactView = document.querySelector("#contactView");
+const profileView = document.querySelector("#profileView");
 const galleryGrid = document.querySelector("#galleryGrid");
 const selectedPhoto = document.querySelector("#selectedPhoto");
 const rankingPhoto = document.querySelector("#rankingPhoto");
@@ -34,8 +35,6 @@ const drawerMenuView = document.querySelector("#drawerMenuView");
 const myTitlesView = document.querySelector("#myTitlesView");
 const drawerBackButton = document.querySelector("#drawerBackButton");
 const myTitleList = document.querySelector("#myTitleList");
-const profileEditView = document.querySelector("#profileEditView");
-const profileEditBackButton = document.querySelector("#profileEditBackButton");
 const profileEditForm = document.querySelector("#profileEditForm");
 const profileEditPhotoButton = document.querySelector("#profileEditPhotoButton");
 const profileEditPhoto = document.querySelector("#profileEditPhoto");
@@ -130,6 +129,10 @@ function getUserDisplayName() {
 function setCurrentUser(user) {
   currentUser = user || null;
   renderUser();
+
+  if (!profileView.hidden) {
+    hydrateProfileForm();
+  }
 }
 
 async function requestAuth(path, options = {}) {
@@ -323,6 +326,10 @@ function routeToHash(state) {
     return "#contact";
   }
 
+  if (state.view === "profile") {
+    return "#profile";
+  }
+
   return "#home";
 }
 
@@ -335,6 +342,10 @@ function parseRouteFromHash(hash) {
 
   if (cleanHash === "contact") {
     return { view: "contact" };
+  }
+
+  if (cleanHash === "profile") {
+    return { view: "profile" };
   }
 
   const [view, rawIndex] = cleanHash.split("/");
@@ -360,6 +371,10 @@ function getValidRoute(state) {
     return { view: "contact" };
   }
 
+  if (state.view === "profile") {
+    return { view: "profile" };
+  }
+
   if (!["title", "guest", "ranking"].includes(state.view) || !Number.isInteger(state.imageIndex)) {
     return null;
   }
@@ -381,7 +396,7 @@ function getValidRoute(state) {
 }
 
 function showView(viewToShow) {
-  [homeView, titleView, guestView, rankingView, contactView].forEach((view) => {
+  [homeView, titleView, guestView, rankingView, contactView, profileView].forEach((view) => {
     view.hidden = view !== viewToShow;
   });
   window.scrollTo({ top: 0, behavior: "auto" });
@@ -410,6 +425,21 @@ function applyRoute(state) {
     pendingTitle = "";
     showView(contactView);
     contactTypeInput.focus();
+    return;
+  }
+
+  if (route.view === "profile") {
+    selectedImageIndex = null;
+    pendingTitle = "";
+    showView(profileView);
+    hydrateProfileForm();
+
+    if (!currentUser) {
+      openAuthModal("login");
+      return;
+    }
+
+    profileNameInput.focus();
     return;
   }
 
@@ -830,6 +860,9 @@ function renderUser() {
   if (!currentUser) {
     authActions.hidden = false;
     userChip.hidden = true;
+    drawerName.textContent = "";
+    renderAvatar(drawerPhoto, null);
+    renderAvatar(profileEditPhoto, null);
     return;
   }
 
@@ -845,6 +878,10 @@ function renderUser() {
 }
 
 function renderAvatar(target, user) {
+  if (!target) {
+    return;
+  }
+
   const displayName = user?.username || "";
   const imageUrl = user?.profileImageUrl || "";
   target.textContent = imageUrl ? "" : getInitials(displayName);
@@ -952,19 +989,15 @@ function closeDrawer() {
 function showDrawerMenu() {
   drawerMenuView.hidden = false;
   myTitlesView.hidden = true;
-  profileEditView.hidden = true;
   drawerMenuView.classList.add("is-active");
   myTitlesView.classList.remove("is-active");
-  profileEditView.classList.remove("is-active");
 }
 
 async function showMyTitles() {
   drawerMenuView.hidden = true;
   myTitlesView.hidden = false;
-  profileEditView.hidden = true;
   drawerMenuView.classList.remove("is-active");
   myTitlesView.classList.add("is-active");
-  profileEditView.classList.remove("is-active");
   myTitleList.replaceChildren(createMyTitleMessage("불러오는 중입니다."));
 
   try {
@@ -981,12 +1014,32 @@ function showProfileEdit() {
     return;
   }
 
-  drawerMenuView.hidden = true;
-  myTitlesView.hidden = true;
-  profileEditView.hidden = false;
-  drawerMenuView.classList.remove("is-active");
-  myTitlesView.classList.remove("is-active");
-  profileEditView.classList.add("is-active");
+  closeDrawer();
+  navigateTo({ view: "profile" });
+}
+
+function hydrateProfileForm() {
+  const isAuthenticated = Boolean(currentUser);
+
+  profileEditForm.toggleAttribute("aria-disabled", !isAuthenticated);
+  profileNameInput.disabled = !isAuthenticated;
+  profileBioInput.disabled = !isAuthenticated;
+  profilePublicInput.disabled = !isAuthenticated;
+  profileSaveButton.disabled = !isAuthenticated;
+  passwordChangeButton.disabled = !isAuthenticated;
+  accountDeleteButton.disabled = !isAuthenticated;
+
+  if (!currentUser) {
+    profileNameInput.value = "";
+    profileBioInput.value = "";
+    profilePublicInput.checked = true;
+    profileEditMessage.textContent = "로그인 후 개인정보를 수정할 수 있습니다.";
+    profileEditMessage.classList.remove("is-success");
+    updateProfilePublicHint();
+    renderAvatar(profileEditPhoto, null);
+    return;
+  }
+
   profileNameInput.value = currentUser.username || "";
   profileBioInput.value = currentUser.bio || "";
   profilePublicInput.checked = currentUser.isProfilePublic !== false;
@@ -1050,6 +1103,7 @@ async function deleteAccount() {
     closeDeleteAccountModal();
     closeDrawer();
     setCurrentUser(null);
+    navigateTo({ view: "home" }, { replace: true });
     showToast("회원 탈퇴가 완료되었습니다.");
   } catch (error) {
     showToast(error.message);
@@ -1630,7 +1684,6 @@ logoutButton.addEventListener("click", logout);
 profileEditButton.addEventListener("click", showProfileEdit);
 myTitlesButton.addEventListener("click", showMyTitles);
 drawerBackButton.addEventListener("click", showDrawerMenu);
-profileEditBackButton.addEventListener("click", showDrawerMenu);
 profileEditPhotoButton.addEventListener("click", () => {
   avatarInput.click();
 });
@@ -1718,8 +1771,12 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
-renderGallery();
-renderUser();
-verifyEmailFromUrl();
-restoreSession();
-initializeRoute();
+async function initializeApp() {
+  renderGallery();
+  renderUser();
+  await verifyEmailFromUrl();
+  await restoreSession();
+  initializeRoute();
+}
+
+initializeApp();

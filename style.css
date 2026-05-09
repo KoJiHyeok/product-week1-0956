@@ -490,6 +490,31 @@ button {
   justify-self: start;
 }
 
+.profile-view {
+  padding-inline: 6px;
+}
+
+.profile-page-head {
+  width: min(620px, 100%);
+  margin: 0 auto 24px;
+}
+
+.profile-page-head h1 {
+  margin: 0;
+  font-size: clamp(1.7rem, 4vw, 3rem);
+  line-height: 1.05;
+}
+
+.profile-edit-panel {
+  width: min(620px, 100%);
+  margin: 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 14px 32px rgba(3, 8, 39, 0.18);
+  padding: 24px;
+}
+
 .ranking-layout {
   display: grid;
   grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
@@ -1028,6 +1053,22 @@ button {
   color: #237a3b;
 }
 
+.profile-edit-panel label {
+  color: var(--text);
+}
+
+.profile-edit-panel .profile-public-hint {
+  color: var(--muted);
+}
+
+.profile-edit-panel .profile-edit-message {
+  color: #ffe5ea;
+}
+
+.profile-edit-panel .profile-edit-message.is-success {
+  color: #dfffe8;
+}
+
 .auth-button.danger {
   border: 1px solid #f0c7d0;
   background: #fff4f6;
@@ -1382,6 +1423,8 @@ button:focus-visible,
 .compact-form input:focus-visible,
 .auth-form input:focus-visible,
 .comment-form input:focus-visible,
+.profile-edit-form input:focus-visible,
+.profile-edit-form textarea:focus-visible,
 .contact-form input:focus-visible,
 .contact-form select:focus-visible,
 .contact-form textarea:focus-visible,
