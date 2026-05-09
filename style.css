@@ -555,6 +555,17 @@ button {
   box-shadow: 0 10px 24px rgba(3, 8, 39, 0.16);
 }
 
+.ranking-item.is-mine {
+  border-color: rgba(255, 199, 44, 0.64);
+  background: linear-gradient(135deg, rgba(255, 199, 44, 0.2), rgba(33, 182, 168, 0.18));
+}
+
+.ranking-item.is-focused,
+.comment-item.is-focused {
+  outline: 3px solid rgba(255, 199, 44, 0.84);
+  outline-offset: 3px;
+}
+
 .ranking-empty {
   grid-template-columns: 1fr;
   justify-items: start;
@@ -617,6 +628,18 @@ button {
   text-shadow: 0 1px 2px rgba(3, 8, 39, 0.32);
 }
 
+.rank-title-input {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid #d8dcec;
+  border-radius: 8px;
+  background: #fbfcff;
+  color: var(--ink);
+  padding: 0 12px;
+  font-weight: 900;
+  outline: 0;
+}
+
 .rank-content span {
   color: #eef1ff;
   font-size: 0.92rem;
@@ -645,6 +668,7 @@ button {
   font-weight: 900;
 }
 
+.edit-button,
 .delete-button,
 .comment-delete {
   min-height: 34px;
@@ -657,9 +681,14 @@ button {
   font-weight: 900;
 }
 
+.edit-button:hover,
 .delete-button:hover,
 .comment-delete:hover {
   background: rgba(198, 33, 58, 0.3);
+}
+
+.edit-button:hover {
+  background: rgba(255, 199, 44, 0.24);
 }
 
 .heart-icon {
@@ -1128,6 +1157,12 @@ button {
   border-radius: 8px;
   background: #ffffff;
   padding: 10px;
+  cursor: pointer;
+}
+
+.my-title-card:hover {
+  border-color: #c7cdea;
+  background: #fbfcff;
 }
 
 .my-title-thumb {
@@ -1410,6 +1445,7 @@ button:focus-visible,
 .contact-link:focus-visible,
 .auth-switch-button:focus-visible,
 .heart-button:focus-visible,
+.edit-button:focus-visible,
 .delete-button:focus-visible,
 .comment-delete:focus-visible,
 .comment-toggle:focus-visible,
@@ -1417,12 +1453,14 @@ button:focus-visible,
 .drawer-edge-close:focus-visible,
 .drawer-menu-row:focus-visible,
 .drawer-back:focus-visible,
+.my-title-card:focus-visible,
 .avatar-edit-button:focus-visible,
 .modal-close:focus-visible,
 .entry-row input:focus-visible,
 .compact-form input:focus-visible,
 .auth-form input:focus-visible,
 .comment-form input:focus-visible,
+.rank-title-input:focus-visible,
 .profile-edit-form input:focus-visible,
 .profile-edit-form textarea:focus-visible,
 .contact-form input:focus-visible,

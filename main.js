@@ -31,10 +31,14 @@ const avatarEditButton = document.querySelector("#avatarEditButton");
 const avatarInput = document.querySelector("#avatarInput");
 const profileEditButton = document.querySelector("#profileEditButton");
 const myTitlesButton = document.querySelector("#myTitlesButton");
+const myCommentsButton = document.querySelector("#myCommentsButton");
 const drawerMenuView = document.querySelector("#drawerMenuView");
 const myTitlesView = document.querySelector("#myTitlesView");
+const myCommentsView = document.querySelector("#myCommentsView");
 const drawerBackButton = document.querySelector("#drawerBackButton");
+const commentsBackButton = document.querySelector("#commentsBackButton");
 const myTitleList = document.querySelector("#myTitleList");
+const myCommentList = document.querySelector("#myCommentList");
 const profileEditForm = document.querySelector("#profileEditForm");
 const profileEditPhotoButton = document.querySelector("#profileEditPhotoButton");
 const profileEditPhoto = document.querySelector("#profileEditPhoto");
@@ -113,6 +117,8 @@ let pendingTitle = "";
 let toastTimer;
 let serverSubmissionsByImage = {};
 const expandedCommentIds = new Set();
+let editingSubmissionId = "";
+let pendingRankingFocus = null;
 
 function createId(prefix) {
   if (globalThis.crypto?.randomUUID) {
@@ -279,6 +285,24 @@ function saveSubmissions(submissions) {
 function getInitials(name) {
   const cleanName = name.trim();
   return cleanName.slice(0, 2).toUpperCase() || "U";
+}
+
+function formatDate(value) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function escapeSelector(value) {
+  return globalThis.CSS?.escape ? CSS.escape(String(value)) : String(value).replace(/["\\]/g, "\\$&");
 }
 
 function getSelectedImage() {
@@ -719,7 +743,9 @@ function renderRanking() {
   entries.forEach((entry, index) => {
     const item = document.createElement("li");
     const isExpanded = expandedCommentIds.has(entry.id);
-    item.className = `ranking-item${isExpanded ? " is-expanded" : ""}`;
+    const isMine = Boolean(entry.canDelete || canDeleteLocalAuthor(entry.author));
+    const isEditing = editingSubmissionId === entry.id;
+    item.className = `ranking-item${isExpanded ? " is-expanded" : ""}${isMine ? " is-mine" : ""}`;
     item.dataset.entryId = entry.id;
 
     const rank = document.createElement("span");
@@ -738,11 +764,23 @@ function renderRanking() {
     const content = document.createElement("div");
     content.className = "rank-content";
 
-    const title = document.createElement("strong");
-    title.textContent = entry.title;
+    let title;
+
+    if (isEditing) {
+      title = document.createElement("input");
+      title.className = "rank-title-input";
+      title.type = "text";
+      title.maxLength = 60;
+      title.value = entry.title;
+      title.dataset.entryId = entry.id;
+      title.setAttribute("aria-label", "제목 수정");
+    } else {
+      title = document.createElement("strong");
+      title.textContent = entry.title;
+    }
 
     const author = document.createElement("span");
-    author.textContent = entry.author;
+    author.textContent = isMine ? `${entry.author} · 내 제목` : entry.author;
 
     const actions = document.createElement("div");
     actions.className = "rank-actions";
@@ -766,7 +804,36 @@ function renderRanking() {
 
     actions.append(heartButton);
 
-    if (entry.canDelete || canDeleteLocalAuthor(entry.author)) {
+    if (isMine) {
+      if (isEditing) {
+        const saveButton = document.createElement("button");
+        saveButton.className = "edit-button";
+        saveButton.type = "button";
+        saveButton.dataset.action = "save-submission-edit";
+        saveButton.dataset.entryId = entry.id;
+        saveButton.textContent = "저장";
+        saveButton.setAttribute("aria-label", "제목 수정 저장");
+        actions.append(saveButton);
+
+        const cancelButton = document.createElement("button");
+        cancelButton.className = "edit-button";
+        cancelButton.type = "button";
+        cancelButton.dataset.action = "cancel-submission-edit";
+        cancelButton.dataset.entryId = entry.id;
+        cancelButton.textContent = "취소";
+        cancelButton.setAttribute("aria-label", "제목 수정 취소");
+        actions.append(cancelButton);
+      } else {
+        const editButton = document.createElement("button");
+        editButton.className = "edit-button";
+        editButton.type = "button";
+        editButton.dataset.action = "edit-submission";
+        editButton.dataset.entryId = entry.id;
+        editButton.textContent = "수정";
+        editButton.setAttribute("aria-label", "제목 수정");
+        actions.append(editButton);
+      }
+
       const deleteButton = document.createElement("button");
       deleteButton.className = "delete-button";
       deleteButton.type = "button";
@@ -788,6 +855,7 @@ function renderRanking() {
   });
 
   rankingList.replaceChildren(fragment);
+  applyPendingRankingFocus();
 }
 
 function createCommentsPanel(entry) {
@@ -806,6 +874,7 @@ function createCommentsPanel(entry) {
     entry.comments.forEach((comment) => {
       const item = document.createElement("li");
       item.className = "comment-item";
+      item.dataset.commentId = comment.id;
 
       const commentHead = document.createElement("div");
       commentHead.className = "comment-head";
@@ -854,6 +923,44 @@ function createCommentsPanel(entry) {
   form.append(input, button);
   panel.append(list, form);
   return panel;
+}
+
+function applyPendingRankingFocus() {
+  if (!pendingRankingFocus || pendingRankingFocus.imageIndex !== selectedImageIndex) {
+    return;
+  }
+
+  const selector = pendingRankingFocus.commentId
+    ? `[data-comment-id="${escapeSelector(pendingRankingFocus.commentId)}"]`
+    : `[data-entry-id="${escapeSelector(pendingRankingFocus.entryId)}"]`;
+  const target = rankingList.querySelector(selector);
+
+  if (!target) {
+    return;
+  }
+
+  target.classList.add("is-focused");
+  target.scrollIntoView({ block: "center", behavior: "smooth" });
+  pendingRankingFocus = null;
+}
+
+function openRankingLocation(imageIndex, entryId, commentId = "") {
+  if (!Number.isInteger(imageIndex)) {
+    showToast("이동할 사진 정보를 찾을 수 없습니다.");
+    return;
+  }
+
+  if (entryId) {
+    expandedCommentIds.add(String(entryId));
+  }
+
+  pendingRankingFocus = {
+    imageIndex,
+    entryId: String(entryId || ""),
+    commentId: String(commentId || ""),
+  };
+  closeDrawer();
+  navigateTo({ view: "ranking", imageIndex });
 }
 
 function renderUser() {
@@ -989,15 +1096,19 @@ function closeDrawer() {
 function showDrawerMenu() {
   drawerMenuView.hidden = false;
   myTitlesView.hidden = true;
+  myCommentsView.hidden = true;
   drawerMenuView.classList.add("is-active");
   myTitlesView.classList.remove("is-active");
+  myCommentsView.classList.remove("is-active");
 }
 
 async function showMyTitles() {
   drawerMenuView.hidden = true;
   myTitlesView.hidden = false;
+  myCommentsView.hidden = true;
   drawerMenuView.classList.remove("is-active");
   myTitlesView.classList.add("is-active");
+  myCommentsView.classList.remove("is-active");
   myTitleList.replaceChildren(createMyTitleMessage("불러오는 중입니다."));
 
   try {
@@ -1005,6 +1116,23 @@ async function showMyTitles() {
     renderMyTitles(data.submissions || []);
   } catch (error) {
     myTitleList.replaceChildren(createMyTitleMessage(error.message));
+  }
+}
+
+async function showMyComments() {
+  drawerMenuView.hidden = true;
+  myTitlesView.hidden = true;
+  myCommentsView.hidden = false;
+  drawerMenuView.classList.remove("is-active");
+  myTitlesView.classList.remove("is-active");
+  myCommentsView.classList.add("is-active");
+  myCommentList.replaceChildren(createMyTitleMessage("불러오는 중입니다."));
+
+  try {
+    const data = await requestJson("/api/me/comments", { method: "GET", headers: {} });
+    renderMyComments(data.comments || []);
+  } catch (error) {
+    myCommentList.replaceChildren(createMyTitleMessage(error.message));
   }
 }
 
@@ -1168,6 +1296,11 @@ function renderMyTitles(submissions) {
   submissions.forEach((entry) => {
     const card = document.createElement("article");
     card.className = "my-title-card";
+    card.dataset.entryId = entry.id;
+    card.dataset.imageIndex = String(entry.imageIndex);
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.setAttribute("aria-label", `${entry.title} 랭킹으로 이동`);
 
     const image = document.createElement("img");
     image.className = "my-title-thumb";
@@ -1204,6 +1337,60 @@ function renderMyTitles(submissions) {
   });
 
   myTitleList.replaceChildren(fragment);
+}
+
+function renderMyComments(comments) {
+  if (comments.length === 0) {
+    myCommentList.replaceChildren(createMyTitleMessage("아직 작성한 댓글이 없습니다."));
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  comments.forEach((comment) => {
+    const card = document.createElement("article");
+    card.className = "my-title-card my-comment-card";
+    card.dataset.entryId = comment.submissionId;
+    card.dataset.commentId = comment.id;
+    card.dataset.imageIndex = String(comment.imageIndex);
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.setAttribute("aria-label", `${comment.submissionTitle} 댓글 위치로 이동`);
+
+    const image = document.createElement("img");
+    image.className = "my-title-thumb";
+    image.src = comment.imageSrc || galleryImages[comment.imageIndex]?.src || "";
+    image.alt = "";
+    image.loading = "lazy";
+
+    const body = document.createElement("div");
+    body.className = "my-title-body";
+
+    const title = document.createElement("strong");
+    title.textContent = comment.submissionTitle;
+
+    const text = document.createElement("p");
+    text.className = "my-title-comments";
+    text.textContent = comment.text;
+
+    const meta = document.createElement("p");
+    meta.className = "my-title-meta";
+    meta.textContent = formatDate(comment.createdAt);
+
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "delete-button drawer-delete";
+    deleteButton.type = "button";
+    deleteButton.dataset.action = "delete-my-comment";
+    deleteButton.dataset.entryId = comment.submissionId;
+    deleteButton.dataset.commentId = comment.id;
+    deleteButton.textContent = "삭제";
+
+    body.append(title, text, meta, deleteButton);
+    card.append(image, body);
+    fragment.append(card);
+  });
+
+  myCommentList.replaceChildren(fragment);
 }
 
 function createMyTitleMessage(message) {
@@ -1406,6 +1593,62 @@ rankingList.addEventListener("click", async (event) => {
     return;
   }
 
+  if (button.dataset.action === "edit-submission") {
+    editingSubmissionId = entryId;
+    renderRanking();
+    rankingList.querySelector(`.rank-title-input[data-entry-id="${escapeSelector(entryId)}"]`)?.focus();
+    return;
+  }
+
+  if (button.dataset.action === "cancel-submission-edit") {
+    editingSubmissionId = "";
+    renderRanking();
+    return;
+  }
+
+  if (button.dataset.action === "save-submission-edit") {
+    const input = rankingList.querySelector(`.rank-title-input[data-entry-id="${escapeSelector(entryId)}"]`);
+    const title = input?.value.trim() || "";
+
+    if (!title) {
+      showToast("제목을 입력하세요.");
+      input?.focus();
+      return;
+    }
+
+    const imageKey = String(selectedImageIndex);
+    const serverEntries = serverSubmissionsByImage[imageKey];
+    const entry = Array.isArray(serverEntries) ? serverEntries.find((item) => item.id === entryId) : null;
+
+    if (entry && isServerEntry(entry)) {
+      try {
+        const data = await requestJson(`/api/submissions/${encodeURIComponent(entryId)}`, {
+          method: "PATCH",
+          body: JSON.stringify({ title }),
+        });
+        entry.title = data.submission?.title || title;
+        editingSubmissionId = "";
+        renderRanking();
+        showToast("제목을 수정했습니다.");
+      } catch (error) {
+        showToast(error.message);
+      }
+      return;
+    }
+
+    updateSubmission(entryId, (entry) => {
+      if (!canDeleteLocalAuthor(entry.author)) {
+        showToast("본인이 작성한 제목만 수정할 수 있습니다.");
+        return;
+      }
+
+      entry.title = title;
+      editingSubmissionId = "";
+      showToast("제목을 수정했습니다.");
+    });
+    return;
+  }
+
   if (button.dataset.action === "delete-submission") {
     if (!currentUser) {
       showToast("로그인이 필요합니다.");
@@ -1425,6 +1668,7 @@ rankingList.addEventListener("click", async (event) => {
         });
         serverSubmissionsByImage[imageKey] = serverEntries.filter((item) => item.id !== entryId);
         expandedCommentIds.delete(entryId);
+        editingSubmissionId = editingSubmissionId === entryId ? "" : editingSubmissionId;
         renderRanking();
         showToast("제목을 삭제했습니다.");
       } catch (error) {
@@ -1480,6 +1724,23 @@ rankingList.addEventListener("click", async (event) => {
 
     renderRanking();
   }
+});
+
+rankingList.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter") {
+    return;
+  }
+
+  const input = event.target.closest(".rank-title-input[data-entry-id]");
+
+  if (!input) {
+    return;
+  }
+
+  event.preventDefault();
+  rankingList
+    .querySelector(`button[data-action="save-submission-edit"][data-entry-id="${escapeSelector(input.dataset.entryId)}"]`)
+    ?.click();
 });
 
 rankingList.addEventListener("submit", async (event) => {
@@ -1683,7 +1944,9 @@ pageDim.addEventListener("click", closeDrawer);
 logoutButton.addEventListener("click", logout);
 profileEditButton.addEventListener("click", showProfileEdit);
 myTitlesButton.addEventListener("click", showMyTitles);
+myCommentsButton.addEventListener("click", showMyComments);
 drawerBackButton.addEventListener("click", showDrawerMenu);
+commentsBackButton.addEventListener("click", showDrawerMenu);
 profileEditPhotoButton.addEventListener("click", () => {
   avatarInput.click();
 });
@@ -1714,26 +1977,96 @@ passwordChangeForm.addEventListener("submit", async (event) => {
 myTitleList.addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-action='delete-my-submission']");
 
-  if (!button) {
+  if (button) {
+    const entryId = button.dataset.entryId;
+
+    try {
+      await requestJson(`/api/submissions/${encodeURIComponent(entryId)}`, {
+        method: "DELETE",
+        headers: {},
+      });
+      showToast("제목을 삭제했습니다.");
+      await showMyTitles();
+
+      if (Number.isInteger(selectedImageIndex)) {
+        await refreshRanking();
+      }
+    } catch (error) {
+      showToast(error.message);
+    }
     return;
   }
 
-  const entryId = button.dataset.entryId;
+  const card = event.target.closest(".my-title-card[data-entry-id]");
 
-  try {
-    await requestJson(`/api/submissions/${encodeURIComponent(entryId)}`, {
-      method: "DELETE",
-      headers: {},
-    });
-    showToast("제목을 삭제했습니다.");
-    await showMyTitles();
-
-    if (Number.isInteger(selectedImageIndex)) {
-      await refreshRanking();
-    }
-  } catch (error) {
-    showToast(error.message);
+  if (!card) {
+    return;
   }
+
+  openRankingLocation(Number(card.dataset.imageIndex), card.dataset.entryId);
+});
+myTitleList.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") {
+    return;
+  }
+
+  const card = event.target.closest(".my-title-card[data-entry-id]");
+
+  if (!card) {
+    return;
+  }
+
+  event.preventDefault();
+  openRankingLocation(Number(card.dataset.imageIndex), card.dataset.entryId);
+});
+myCommentList.addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-action='delete-my-comment']");
+
+  if (button) {
+    const entryId = button.dataset.entryId;
+    const commentId = button.dataset.commentId;
+
+    try {
+      await requestJson(
+        `/api/submissions/${encodeURIComponent(entryId)}/comments/${encodeURIComponent(commentId)}`,
+        {
+          method: "DELETE",
+          headers: {},
+        }
+      );
+      showToast("댓글을 삭제했습니다.");
+      await showMyComments();
+
+      if (Number.isInteger(selectedImageIndex)) {
+        await refreshRanking();
+      }
+    } catch (error) {
+      showToast(error.message);
+    }
+    return;
+  }
+
+  const card = event.target.closest(".my-comment-card[data-comment-id]");
+
+  if (!card) {
+    return;
+  }
+
+  openRankingLocation(Number(card.dataset.imageIndex), card.dataset.entryId, card.dataset.commentId);
+});
+myCommentList.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") {
+    return;
+  }
+
+  const card = event.target.closest(".my-comment-card[data-comment-id]");
+
+  if (!card) {
+    return;
+  }
+
+  event.preventDefault();
+  openRankingLocation(Number(card.dataset.imageIndex), card.dataset.entryId, card.dataset.commentId);
 });
 avatarEditButton.addEventListener("click", () => {
   avatarInput.click();
