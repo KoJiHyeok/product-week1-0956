@@ -118,17 +118,88 @@ const trackingConsentStorageKey = "title-academy-tracking-consent";
 const legacyUserStorageKey = "title-making-google-user";
 const guestStorageKey = "title-academy-guest-name";
 const submissionsStorageKey = "title-academy-submissions";
+const photoSourcePresets = Object.freeze({
+  unknown: Object.freeze({
+    sourceName: "Unknown",
+    sourceUrl: "",
+    author: "",
+    license: "Unknown",
+    attributionRequired: true,
+    commercialUseAllowed: false,
+    modificationAllowed: false,
+  }),
+});
 const galleryImages = [
-  { src: "assets/gallery/01-cat-smoke.png", webpSrc: "assets/gallery/webp/01-cat-smoke.webp", alt: "Cat reaching through smoke" },
-  { src: "assets/gallery/02-memorial.png", webpSrc: "assets/gallery/webp/02-memorial.webp", alt: "People placing flowers outside a store" },
-  { src: "assets/gallery/03-alligators.jpeg", webpSrc: "assets/gallery/webp/03-alligators.webp", alt: "Alligators resting together" },
-  { src: "assets/gallery/04-field-portrait.jpg", webpSrc: "assets/gallery/webp/04-field-portrait.webp", alt: "Person walking in a field" },
-  { src: "assets/gallery/05-screaming-man.png", webpSrc: "assets/gallery/webp/05-screaming-man.webp", alt: "Man shouting in a suit" },
-  { src: "assets/gallery/06-husky-bowl.jpg", webpSrc: "assets/gallery/webp/06-husky-bowl.webp", alt: "Husky staring at a food bowl" },
-  { src: "assets/gallery/07-puppy-oh-hi.jpg", webpSrc: "assets/gallery/webp/07-puppy-oh-hi.webp", alt: "Smiling puppy close to the camera" },
-  { src: "assets/gallery/08-convenience-store.jpg", webpSrc: "assets/gallery/webp/08-convenience-store.webp", alt: "Person reaching into a convenience store cooler" },
-  { src: "assets/gallery/09-reggae-singer.jpg", webpSrc: "assets/gallery/webp/09-reggae-singer.webp", alt: "Reggae singer performing on stage" },
-  { src: "assets/gallery/10-sparkler.jpg", webpSrc: "assets/gallery/webp/10-sparkler.webp", alt: "Person holding a lit sparkler" },
+  {
+    id: "photo-001",
+    src: "assets/gallery/01-cat-smoke.png",
+    webpSrc: "assets/gallery/webp/01-cat-smoke.webp",
+    alt: "Cat reaching through smoke",
+    ...photoSourcePresets.unknown,
+  },
+  {
+    id: "photo-002",
+    src: "assets/gallery/02-memorial.png",
+    webpSrc: "assets/gallery/webp/02-memorial.webp",
+    alt: "People placing flowers outside a store",
+    ...photoSourcePresets.unknown,
+  },
+  {
+    id: "photo-003",
+    src: "assets/gallery/03-alligators.jpeg",
+    webpSrc: "assets/gallery/webp/03-alligators.webp",
+    alt: "Alligators resting together",
+    ...photoSourcePresets.unknown,
+  },
+  {
+    id: "photo-004",
+    src: "assets/gallery/04-field-portrait.jpg",
+    webpSrc: "assets/gallery/webp/04-field-portrait.webp",
+    alt: "Person walking in a field",
+    ...photoSourcePresets.unknown,
+  },
+  {
+    id: "photo-005",
+    src: "assets/gallery/05-screaming-man.png",
+    webpSrc: "assets/gallery/webp/05-screaming-man.webp",
+    alt: "Man shouting in a suit",
+    ...photoSourcePresets.unknown,
+  },
+  {
+    id: "photo-006",
+    src: "assets/gallery/06-husky-bowl.jpg",
+    webpSrc: "assets/gallery/webp/06-husky-bowl.webp",
+    alt: "Husky staring at a food bowl",
+    ...photoSourcePresets.unknown,
+  },
+  {
+    id: "photo-007",
+    src: "assets/gallery/07-puppy-oh-hi.jpg",
+    webpSrc: "assets/gallery/webp/07-puppy-oh-hi.webp",
+    alt: "Smiling puppy close to the camera",
+    ...photoSourcePresets.unknown,
+  },
+  {
+    id: "photo-008",
+    src: "assets/gallery/08-convenience-store.jpg",
+    webpSrc: "assets/gallery/webp/08-convenience-store.webp",
+    alt: "Person reaching into a convenience store cooler",
+    ...photoSourcePresets.unknown,
+  },
+  {
+    id: "photo-009",
+    src: "assets/gallery/09-reggae-singer.jpg",
+    webpSrc: "assets/gallery/webp/09-reggae-singer.webp",
+    alt: "Reggae singer performing on stage",
+    ...photoSourcePresets.unknown,
+  },
+  {
+    id: "photo-010",
+    src: "assets/gallery/10-sparkler.jpg",
+    webpSrc: "assets/gallery/webp/10-sparkler.webp",
+    alt: "Person holding a lit sparkler",
+    ...photoSourcePresets.unknown,
+  },
 ];
 const authModeButtons = [loginTabButton, signupTabButton];
 const slotCount = galleryImages.length;
@@ -816,6 +887,8 @@ function renderGallery() {
     card.dataset.imageIndex = String(index);
 
     if (image) {
+      card.dataset.photoId = image.id;
+
       const picture = document.createElement("picture");
       picture.className = "photo-card-picture";
 

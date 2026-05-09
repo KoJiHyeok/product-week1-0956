@@ -7,18 +7,14 @@ yarn-error.log*
 firebase-debug.log*
 firebase-debug.*.log*
 
-# Firebase cache
-.firebase/
-
 # Cloudflare Wrangler cache
 .wrangler/
 
-# Firebase config
+# Local tool caches
+.firebase/
 
-# Uncomment this if you'd like others to create their own Firebase project.
-# For a team working on the same Firebase project(s), it is recommended to leave
-# it commented so all members can deploy to the same project(s) in .firebaserc.
-# .firebaserc
+# Local database dumps
+backup-*.sql
 
 # Runtime data
 pids
