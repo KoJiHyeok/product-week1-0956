@@ -1,28 +1,29 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-V7K1RJ7C62"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-V7K1RJ7C62');
-  </script>
-  <script type="text/javascript">
-    (function(c,l,a,r,i,t,y){
-      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-    })(window, document, "clarity", "script", "wme6uejz4h");
-  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="google-adsense-account" content="ca-pub-2571483149742375" />
   <meta name="description" content="사진에 어울리는 제목을 만들고 랭킹과 댓글로 함께 즐기는 제목 학원입니다." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://product-week1-0956.pages.dev/" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="ko_KR" />
+  <meta property="og:site_name" content="제목 학원" />
+  <meta property="og:title" content="제목 학원" />
+  <meta property="og:description" content="사진에 어울리는 제목을 만들고 랭킹과 댓글로 함께 즐기는 제목 학원입니다." />
+  <meta property="og:url" content="https://product-week1-0956.pages.dev/" />
+  <meta property="og:image" content="https://product-week1-0956.pages.dev/assets/gallery/logo.png" />
+  <meta property="og:image:alt" content="제목 학원 로고" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="제목 학원" />
+  <meta name="twitter:description" content="사진에 어울리는 제목을 만들고 랭킹과 댓글로 함께 즐기는 제목 학원입니다." />
+  <meta name="twitter:image" content="https://product-week1-0956.pages.dev/assets/gallery/logo.png" />
+  <meta name="twitter:image:alt" content="제목 학원 로고" />
+
   <title>제목 학원</title>
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2571483149742375" crossorigin="anonymous"></script>
   <link href="style.css" rel="stylesheet" />
 </head>
 <body>
@@ -31,7 +32,10 @@
   <main class="app-shell" id="appShell">
     <header class="top-bar">
       <a class="brand" id="homeLink" href="#" aria-label="제목 학원 홈">
-        <img class="brand-logo" src="assets/gallery/logo.png" alt="제목 학원 로고" />
+        <picture>
+          <source srcset="assets/gallery/webp/logo.webp" type="image/webp" />
+          <img class="brand-logo" src="assets/gallery/logo.png" alt="제목 학원 로고" width="56" height="56" />
+        </picture>
         <span>제목 학원</span>
       </a>
 
@@ -69,11 +73,12 @@
     <section class="view gallery-view" id="homeView" aria-label="사진 선택">
       <p class="gallery-guide">사진에 어울리는 제목을 만들어보세요!!</p>
       <div class="gallery-grid" id="galleryGrid"></div>
+      <button class="gallery-more-button" id="galleryMoreButton" type="button" hidden>사진 더 보기</button>
     </section>
 
     <section class="view play-view" id="titleView" hidden aria-label="제목 입력">
       <div class="selected-photo-frame">
-        <img class="selected-photo" id="selectedPhoto" alt="" />
+        <img class="selected-photo" id="selectedPhoto" alt="" decoding="async" />
       </div>
 
       <form class="entry-form" id="titleForm">
@@ -111,7 +116,7 @@
 
       <div class="ranking-layout">
         <div class="ranking-photo-frame">
-          <img class="ranking-photo" id="rankingPhoto" alt="" />
+          <img class="ranking-photo" id="rankingPhoto" alt="" decoding="async" />
         </div>
         <ol class="ranking-list" id="rankingList"></ol>
       </div>
@@ -368,6 +373,17 @@
   </div>
 
   <div class="toast" id="toast" aria-live="polite"></div>
+
+  <section class="consent-banner" id="consentBanner" hidden aria-label="쿠키 및 추적 동의">
+    <div>
+      <strong>개인정보 및 쿠키 안내</strong>
+      <p>서비스 개선, 방문 통계, 광고 운영을 위해 Google Analytics, Microsoft Clarity, Google AdSense 스크립트를 사용할 수 있습니다. 동의 전에는 필수 기능만 동작합니다.</p>
+    </div>
+    <div class="consent-actions">
+      <button class="auth-button ghost" id="consentRejectButton" type="button">필수만 사용</button>
+      <button class="auth-button solid" id="consentAcceptButton" type="button">동의</button>
+    </div>
+  </section>
 
   <script defer src="main.js"></script>
 </body>

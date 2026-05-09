@@ -14,6 +14,7 @@ const titleInput = document.querySelector("#titleInput");
 const guestForm = document.querySelector("#guestForm");
 const guestNameInput = document.querySelector("#guestNameInput");
 const rankingList = document.querySelector("#rankingList");
+const galleryMoreButton = document.querySelector("#galleryMoreButton");
 const backToGalleryButton = document.querySelector("#backToGalleryButton");
 const rankingSelfLink = document.querySelector("#rankingSelfLink");
 const authActions = document.querySelector("#authActions");
@@ -105,26 +106,35 @@ const messageRecipient = document.querySelector("#messageRecipient");
 const messageBodyInput = document.querySelector("#messageBodyInput");
 const messageComposeMessage = document.querySelector("#messageComposeMessage");
 const messageSendButton = document.querySelector("#messageSendButton");
+const consentBanner = document.querySelector("#consentBanner");
+const consentAcceptButton = document.querySelector("#consentAcceptButton");
+const consentRejectButton = document.querySelector("#consentRejectButton");
 const toast = document.querySelector("#toast");
 
+const analyticsMeasurementId = "G-V7K1RJ7C62";
+const clarityProjectId = "wme6uejz4h";
+const adsenseClientId = "ca-pub-2571483149742375";
+const trackingConsentStorageKey = "title-academy-tracking-consent";
 const legacyUserStorageKey = "title-making-google-user";
 const guestStorageKey = "title-academy-guest-name";
 const submissionsStorageKey = "title-academy-submissions";
 const galleryImages = [
-  { src: "assets/gallery/01-cat-smoke.png", alt: "Cat reaching through smoke" },
-  { src: "assets/gallery/02-memorial.png", alt: "People placing flowers outside a store" },
-  { src: "assets/gallery/03-alligators.jpeg", alt: "Alligators resting together" },
-  { src: "assets/gallery/04-field-portrait.jpg", alt: "Person walking in a field" },
-  { src: "assets/gallery/05-screaming-man.png", alt: "Man shouting in a suit" },
-  { src: "assets/gallery/06-husky-bowl.jpg", alt: "Husky staring at a food bowl" },
-  { src: "assets/gallery/07-puppy-oh-hi.jpg", alt: "Smiling puppy close to the camera" },
-  { src: "assets/gallery/08-convenience-store.jpg", alt: "Person reaching into a convenience store cooler" },
-  { src: "assets/gallery/09-reggae-singer.jpg", alt: "Reggae singer performing on stage" },
-  { src: "assets/gallery/10-sparkler.jpg", alt: "Person holding a lit sparkler" },
+  { src: "assets/gallery/01-cat-smoke.png", webpSrc: "assets/gallery/webp/01-cat-smoke.webp", alt: "Cat reaching through smoke" },
+  { src: "assets/gallery/02-memorial.png", webpSrc: "assets/gallery/webp/02-memorial.webp", alt: "People placing flowers outside a store" },
+  { src: "assets/gallery/03-alligators.jpeg", webpSrc: "assets/gallery/webp/03-alligators.webp", alt: "Alligators resting together" },
+  { src: "assets/gallery/04-field-portrait.jpg", webpSrc: "assets/gallery/webp/04-field-portrait.webp", alt: "Person walking in a field" },
+  { src: "assets/gallery/05-screaming-man.png", webpSrc: "assets/gallery/webp/05-screaming-man.webp", alt: "Man shouting in a suit" },
+  { src: "assets/gallery/06-husky-bowl.jpg", webpSrc: "assets/gallery/webp/06-husky-bowl.webp", alt: "Husky staring at a food bowl" },
+  { src: "assets/gallery/07-puppy-oh-hi.jpg", webpSrc: "assets/gallery/webp/07-puppy-oh-hi.webp", alt: "Smiling puppy close to the camera" },
+  { src: "assets/gallery/08-convenience-store.jpg", webpSrc: "assets/gallery/webp/08-convenience-store.webp", alt: "Person reaching into a convenience store cooler" },
+  { src: "assets/gallery/09-reggae-singer.jpg", webpSrc: "assets/gallery/webp/09-reggae-singer.webp", alt: "Reggae singer performing on stage" },
+  { src: "assets/gallery/10-sparkler.jpg", webpSrc: "assets/gallery/webp/10-sparkler.webp", alt: "Person holding a lit sparkler" },
 ];
 const authModeButtons = [loginTabButton, signupTabButton];
 const slotCount = galleryImages.length;
 const maxAvatarBytes = 5 * 1024 * 1024;
+const galleryInitialCount = 6;
+const galleryPageSize = 4;
 
 localStorage.removeItem(legacyUserStorageKey);
 
@@ -138,6 +148,8 @@ const expandedCommentIds = new Set();
 let pendingRankingFocus = null;
 let activeUserProfile = null;
 let activeMessageRecipient = null;
+let visibleGalleryCount = Math.min(galleryInitialCount, slotCount);
+let trackingScriptsLoaded = false;
 
 function createId(prefix) {
   if (globalThis.crypto?.randomUUID) {
@@ -145,6 +157,90 @@ function createId(prefix) {
   }
 
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function initializeTrackingConsent() {
+  const consent = localStorage.getItem(trackingConsentStorageKey);
+
+  if (consent === "accepted") {
+    consentBanner.hidden = true;
+    loadTrackingScripts();
+    return;
+  }
+
+  if (consent === "rejected") {
+    consentBanner.hidden = true;
+    return;
+  }
+
+  consentBanner.hidden = false;
+}
+
+function saveTrackingConsent(consent) {
+  localStorage.setItem(trackingConsentStorageKey, consent);
+  consentBanner.hidden = true;
+
+  if (consent === "accepted") {
+    loadTrackingScripts();
+  }
+}
+
+function loadTrackingScripts() {
+  if (trackingScriptsLoaded) {
+    return;
+  }
+
+  trackingScriptsLoaded = true;
+  loadGoogleAnalytics();
+  loadMicrosoftClarity();
+  loadAdsense();
+}
+
+function loadGoogleAnalytics() {
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function gtag() {
+    window.dataLayer.push(arguments);
+  };
+  window.gtag("js", new Date());
+  window.gtag("config", analyticsMeasurementId);
+  loadScript(`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(analyticsMeasurementId)}`);
+}
+
+function loadMicrosoftClarity() {
+  (function initClarity(c, l, a, r, i, t, y) {
+    c[a] =
+      c[a] ||
+      function clarity() {
+        (c[a].q = c[a].q || []).push(arguments);
+      };
+    t = l.createElement(r);
+    t.async = true;
+    t.src = `https://www.clarity.ms/tag/${i}`;
+    y = l.getElementsByTagName(r)[0];
+    y.parentNode.insertBefore(t, y);
+  })(window, document, "clarity", "script", clarityProjectId);
+}
+
+function loadAdsense() {
+  loadScript(`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(adsenseClientId)}`, {
+    crossOrigin: "anonymous",
+  });
+}
+
+function loadScript(src, options = {}) {
+  if (document.querySelector(`script[src="${src}"]`)) {
+    return;
+  }
+
+  const script = document.createElement("script");
+  script.async = true;
+  script.src = src;
+
+  if (options.crossOrigin) {
+    script.crossOrigin = options.crossOrigin;
+  }
+
+  document.head.append(script);
 }
 
 function getUserDisplayName() {
@@ -710,8 +806,9 @@ function getCurrentRankingEntries() {
 
 function renderGallery() {
   const fragment = document.createDocumentFragment();
+  const renderCount = Math.min(visibleGalleryCount, slotCount);
 
-  for (let index = 0; index < slotCount; index += 1) {
+  for (let index = 0; index < renderCount; index += 1) {
     const card = document.createElement("article");
     const image = galleryImages[index];
 
@@ -719,11 +816,23 @@ function renderGallery() {
     card.dataset.imageIndex = String(index);
 
     if (image) {
+      const picture = document.createElement("picture");
+      picture.className = "photo-card-picture";
+
+      if (image.webpSrc) {
+        const source = document.createElement("source");
+        source.type = "image/webp";
+        source.srcset = image.webpSrc;
+        picture.append(source);
+      }
+
       const photo = document.createElement("img");
       photo.className = "photo-card-image";
       photo.src = image.src;
       photo.alt = image.alt;
       photo.loading = "lazy";
+      photo.decoding = "async";
+      picture.append(photo);
 
       const actions = document.createElement("div");
       actions.className = "photo-card-actions";
@@ -739,7 +848,7 @@ function renderGallery() {
       card.tabIndex = 0;
       card.setAttribute("role", "button");
       card.setAttribute("aria-label", `${image.alt} 제목 입력`);
-      card.append(photo, actions);
+      card.append(picture, actions);
     } else {
       card.classList.add("is-empty");
       card.tabIndex = 0;
@@ -751,6 +860,8 @@ function renderGallery() {
   }
 
   galleryGrid.replaceChildren(fragment);
+  galleryMoreButton.hidden = visibleGalleryCount >= slotCount;
+  galleryMoreButton.textContent = `사진 더 보기 (${Math.max(slotCount - visibleGalleryCount, 0)}장)`;
 }
 
 function renderRanking() {
@@ -2076,6 +2187,18 @@ rankingList.addEventListener("submit", async (event) => {
 
 backToGalleryButton.addEventListener("click", goHome);
 rankingSelfLink.addEventListener("click", scrollToMyRanking);
+galleryMoreButton.addEventListener("click", () => {
+  visibleGalleryCount = Math.min(visibleGalleryCount + galleryPageSize, slotCount);
+  renderGallery();
+});
+
+consentAcceptButton.addEventListener("click", () => {
+  saveTrackingConsent("accepted");
+});
+
+consentRejectButton.addEventListener("click", () => {
+  saveTrackingConsent("rejected");
+});
 
 loginButton.addEventListener("click", () => {
   openAuthModal("login");
@@ -2453,6 +2576,7 @@ window.addEventListener("keydown", (event) => {
 });
 
 async function initializeApp() {
+  initializeTrackingConsent();
   renderGallery();
   renderUser();
   await verifyEmailFromUrl();
