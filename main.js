@@ -117,7 +117,6 @@ let pendingTitle = "";
 let toastTimer;
 let serverSubmissionsByImage = {};
 const expandedCommentIds = new Set();
-let editingSubmissionId = "";
 let pendingRankingFocus = null;
 
 function createId(prefix) {
@@ -744,7 +743,6 @@ function renderRanking() {
     const item = document.createElement("li");
     const isExpanded = expandedCommentIds.has(entry.id);
     const isMine = Boolean(entry.canDelete || canDeleteLocalAuthor(entry.author));
-    const isEditing = editingSubmissionId === entry.id;
     item.className = `ranking-item${isExpanded ? " is-expanded" : ""}${isMine ? " is-mine" : ""}`;
     item.dataset.entryId = entry.id;
 
@@ -764,20 +762,8 @@ function renderRanking() {
     const content = document.createElement("div");
     content.className = "rank-content";
 
-    let title;
-
-    if (isEditing) {
-      title = document.createElement("input");
-      title.className = "rank-title-input";
-      title.type = "text";
-      title.maxLength = 60;
-      title.value = entry.title;
-      title.dataset.entryId = entry.id;
-      title.setAttribute("aria-label", "제목 수정");
-    } else {
-      title = document.createElement("strong");
-      title.textContent = entry.title;
-    }
+    const title = document.createElement("strong");
+    title.textContent = entry.title;
 
     const author = document.createElement("span");
     author.textContent = isMine ? `${entry.author} · 내 제목` : entry.author;
@@ -805,35 +791,6 @@ function renderRanking() {
     actions.append(heartButton);
 
     if (isMine) {
-      if (isEditing) {
-        const saveButton = document.createElement("button");
-        saveButton.className = "edit-button";
-        saveButton.type = "button";
-        saveButton.dataset.action = "save-submission-edit";
-        saveButton.dataset.entryId = entry.id;
-        saveButton.textContent = "저장";
-        saveButton.setAttribute("aria-label", "제목 수정 저장");
-        actions.append(saveButton);
-
-        const cancelButton = document.createElement("button");
-        cancelButton.className = "edit-button";
-        cancelButton.type = "button";
-        cancelButton.dataset.action = "cancel-submission-edit";
-        cancelButton.dataset.entryId = entry.id;
-        cancelButton.textContent = "취소";
-        cancelButton.setAttribute("aria-label", "제목 수정 취소");
-        actions.append(cancelButton);
-      } else {
-        const editButton = document.createElement("button");
-        editButton.className = "edit-button";
-        editButton.type = "button";
-        editButton.dataset.action = "edit-submission";
-        editButton.dataset.entryId = entry.id;
-        editButton.textContent = "수정";
-        editButton.setAttribute("aria-label", "제목 수정");
-        actions.append(editButton);
-      }
-
       const deleteButton = document.createElement("button");
       deleteButton.className = "delete-button";
       deleteButton.type = "button";
@@ -1593,62 +1550,6 @@ rankingList.addEventListener("click", async (event) => {
     return;
   }
 
-  if (button.dataset.action === "edit-submission") {
-    editingSubmissionId = entryId;
-    renderRanking();
-    rankingList.querySelector(`.rank-title-input[data-entry-id="${escapeSelector(entryId)}"]`)?.focus();
-    return;
-  }
-
-  if (button.dataset.action === "cancel-submission-edit") {
-    editingSubmissionId = "";
-    renderRanking();
-    return;
-  }
-
-  if (button.dataset.action === "save-submission-edit") {
-    const input = rankingList.querySelector(`.rank-title-input[data-entry-id="${escapeSelector(entryId)}"]`);
-    const title = input?.value.trim() || "";
-
-    if (!title) {
-      showToast("제목을 입력하세요.");
-      input?.focus();
-      return;
-    }
-
-    const imageKey = String(selectedImageIndex);
-    const serverEntries = serverSubmissionsByImage[imageKey];
-    const entry = Array.isArray(serverEntries) ? serverEntries.find((item) => item.id === entryId) : null;
-
-    if (entry && isServerEntry(entry)) {
-      try {
-        const data = await requestJson(`/api/submissions/${encodeURIComponent(entryId)}`, {
-          method: "PATCH",
-          body: JSON.stringify({ title }),
-        });
-        entry.title = data.submission?.title || title;
-        editingSubmissionId = "";
-        renderRanking();
-        showToast("제목을 수정했습니다.");
-      } catch (error) {
-        showToast(error.message);
-      }
-      return;
-    }
-
-    updateSubmission(entryId, (entry) => {
-      if (!canDeleteLocalAuthor(entry.author)) {
-        showToast("본인이 작성한 제목만 수정할 수 있습니다.");
-        return;
-      }
-
-      entry.title = title;
-      editingSubmissionId = "";
-      showToast("제목을 수정했습니다.");
-    });
-    return;
-  }
-
   if (button.dataset.action === "delete-submission") {
     if (!currentUser) {
       showToast("로그인이 필요합니다.");
@@ -1668,7 +1569,6 @@ rankingList.addEventListener("click", async (event) => {
         });
         serverSubmissionsByImage[imageKey] = serverEntries.filter((item) => item.id !== entryId);
         expandedCommentIds.delete(entryId);
-        editingSubmissionId = editingSubmissionId === entryId ? "" : editingSubmissionId;
         renderRanking();
         showToast("제목을 삭제했습니다.");
       } catch (error) {
@@ -1724,23 +1624,6 @@ rankingList.addEventListener("click", async (event) => {
 
     renderRanking();
   }
-});
-
-rankingList.addEventListener("keydown", (event) => {
-  if (event.key !== "Enter") {
-    return;
-  }
-
-  const input = event.target.closest(".rank-title-input[data-entry-id]");
-
-  if (!input) {
-    return;
-  }
-
-  event.preventDefault();
-  rankingList
-    .querySelector(`button[data-action="save-submission-edit"][data-entry-id="${escapeSelector(input.dataset.entryId)}"]`)
-    ?.click();
 });
 
 rankingList.addEventListener("submit", async (event) => {

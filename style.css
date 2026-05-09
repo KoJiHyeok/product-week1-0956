@@ -628,18 +628,6 @@ button {
   text-shadow: 0 1px 2px rgba(3, 8, 39, 0.32);
 }
 
-.rank-title-input {
-  width: 100%;
-  min-height: 40px;
-  border: 1px solid #d8dcec;
-  border-radius: 8px;
-  background: #fbfcff;
-  color: var(--ink);
-  padding: 0 12px;
-  font-weight: 900;
-  outline: 0;
-}
-
 .rank-content span {
   color: #eef1ff;
   font-size: 0.92rem;
@@ -1460,7 +1448,6 @@ button:focus-visible,
 .compact-form input:focus-visible,
 .auth-form input:focus-visible,
 .comment-form input:focus-visible,
-.rank-title-input:focus-visible,
 .profile-edit-form input:focus-visible,
 .profile-edit-form textarea:focus-visible,
 .contact-form input:focus-visible,
