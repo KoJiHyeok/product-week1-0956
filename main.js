@@ -151,7 +151,7 @@ const adsCookieInput = document.querySelector("#adsCookieInput");
 const cookieSettingsMessage = document.querySelector("#cookieSettingsMessage");
 const toast = document.querySelector("#toast");
 
-const analyticsMeasurementId = "G-V7K1RJ7C62";
+const analyticsMeasurementId = "G-0LLKZ9R1TF";
 const clarityProjectId = "wme6uejz4h";
 const adsenseClientId = "ca-pub-2571483149742375";
 const trackingConsentStorageKey = "title-academy-tracking-consent";
