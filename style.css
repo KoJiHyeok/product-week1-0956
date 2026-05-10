@@ -11,7 +11,7 @@
   --accent: #7b2fe8;
   --yellow: #ffc72c;
   --shadow: rgba(3, 8, 39, 0.26);
-  --profile-drawer-width: min(58vw, 760px);
+  --profile-drawer-width: 320px;
   font-family: "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
 }
 
@@ -406,19 +406,6 @@ button {
 
 .guest-chip {
   padding-inline: 8px;
-}
-
-.guest-chip-arrow {
-  display: inline-block;
-  color: var(--text);
-  font-size: 1.5rem;
-  line-height: 1;
-  transform: rotate(180deg);
-  transition: transform 180ms ease;
-}
-
-.guest-chip[aria-expanded="true"] .guest-chip-arrow {
-  transform: rotate(0deg);
 }
 
 .guest-photo {
@@ -1149,11 +1136,12 @@ button {
   right: 0;
   z-index: 6;
   width: var(--profile-drawer-width);
-  min-width: 520px;
+  min-width: 0;
   height: 100vh;
   padding: 28px;
-  background: #f8f9ff;
-  color: var(--ink);
+  overflow-y: auto;
+  background: linear-gradient(180deg, rgba(33, 25, 88, 0.98), rgba(18, 15, 56, 0.98));
+  color: #ffffff;
   box-shadow: -24px 0 44px rgba(3, 8, 39, 0.32);
   transform: translateX(100%);
   transition: transform 240ms ease;
@@ -1170,17 +1158,17 @@ button {
   z-index: 7;
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 52px;
   border: 0;
   border-radius: 999px 0 0 999px;
   background: #ffffff;
   color: var(--accent);
-  font-size: 1.7rem;
+  font-size: 1.35rem;
   font-weight: 900;
   box-shadow: -9px 0 20px rgba(3, 8, 39, 0.18);
   transform: translateY(-50%);
-  transition: transform 180ms ease, right 240ms ease;
+  transition: right 240ms ease, transform 180ms ease;
 }
 
 .drawer-edge-close.is-open {
@@ -1197,6 +1185,7 @@ button {
 .drawer-head h2 {
   font-size: 1.45rem;
   margin: 0;
+  color: #ffffff;
 }
 
 .modal-close {
@@ -1281,8 +1270,9 @@ button {
 
 .drawer-provider {
   margin: 0;
-  color: #68708a;
+  color: rgba(255, 255, 255, 0.72);
   font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .drawer-menu {
@@ -1292,7 +1282,7 @@ button {
 
 .guest-drawer-copy {
   margin: 0;
-  color: #4e5872;
+  color: rgba(255, 255, 255, 0.82);
   font-weight: 800;
   line-height: 1.55;
 }
@@ -1301,9 +1291,9 @@ button {
   display: grid;
   gap: 10px;
   padding: 12px;
-  border: 1px solid #e3e6f2;
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 10px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .drawer-stat-grid {
@@ -1317,18 +1307,18 @@ button {
   gap: 2px;
   padding: 10px;
   border-radius: 8px;
-  background: #f1f4fb;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .drawer-stat-grid strong {
-  color: #202334;
+  color: #ffffff;
   font-size: 1.05rem;
 }
 
 .drawer-stat-grid span,
 .drawer-badges {
   margin: 0;
-  color: #5f6982;
+  color: rgba(255, 255, 255, 0.72);
   font-size: 0.82rem;
   font-weight: 800;
 }
@@ -1336,9 +1326,9 @@ button {
 .drawer-menu-row {
   min-height: 50px;
   border: 0;
-  border-bottom: 1px solid #e3e6f2;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
   background: transparent;
-  color: var(--ink);
+  color: #ffffff;
   padding: 0;
   text-align: left;
   font-size: 1rem;
@@ -1346,11 +1336,11 @@ button {
 }
 
 .drawer-menu-row:hover {
-  color: var(--accent);
+  color: var(--yellow);
 }
 
 .drawer-menu-row.danger {
-  color: #c6213a;
+  color: #ff8898;
 }
 
 .drawer-subhead {
@@ -2243,7 +2233,7 @@ a[href]:focus-visible {
 
 @media (max-width: 760px) {
   :root {
-    --profile-drawer-width: min(92vw, 520px);
+    --profile-drawer-width: 86vw;
   }
 
   .app-shell {
@@ -2385,7 +2375,7 @@ a[href]:focus-visible {
 
 @media (max-width: 640px) {
   :root {
-    --profile-drawer-width: calc(100vw - 18px);
+    --profile-drawer-width: 88vw;
   }
 
   .gallery-grid {

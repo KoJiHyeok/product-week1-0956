@@ -51,7 +51,6 @@
 
         <button class="user-chip guest-chip" id="guestChip" type="button" aria-label="비회원 메뉴 열기" aria-expanded="false" aria-controls="profileDrawer">
           <span class="profile-photo guest-photo" aria-hidden="true">?</span>
-          <span class="guest-chip-arrow" aria-hidden="true">›</span>
         </button>
 
         <div class="member-actions" id="memberActions" hidden>
@@ -260,21 +259,21 @@
       <input id="avatarInput" type="file" accept="image/png,image/jpeg,image/webp" hidden />
       <div>
         <p class="drawer-name" id="drawerName"></p>
-        <p class="drawer-provider">일반 계정</p>
+        <p class="drawer-provider" id="drawerProvider">일반 계정</p>
       </div>
       </div>
 
       <div class="drawer-menu">
-        <p class="guest-drawer-copy" id="guestDrawerCopy" hidden>비회원으로도 제목과 댓글을 작성할 수 있습니다. 로그인하면 나의 제목과 댓글을 더 쉽게 관리할 수 있습니다.</p>
+        <p class="guest-drawer-copy" id="guestDrawerCopy" hidden>로그인이 필요합니다.</p>
         <div class="drawer-stats" id="drawerStats" hidden></div>
         <button class="drawer-menu-row member-only" id="profileEditButton" type="button">개인정보 수정</button>
-        <button class="drawer-menu-row member-only" id="myTitlesButton" type="button">나의 제목들</button>
-        <button class="drawer-menu-row member-only" id="myCommentsButton" type="button">나의 댓글들</button>
+        <button class="drawer-menu-row member-only" id="myTitlesButton" type="button">내 이미지 제안 내역</button>
+        <button class="drawer-menu-row" id="myCommentsButton" type="button" hidden>나의 댓글들</button>
         <button class="drawer-menu-row guest-only" id="guestLoginButton" type="button">로그인</button>
         <button class="drawer-menu-row guest-only" id="guestSignupButton" type="button">회원가입</button>
-        <button class="drawer-menu-row" id="themeToggleButton" type="button" aria-pressed="false">라이트 모드로 전환</button>
-        <button class="drawer-menu-row" id="cookieSettingsButton" type="button">쿠키 설정</button>
-        <button class="drawer-menu-row" id="drawerContactButton" type="button">문의하기</button>
+        <button class="drawer-menu-row" id="themeToggleButton" type="button" aria-pressed="false" hidden>라이트 모드로 전환</button>
+        <button class="drawer-menu-row" id="cookieSettingsButton" type="button" hidden>쿠키 설정</button>
+        <button class="drawer-menu-row" id="drawerContactButton" type="button" hidden>문의하기</button>
         <button class="drawer-menu-row danger member-only" id="logoutButton" type="button">로그아웃</button>
       </div>
     </div>
@@ -296,7 +295,7 @@
     </div>
   </aside>
 
-  <button class="drawer-edge-close" id="drawerEdgeClose" type="button" aria-label="프로필 메뉴 열기" aria-expanded="false" aria-controls="profileDrawer">‹</button>
+  <button class="drawer-edge-close" id="drawerEdgeClose" type="button" aria-label="프로필 메뉴 열기" aria-expanded="false" aria-controls="profileDrawer">&lt;</button>
 
   <div class="confirm-modal" id="deleteAccountModal" hidden role="dialog" aria-modal="true" aria-labelledby="deleteAccountTitle">
     <div class="confirm-card">

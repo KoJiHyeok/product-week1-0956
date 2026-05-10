@@ -44,7 +44,9 @@ const guestDrawerCopy = document.querySelector("#guestDrawerCopy");
 const drawerStats = document.querySelector("#drawerStats");
 const logoutButton = document.querySelector("#logoutButton");
 const drawerName = document.querySelector("#drawerName");
+const drawerProvider = document.querySelector("#drawerProvider");
 const drawerPhoto = document.querySelector("#drawerPhoto");
+const drawerProfile = document.querySelector(".drawer-profile");
 const avatarEditButton = document.querySelector("#avatarEditButton");
 const avatarInput = document.querySelector("#avatarInput");
 const profileEditButton = document.querySelector("#profileEditButton");
@@ -1602,11 +1604,14 @@ function renderAvatar(target, user) {
 
 function renderDrawerMode() {
   const isGuest = !currentUser;
-  drawerTitle.textContent = isGuest ? "비회원 안내" : "회원 정보";
-  drawerName.textContent = isGuest ? "비회원" : getUserDisplayName();
+  drawerTitle.textContent = "프로필 메뉴";
+  drawerName.textContent = isGuest ? "" : getUserDisplayName();
+  drawerProvider.textContent = isGuest ? "" : currentUser.email || "이메일 정보 없음";
   guestDrawerCopy.hidden = !isGuest;
+  drawerProfile.hidden = isGuest;
   avatarEditButton.disabled = isGuest;
   avatarEditButton.setAttribute("aria-disabled", String(isGuest));
+  avatarEditButton.hidden = isGuest;
   document.querySelectorAll(".guest-only").forEach((item) => {
     item.hidden = !isGuest;
   });
@@ -1614,8 +1619,9 @@ function renderDrawerMode() {
     item.hidden = isGuest;
   });
 
+  drawerStats.hidden = true;
+
   if (isGuest) {
-    drawerStats.hidden = true;
     renderAvatar(drawerPhoto, null);
   }
 }
@@ -2000,7 +2006,7 @@ function syncDrawerEdgeState(isOpen) {
   drawerEdgeClose.classList.toggle("is-open", isOpen);
   drawerEdgeClose.setAttribute("aria-expanded", String(isOpen));
   drawerEdgeClose.setAttribute("aria-label", isOpen ? "프로필 메뉴 닫기" : "프로필 메뉴 열기");
-  drawerEdgeClose.textContent = isOpen ? "›" : "‹";
+  drawerEdgeClose.textContent = isOpen ? ">" : "<";
 }
 
 function openDrawer() {
@@ -2013,7 +2019,6 @@ function openDrawer() {
   syncDrawerEdgeState(true);
   renderDrawerMode();
   showDrawerMenu();
-  loadDrawerStats();
   drawerEdgeClose.focus();
 }
 
@@ -2055,6 +2060,17 @@ async function showMyTitles() {
   } catch (error) {
     myTitleList.replaceChildren(createMyTitleMessage(error.message));
   }
+}
+
+function showImageRequestHistory() {
+  drawerMenuView.hidden = true;
+  myTitlesView.hidden = false;
+  myCommentsView.hidden = true;
+  drawerMenuView.classList.remove("is-active");
+  myTitlesView.classList.add("is-active");
+  myCommentsView.classList.remove("is-active");
+  myTitlesView.querySelector("h3").textContent = "내 이미지 제안 내역";
+  myTitleList.replaceChildren(createMyTitleMessage("현재 이미지 제안 내역은 준비 중입니다."));
 }
 
 async function showMyComments() {
@@ -3410,7 +3426,7 @@ drawerContactButton.addEventListener("click", () => {
   goContact();
 });
 profileEditButton.addEventListener("click", showProfileEdit);
-myTitlesButton.addEventListener("click", showMyTitles);
+myTitlesButton.addEventListener("click", showImageRequestHistory);
 myCommentsButton.addEventListener("click", showMyComments);
 drawerBackButton.addEventListener("click", showDrawerMenu);
 commentsBackButton.addEventListener("click", showDrawerMenu);
