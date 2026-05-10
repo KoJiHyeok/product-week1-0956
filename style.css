@@ -407,6 +407,19 @@ button {
   padding-inline: 8px;
 }
 
+.guest-chip-arrow {
+  display: inline-block;
+  color: var(--text);
+  font-size: 1.5rem;
+  line-height: 1;
+  transform: rotate(180deg);
+  transition: transform 180ms ease;
+}
+
+.guest-chip[aria-expanded="true"] .guest-chip-arrow {
+  transform: rotate(0deg);
+}
+
 .guest-photo {
   background: linear-gradient(135deg, #ffffff, var(--yellow));
   color: #202334;

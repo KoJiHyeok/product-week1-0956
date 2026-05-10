@@ -1563,7 +1563,7 @@ function renderUser() {
     guestChip.hidden = false;
     memberActions.hidden = true;
     adminNavButton.hidden = true;
-    guestChip.setAttribute("aria-expanded", String(profileDrawer.classList.contains("is-open")));
+    syncGuestChipState(profileDrawer.classList.contains("is-open"));
     drawerName.textContent = "";
     renderAvatar(drawerPhoto, null);
     renderAvatar(profileEditPhoto, null);
@@ -1979,13 +1979,22 @@ function startGoogleLogin() {
   window.location.href = `/api/auth/google?next=${encodeURIComponent(next)}`;
 }
 
+function syncGuestChipState(isOpen) {
+  if (!guestChip || guestChip.hidden) {
+    return;
+  }
+
+  guestChip.setAttribute("aria-expanded", String(isOpen));
+  guestChip.setAttribute("aria-label", isOpen ? "비회원 메뉴 닫기" : "비회원 메뉴 열기");
+}
+
 function openDrawer() {
   pageDim.hidden = false;
   profileDrawer.classList.add("is-open");
   profileDrawer.setAttribute("aria-hidden", "false");
   document.body.classList.add("drawer-open");
   userChip?.setAttribute("aria-expanded", "true");
-  guestChip?.setAttribute("aria-expanded", "true");
+  syncGuestChipState(true);
   renderDrawerMode();
   showDrawerMenu();
   loadDrawerStats();
@@ -1998,7 +2007,7 @@ function closeDrawer() {
   profileDrawer.setAttribute("aria-hidden", "true");
   document.body.classList.remove("drawer-open");
   userChip?.setAttribute("aria-expanded", "false");
-  guestChip?.setAttribute("aria-expanded", "false");
+  syncGuestChipState(false);
   closeDeleteAccountModal();
   closePasswordChangeModal();
 
