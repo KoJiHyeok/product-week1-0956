@@ -1,11 +1,15 @@
 const homeLink = document.querySelector("#homeLink");
 const contactLink = document.querySelector("#contactLink");
+const uploadNavButton = document.querySelector("#uploadNavButton");
+const adminNavButton = document.querySelector("#adminNavButton");
 const homeView = document.querySelector("#homeView");
+const uploadView = document.querySelector("#uploadView");
 const titleView = document.querySelector("#titleView");
 const guestView = document.querySelector("#guestView");
 const rankingView = document.querySelector("#rankingView");
 const contactView = document.querySelector("#contactView");
 const profileView = document.querySelector("#profileView");
+const adminView = document.querySelector("#adminView");
 const galleryGrid = document.querySelector("#galleryGrid");
 const selectedPhoto = document.querySelector("#selectedPhoto");
 const rankingPhoto = document.querySelector("#rankingPhoto");
@@ -96,6 +100,35 @@ const contactTitleInput = document.querySelector("#contactTitleInput");
 const contactBodyInput = document.querySelector("#contactBodyInput");
 const contactMessage = document.querySelector("#contactMessage");
 const contactSubmitButton = document.querySelector("#contactSubmitButton");
+const imageUploadForm = document.querySelector("#imageUploadForm");
+const imageUploadInput = document.querySelector("#imageUploadInput");
+const imageUploadPreview = document.querySelector("#imageUploadPreview");
+const imageAltInput = document.querySelector("#imageAltInput");
+const imageSourceTypeInput = document.querySelector("#imageSourceTypeInput");
+const sourceExtraFields = document.querySelector("#sourceExtraFields");
+const imageSourceUrlInput = document.querySelector("#imageSourceUrlInput");
+const imageAuthorInput = document.querySelector("#imageAuthorInput");
+const imageLicenseInput = document.querySelector("#imageLicenseInput");
+const imageAttributionInput = document.querySelector("#imageAttributionInput");
+const uploadRightsInput = document.querySelector("#uploadRightsInput");
+const uploadNoViolationInput = document.querySelector("#uploadNoViolationInput");
+const uploadNoProhibitedInput = document.querySelector("#uploadNoProhibitedInput");
+const uploadPolicyInput = document.querySelector("#uploadPolicyInput");
+const imageUploadMessage = document.querySelector("#imageUploadMessage");
+const uploadCancelButton = document.querySelector("#uploadCancelButton");
+const imageUploadSubmitButton = document.querySelector("#imageUploadSubmitButton");
+const adminPendingTab = document.querySelector("#adminPendingTab");
+const adminReportedTab = document.querySelector("#adminReportedTab");
+const adminImageMessage = document.querySelector("#adminImageMessage");
+const adminImageList = document.querySelector("#adminImageList");
+const imageReportModal = document.querySelector("#imageReportModal");
+const imageReportForm = document.querySelector("#imageReportForm");
+const imageReportCloseButton = document.querySelector("#imageReportCloseButton");
+const imageReportCancelButton = document.querySelector("#imageReportCancelButton");
+const imageReportReasonInput = document.querySelector("#imageReportReasonInput");
+const imageReportDetailInput = document.querySelector("#imageReportDetailInput");
+const imageReportMessage = document.querySelector("#imageReportMessage");
+const imageReportSubmitButton = document.querySelector("#imageReportSubmitButton");
 const userInfoPopover = document.querySelector("#userInfoPopover");
 const messageComposeModal = document.querySelector("#messageComposeModal");
 const messageComposeTitle = document.querySelector("#messageComposeTitle");
@@ -129,7 +162,7 @@ const photoSourcePresets = Object.freeze({
     modificationAllowed: false,
   }),
 });
-const galleryImages = [
+const defaultGalleryImages = [
   {
     id: "photo-001",
     src: "assets/gallery/01-cat-smoke.png",
@@ -202,24 +235,28 @@ const galleryImages = [
   },
 ];
 const authModeButtons = [loginTabButton, signupTabButton];
-const slotCount = galleryImages.length;
 const maxAvatarBytes = 5 * 1024 * 1024;
+const maxUploadBytes = 5 * 1024 * 1024;
 const galleryInitialCount = 6;
 const galleryPageSize = 4;
 
 localStorage.removeItem(legacyUserStorageKey);
 
 let currentUser = null;
+let galleryImages = defaultGalleryImages.map((image, index) => ({ ...image, imageKey: String(index), isUserUpload: false }));
 let currentGuestName = sessionStorage.getItem(guestStorageKey) || "";
 let selectedImageIndex = null;
 let pendingTitle = "";
+let activeReportImage = null;
+let activeAdminStatus = "pending";
+let uploadPreviewUrl = "";
 let toastTimer;
 let serverSubmissionsByImage = {};
 const expandedCommentIds = new Set();
 let pendingRankingFocus = null;
 let activeUserProfile = null;
 let activeMessageRecipient = null;
-let visibleGalleryCount = Math.min(galleryInitialCount, slotCount);
+let visibleGalleryCount = Math.min(galleryInitialCount, galleryImages.length);
 let trackingScriptsLoaded = false;
 
 function createId(prefix) {
@@ -335,6 +372,10 @@ function setCurrentUser(user) {
   }
 }
 
+function isCurrentAdmin() {
+  return currentUser?.role === "admin";
+}
+
 async function requestAuth(path, options = {}) {
   const response = await fetch(path, {
     credentials: "include",
@@ -377,6 +418,27 @@ async function restoreSession() {
     setCurrentUser(data.authenticated ? data.user : null);
   } catch {
     setCurrentUser(null);
+  }
+}
+
+async function loadGalleryImages() {
+  try {
+    const data = await requestJson("/api/images", { method: "GET", headers: {} });
+    const images = Array.isArray(data.images) ? data.images : [];
+
+    if (images.length > 0) {
+      galleryImages = images.map((image, index) => ({
+        ...image,
+        imageKey: image.imageKey || String(index),
+        isUserUpload: Boolean(image.isUserUpload),
+      }));
+      visibleGalleryCount = Math.min(Math.max(visibleGalleryCount, galleryInitialCount), galleryImages.length);
+      renderGallery();
+    }
+  } catch {
+    galleryImages = defaultGalleryImages.map((image, index) => ({ ...image, imageKey: String(index), isUserUpload: false }));
+    visibleGalleryCount = Math.min(galleryInitialCount, galleryImages.length);
+    renderGallery();
   }
 }
 
@@ -509,6 +571,18 @@ function getSelectedImage() {
   return galleryImages[selectedImageIndex];
 }
 
+function getImageKey(image, index = selectedImageIndex) {
+  return image?.imageKey || String(index);
+}
+
+function getSelectedImageKey() {
+  return getImageKey(getSelectedImage(), selectedImageIndex);
+}
+
+function findImageIndexByKey(imageKey) {
+  return galleryImages.findIndex((image, index) => getImageKey(image, index) === imageKey);
+}
+
 function getActiveAuthor() {
   return getUserDisplayName() || currentGuestName || "비회원";
 }
@@ -534,6 +608,10 @@ function getSortedEntries(entries) {
 }
 
 function routeToHash(state) {
+  if (state.view === "upload") {
+    return "#upload";
+  }
+
   if (state.view === "title") {
     return `#title/${state.imageIndex}`;
   }
@@ -554,6 +632,10 @@ function routeToHash(state) {
     return "#profile";
   }
 
+  if (state.view === "admin") {
+    return "#admin";
+  }
+
   return "#home";
 }
 
@@ -570,6 +652,14 @@ function parseRouteFromHash(hash) {
 
   if (cleanHash === "profile") {
     return { view: "profile" };
+  }
+
+  if (cleanHash === "upload") {
+    return { view: "upload" };
+  }
+
+  if (cleanHash === "admin") {
+    return { view: "admin" };
   }
 
   const [view, rawIndex] = cleanHash.split("/");
@@ -599,6 +689,14 @@ function getValidRoute(state) {
     return { view: "profile" };
   }
 
+  if (state.view === "upload") {
+    return { view: "upload" };
+  }
+
+  if (state.view === "admin") {
+    return { view: "admin" };
+  }
+
   if (!["title", "guest", "ranking"].includes(state.view) || !Number.isInteger(state.imageIndex)) {
     return null;
   }
@@ -620,7 +718,7 @@ function getValidRoute(state) {
 }
 
 function showView(viewToShow) {
-  [homeView, titleView, guestView, rankingView, contactView, profileView].forEach((view) => {
+  [homeView, uploadView, titleView, guestView, rankingView, contactView, profileView, adminView].forEach((view) => {
     view.hidden = view !== viewToShow;
   });
   window.scrollTo({ top: 0, behavior: "auto" });
@@ -652,6 +750,22 @@ function applyRoute(state) {
     return;
   }
 
+  if (route.view === "upload") {
+    selectedImageIndex = null;
+    pendingTitle = "";
+    showView(uploadView);
+
+    if (!currentUser) {
+      imageUploadMessage.textContent = "로그인한 회원만 사진을 업로드할 수 있습니다.";
+      openAuthModal("login");
+      return;
+    }
+
+    imageUploadMessage.textContent = "";
+    imageUploadInput.focus();
+    return;
+  }
+
   if (route.view === "profile") {
     selectedImageIndex = null;
     pendingTitle = "";
@@ -664,6 +778,14 @@ function applyRoute(state) {
     }
 
     profileNameInput.focus();
+    return;
+  }
+
+  if (route.view === "admin") {
+    selectedImageIndex = null;
+    pendingTitle = "";
+    showView(adminView);
+    loadAdminImages(activeAdminStatus);
     return;
   }
 
@@ -714,6 +836,20 @@ function goContact() {
   navigateTo({ view: "contact" });
 }
 
+function goUpload() {
+  if (!currentUser) {
+    showToast("로그인 후 사진을 업로드할 수 있습니다.");
+    openAuthModal("login");
+    return;
+  }
+
+  navigateTo({ view: "upload" });
+}
+
+function goAdmin() {
+  navigateTo({ view: "admin" });
+}
+
 function startTitleEntry(index) {
   if (!galleryImages[index]) {
     showToast("사진이 없는 칸입니다");
@@ -735,14 +871,16 @@ function showRanking(index) {
 }
 
 async function fetchServerSubmissions(imageIndex) {
+  const image = galleryImages[imageIndex];
   const params = new URLSearchParams({
     imageIndex: String(imageIndex),
+    imageKey: getImageKey(image, imageIndex),
   });
   const data = await requestJson(`/api/submissions?${params.toString()}`, {
     method: "GET",
     headers: {},
   });
-  serverSubmissionsByImage[String(imageIndex)] = data.submissions || [];
+  serverSubmissionsByImage[getImageKey(image, imageIndex)] = data.submissions || [];
 }
 
 async function refreshRanking() {
@@ -753,7 +891,7 @@ async function refreshRanking() {
   try {
     await fetchServerSubmissions(selectedImageIndex);
   } catch {
-    delete serverSubmissionsByImage[String(selectedImageIndex)];
+    delete serverSubmissionsByImage[getSelectedImageKey()];
   }
 
   renderRanking();
@@ -772,12 +910,13 @@ async function addSubmission(author) {
       method: "POST",
       body: JSON.stringify({
         imageIndex: selectedImageIndex,
+        imageKey: getSelectedImageKey(),
         imageSrc: image.src,
         title: pendingTitle,
         guestName: currentUser ? "" : author,
       }),
     });
-    const imageKey = String(selectedImageIndex);
+    const imageKey = getSelectedImageKey();
     const currentList = Array.isArray(serverSubmissionsByImage[imageKey]) ? serverSubmissionsByImage[imageKey] : [];
     serverSubmissionsByImage[imageKey] = [data.submission, ...currentList].filter(Boolean);
     pendingTitle = "";
@@ -793,7 +932,7 @@ async function addSubmission(author) {
   }
 
   const submissions = loadSubmissions();
-  const imageKey = String(selectedImageIndex);
+  const imageKey = getSelectedImageKey();
   const currentList = Array.isArray(submissions[imageKey]) ? submissions[imageKey] : [];
 
   submissions[imageKey] = [
@@ -819,7 +958,7 @@ async function addSubmission(author) {
 
 function updateSubmission(entryId, updater) {
   const submissions = loadSubmissions();
-  const imageKey = String(selectedImageIndex);
+  const imageKey = getSelectedImageKey();
   const entries = Array.isArray(submissions[imageKey]) ? submissions[imageKey] : [];
   const target = entries.find((entry) => entry.id === entryId);
 
@@ -835,7 +974,7 @@ function updateSubmission(entryId, updater) {
 
 function removeLocalSubmission(entryId) {
   const submissions = loadSubmissions();
-  const imageKey = String(selectedImageIndex);
+  const imageKey = getSelectedImageKey();
   const entries = Array.isArray(submissions[imageKey]) ? submissions[imageKey] : [];
   const target = entries.find((entry) => entry.id === entryId);
 
@@ -864,7 +1003,7 @@ function removeLocalComment(entryId, commentId) {
 }
 
 function getCurrentRankingEntries() {
-  const imageKey = String(selectedImageIndex);
+  const imageKey = getSelectedImageKey();
   const cachedEntries = serverSubmissionsByImage[imageKey];
   const submissions = loadSubmissions();
 
@@ -877,6 +1016,7 @@ function getCurrentRankingEntries() {
 
 function renderGallery() {
   const fragment = document.createDocumentFragment();
+  const slotCount = galleryImages.length;
   const renderCount = Math.min(visibleGalleryCount, slotCount);
 
   for (let index = 0; index < renderCount; index += 1) {
@@ -910,6 +1050,13 @@ function renderGallery() {
       const actions = document.createElement("div");
       actions.className = "photo-card-actions";
 
+      if (image.isUserUpload) {
+        const badge = document.createElement("span");
+        badge.className = "photo-badge";
+        badge.textContent = "사용자 업로드";
+        actions.append(badge);
+      }
+
       const rankingButton = document.createElement("button");
       rankingButton.className = "photo-action";
       rankingButton.type = "button";
@@ -917,6 +1064,17 @@ function renderGallery() {
       rankingButton.textContent = "랭킹";
 
       actions.append(rankingButton);
+
+      if (image.isUserUpload) {
+        const reportButton = document.createElement("button");
+        reportButton.className = "photo-action photo-report-action";
+        reportButton.type = "button";
+        reportButton.dataset.action = "report";
+        reportButton.textContent = "신고";
+        reportButton.setAttribute("aria-label", "사진 신고");
+        actions.append(reportButton);
+      }
+
       card.classList.add("has-image");
       card.tabIndex = 0;
       card.setAttribute("role", "button");
@@ -1156,6 +1314,11 @@ function applyPendingRankingFocus() {
 
 function openRankingLocation(imageIndex, entryId, commentId = "") {
   if (!Number.isInteger(imageIndex)) {
+    const imageKey = typeof imageIndex === "string" ? imageIndex : "";
+    imageIndex = findImageIndexByKey(imageKey);
+  }
+
+  if (!Number.isInteger(imageIndex)) {
     showToast("이동할 사진 정보를 찾을 수 없습니다.");
     return;
   }
@@ -1194,6 +1357,7 @@ function renderUser() {
   if (!currentUser) {
     authActions.hidden = false;
     memberActions.hidden = true;
+    adminNavButton.hidden = true;
     drawerName.textContent = "";
     renderAvatar(drawerPhoto, null);
     renderAvatar(profileEditPhoto, null);
@@ -1204,6 +1368,7 @@ function renderUser() {
 
   authActions.hidden = true;
   memberActions.hidden = false;
+  adminNavButton.hidden = !isCurrentAdmin();
   userName.textContent = displayName;
   renderAvatar(profilePhoto, currentUser);
   drawerName.textContent = displayName;
@@ -1815,13 +1980,14 @@ function renderMyTitles(submissions) {
     card.className = "my-title-card";
     card.dataset.entryId = entry.id;
     card.dataset.imageIndex = String(entry.imageIndex);
+    card.dataset.imageKey = entry.imageKey || String(entry.imageIndex);
     card.tabIndex = 0;
     card.setAttribute("role", "button");
     card.setAttribute("aria-label", `${entry.title} 랭킹으로 이동`);
 
     const image = document.createElement("img");
     image.className = "my-title-thumb";
-    image.src = entry.imageSrc || galleryImages[entry.imageIndex]?.src || "";
+    image.src = entry.imageSrc || galleryImages[findImageIndexByKey(entry.imageKey)]?.src || galleryImages[entry.imageIndex]?.src || "";
     image.alt = "";
     image.loading = "lazy";
 
@@ -1870,13 +2036,14 @@ function renderMyComments(comments) {
     card.dataset.entryId = comment.submissionId;
     card.dataset.commentId = comment.id;
     card.dataset.imageIndex = String(comment.imageIndex);
+    card.dataset.imageKey = comment.imageKey || String(comment.imageIndex);
     card.tabIndex = 0;
     card.setAttribute("role", "button");
     card.setAttribute("aria-label", `${comment.submissionTitle} 댓글 위치로 이동`);
 
     const image = document.createElement("img");
     image.className = "my-title-thumb";
-    image.src = comment.imageSrc || galleryImages[comment.imageIndex]?.src || "";
+    image.src = comment.imageSrc || galleryImages[findImageIndexByKey(comment.imageKey)]?.src || galleryImages[comment.imageIndex]?.src || "";
     image.alt = "";
     image.loading = "lazy";
 
@@ -1962,6 +2129,326 @@ async function uploadAvatar(file) {
   }
 }
 
+function updateSourceFields() {
+  const needsSource = imageSourceTypeInput.value === "free_site" || imageSourceTypeInput.value === "other";
+  sourceExtraFields.hidden = !needsSource;
+  imageSourceUrlInput.required = needsSource;
+  imageAuthorInput.required = needsSource;
+  imageLicenseInput.required = needsSource;
+}
+
+function updateUploadSubmitState() {
+  const allConsentsChecked =
+    uploadRightsInput.checked &&
+    uploadNoViolationInput.checked &&
+    uploadNoProhibitedInput.checked &&
+    uploadPolicyInput.checked;
+  imageUploadSubmitButton.disabled = !allConsentsChecked;
+}
+
+function updateUploadPreview() {
+  if (uploadPreviewUrl) {
+    URL.revokeObjectURL(uploadPreviewUrl);
+    uploadPreviewUrl = "";
+  }
+
+  const file = imageUploadInput.files?.[0];
+
+  if (!file) {
+    imageUploadPreview.replaceChildren(document.createTextNode("미리보기"));
+    return;
+  }
+
+  uploadPreviewUrl = URL.createObjectURL(file);
+  const image = document.createElement("img");
+  image.src = uploadPreviewUrl;
+  image.alt = "업로드 미리보기";
+  imageUploadPreview.replaceChildren(image);
+}
+
+function resetUploadForm() {
+  imageUploadForm.reset();
+  imageUploadMessage.textContent = "";
+  imageUploadMessage.classList.remove("is-success");
+  updateSourceFields();
+  updateUploadSubmitState();
+  updateUploadPreview();
+}
+
+async function submitImageUpload() {
+  if (!currentUser) {
+    imageUploadMessage.textContent = "로그인한 회원만 사진을 업로드할 수 있습니다.";
+    openAuthModal("login");
+    return;
+  }
+
+  const file = imageUploadInput.files?.[0];
+  const sourceType = imageSourceTypeInput.value;
+  const needsSource = sourceType === "free_site" || sourceType === "other";
+
+  imageUploadMessage.textContent = "";
+  imageUploadMessage.classList.remove("is-success");
+
+  if (!file) {
+    imageUploadMessage.textContent = "이미지 파일을 선택하세요.";
+    imageUploadInput.focus();
+    return;
+  }
+
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || !/\.(jpe?g|png|webp)$/i.test(file.name)) {
+    imageUploadMessage.textContent = "jpg, jpeg, png, webp 파일만 업로드할 수 있습니다.";
+    imageUploadInput.focus();
+    return;
+  }
+
+  if (file.size > maxUploadBytes) {
+    imageUploadMessage.textContent = "이미지는 5MB 이하만 업로드할 수 있습니다.";
+    imageUploadInput.focus();
+    return;
+  }
+
+  if (!imageAltInput.value.trim()) {
+    imageUploadMessage.textContent = "사진 설명 또는 alt text를 입력하세요.";
+    imageAltInput.focus();
+    return;
+  }
+
+  if (!sourceType) {
+    imageUploadMessage.textContent = "사진 출처 유형을 선택하세요.";
+    imageSourceTypeInput.focus();
+    return;
+  }
+
+  if (needsSource && (!imageSourceUrlInput.value.trim() || !imageAuthorInput.value.trim() || !imageLicenseInput.value.trim())) {
+    imageUploadMessage.textContent = "외부 출처 이미지는 원본 URL, 작가명, 라이선스 이름을 입력해야 합니다.";
+    (imageSourceUrlInput.value.trim() ? imageAuthorInput : imageSourceUrlInput).focus();
+    return;
+  }
+
+  if (imageUploadSubmitButton.disabled) {
+    imageUploadMessage.textContent = "필수 동의 항목을 모두 확인해야 업로드할 수 있습니다.";
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("image", file);
+  formData.append("altText", imageAltInput.value.trim());
+  formData.append("sourceType", sourceType);
+  formData.append("sourceUrl", needsSource ? imageSourceUrlInput.value.trim() : "");
+  formData.append("authorName", needsSource ? imageAuthorInput.value.trim() : "");
+  formData.append("licenseName", needsSource ? imageLicenseInput.value.trim() : "");
+  formData.append("attributionRequired", imageAttributionInput.checked ? "true" : "false");
+  formData.append("confirmedRights", uploadRightsInput.checked ? "true" : "false");
+  formData.append("confirmedNoViolation", uploadNoViolationInput.checked ? "true" : "false");
+  formData.append("confirmedNoProhibited", uploadNoProhibitedInput.checked ? "true" : "false");
+  formData.append("agreedPolicy", uploadPolicyInput.checked ? "true" : "false");
+
+  imageUploadSubmitButton.disabled = true;
+  imageUploadSubmitButton.textContent = "접수 중";
+
+  try {
+    const response = await fetch("/api/images/upload", {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.message || "이미지 업로드를 처리하지 못했습니다.");
+    }
+
+    resetUploadForm();
+    imageUploadMessage.textContent = data.message || "업로드가 접수되었습니다. 관리자 검수 후 공개됩니다.";
+    imageUploadMessage.classList.add("is-success");
+    showToast("업로드가 접수되었습니다.");
+  } catch (error) {
+    imageUploadMessage.textContent = error.message;
+  } finally {
+    imageUploadSubmitButton.textContent = "업로드 접수";
+    updateUploadSubmitState();
+  }
+}
+
+function openReportModal(image) {
+  if (!image?.isUserUpload) {
+    return;
+  }
+
+  activeReportImage = image;
+  imageReportForm.reset();
+  imageReportMessage.textContent = "";
+  imageReportModal.hidden = false;
+  imageReportReasonInput.focus();
+}
+
+function closeReportModal() {
+  imageReportModal.hidden = true;
+  activeReportImage = null;
+  imageReportForm.reset();
+  imageReportMessage.textContent = "";
+}
+
+async function submitImageReport() {
+  if (!activeReportImage?.id) {
+    return;
+  }
+
+  const reason = imageReportReasonInput.value;
+  const detail = imageReportDetailInput.value.trim();
+
+  if (!reason) {
+    imageReportMessage.textContent = "신고 사유를 선택하세요.";
+    imageReportReasonInput.focus();
+    return;
+  }
+
+  imageReportSubmitButton.disabled = true;
+  imageReportSubmitButton.textContent = "접수 중";
+  imageReportMessage.textContent = "";
+
+  try {
+    const data = await requestJson(`/api/images/${encodeURIComponent(activeReportImage.id)}/report`, {
+      method: "POST",
+      body: JSON.stringify({ reason, detail }),
+    });
+    closeReportModal();
+    showToast(data.message || "신고가 접수되었습니다.");
+
+    if (data.hidden) {
+      await loadGalleryImages();
+    }
+  } catch (error) {
+    imageReportMessage.textContent = error.message;
+  } finally {
+    imageReportSubmitButton.disabled = false;
+    imageReportSubmitButton.textContent = "신고 접수";
+  }
+}
+
+async function loadAdminImages(status = "pending") {
+  activeAdminStatus = status;
+  [adminPendingTab, adminReportedTab].forEach((tab) => {
+    const isActive = tab.dataset.status === status;
+    tab.classList.toggle("is-active", isActive);
+    tab.setAttribute("aria-selected", String(isActive));
+  });
+  adminImageMessage.textContent = "";
+  adminImageList.replaceChildren(createAdminMessage("불러오는 중입니다."));
+
+  try {
+    const data = await requestJson(`/api/admin/images?status=${encodeURIComponent(status)}`, {
+      method: "GET",
+      headers: {},
+    });
+    renderAdminImages(data.images || []);
+  } catch (error) {
+    adminImageList.replaceChildren(createAdminMessage(error.message));
+  }
+}
+
+function renderAdminImages(images) {
+  if (images.length === 0) {
+    adminImageList.replaceChildren(createAdminMessage("검수할 이미지가 없습니다."));
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  images.forEach((image) => {
+    const card = document.createElement("article");
+    card.className = "admin-image-card";
+    card.dataset.imageId = image.id;
+
+    const preview = document.createElement("img");
+    preview.className = "admin-image-preview";
+    preview.src = image.src;
+    preview.alt = image.alt || "업로드 이미지";
+    preview.loading = "lazy";
+
+    const body = document.createElement("div");
+    body.className = "admin-image-body";
+
+    const title = document.createElement("h2");
+    title.textContent = image.alt || "설명 없음";
+
+    const meta = document.createElement("p");
+    meta.className = "admin-image-meta";
+    meta.textContent = `상태 ${image.status} · 신고 ${image.reportCount || 0}회 · 업로더 ${image.uploader || "회원"}`;
+
+    const source = document.createElement("p");
+    source.className = "admin-image-source";
+    source.textContent =
+      image.sourceType === "self"
+        ? "출처: 직접 촬영"
+        : `출처: ${image.sourceUrl || "-"} / 작가: ${image.authorName || "-"} / 라이선스: ${image.licenseName || "-"}`;
+
+    const reasonInput = document.createElement("textarea");
+    reasonInput.className = "admin-reason-input";
+    reasonInput.rows = 2;
+    reasonInput.maxLength = 1000;
+    reasonInput.placeholder = "거절 또는 숨김 사유";
+    reasonInput.setAttribute("aria-label", "검수 사유");
+    reasonInput.value = image.moderationReason || "";
+
+    const actions = document.createElement("div");
+    actions.className = "admin-image-actions";
+
+    [
+      ["approve", "승인", "solid"],
+      ["reject", "거절", "ghost"],
+      ["hide", "숨김", "ghost"],
+      ["delete", "삭제", "danger"],
+    ].forEach(([action, label, style]) => {
+      const button = document.createElement("button");
+      button.className = `auth-button ${style}`;
+      button.type = "button";
+      button.dataset.action = action;
+      button.textContent = label;
+      actions.append(button);
+    });
+
+    body.append(title, meta, source, reasonInput, actions);
+    card.append(preview, body);
+    fragment.append(card);
+  });
+
+  adminImageList.replaceChildren(fragment);
+}
+
+function createAdminMessage(message) {
+  const paragraph = document.createElement("p");
+  paragraph.className = "my-title-empty";
+  paragraph.textContent = message;
+  return paragraph;
+}
+
+async function moderateImage(card, action) {
+  const imageId = card.dataset.imageId;
+  const reason = card.querySelector(".admin-reason-input")?.value.trim() || "";
+  const options =
+    action === "delete"
+      ? { method: "DELETE", headers: {} }
+      : {
+          method: "POST",
+          body: JSON.stringify({ reason }),
+        };
+
+  try {
+    await requestJson(
+      action === "delete"
+        ? `/api/admin/images/${encodeURIComponent(imageId)}`
+        : `/api/admin/images/${encodeURIComponent(imageId)}/${encodeURIComponent(action)}`,
+      options
+    );
+    showToast("검수 상태를 변경했습니다.");
+    await loadAdminImages(activeAdminStatus);
+    await loadGalleryImages();
+  } catch (error) {
+    adminImageMessage.textContent = error.message;
+  }
+}
+
 function showToast(message) {
   window.clearTimeout(toastTimer);
   toast.textContent = message;
@@ -1981,6 +2468,9 @@ contactLink.addEventListener("click", (event) => {
   goContact();
 });
 
+uploadNavButton.addEventListener("click", goUpload);
+adminNavButton.addEventListener("click", goAdmin);
+
 galleryGrid.addEventListener("click", (event) => {
   const actionButton = event.target.closest(".photo-action");
   const card = event.target.closest(".photo-card");
@@ -1993,6 +2483,11 @@ galleryGrid.addEventListener("click", (event) => {
 
   if (card.classList.contains("is-empty")) {
     showToast("준비된 사진이 없습니다");
+    return;
+  }
+
+  if (actionButton?.dataset.action === "report") {
+    openReportModal(galleryImages[imageIndex]);
     return;
   }
 
@@ -2086,7 +2581,7 @@ rankingList.addEventListener("click", async (event) => {
   }
 
   if (button.dataset.action === "like") {
-    const imageKey = String(selectedImageIndex);
+    const imageKey = getSelectedImageKey();
     const serverEntries = serverSubmissionsByImage[imageKey];
     const entry = Array.isArray(serverEntries) ? serverEntries.find((item) => item.id === entryId) : null;
 
@@ -2134,7 +2629,7 @@ rankingList.addEventListener("click", async (event) => {
       return;
     }
 
-    const imageKey = String(selectedImageIndex);
+    const imageKey = getSelectedImageKey();
     const serverEntries = serverSubmissionsByImage[imageKey];
     const entry = Array.isArray(serverEntries) ? serverEntries.find((item) => item.id === entryId) : null;
 
@@ -2166,7 +2661,7 @@ rankingList.addEventListener("click", async (event) => {
     }
 
     const commentId = button.dataset.commentId;
-    const imageKey = String(selectedImageIndex);
+    const imageKey = getSelectedImageKey();
     const serverEntries = serverSubmissionsByImage[imageKey];
     const entry = Array.isArray(serverEntries) ? serverEntries.find((item) => item.id === entryId) : null;
 
@@ -2223,7 +2718,7 @@ rankingList.addEventListener("submit", async (event) => {
   const entryId = form.dataset.entryId;
   expandedCommentIds.add(entryId);
 
-  const imageKey = String(selectedImageIndex);
+  const imageKey = getSelectedImageKey();
   const serverEntries = serverSubmissionsByImage[imageKey];
   const entry = Array.isArray(serverEntries) ? serverEntries.find((item) => item.id === entryId) : null;
 
@@ -2277,8 +2772,46 @@ function updatePreviousLikedEntry(entries, data) {
 backToGalleryButton.addEventListener("click", goHome);
 rankingSelfLink.addEventListener("click", scrollToMyRanking);
 galleryMoreButton.addEventListener("click", () => {
-  visibleGalleryCount = Math.min(visibleGalleryCount + galleryPageSize, slotCount);
+  visibleGalleryCount = Math.min(visibleGalleryCount + galleryPageSize, galleryImages.length);
   renderGallery();
+});
+
+imageUploadInput.addEventListener("change", updateUploadPreview);
+imageSourceTypeInput.addEventListener("change", updateSourceFields);
+[uploadRightsInput, uploadNoViolationInput, uploadNoProhibitedInput, uploadPolicyInput].forEach((input) => {
+  input.addEventListener("change", updateUploadSubmitState);
+});
+uploadCancelButton.addEventListener("click", () => {
+  resetUploadForm();
+  goHome();
+});
+imageUploadForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await submitImageUpload();
+});
+imageReportCloseButton.addEventListener("click", closeReportModal);
+imageReportCancelButton.addEventListener("click", closeReportModal);
+imageReportModal.addEventListener("click", (event) => {
+  if (event.target === imageReportModal) {
+    closeReportModal();
+  }
+});
+imageReportForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await submitImageReport();
+});
+[adminPendingTab, adminReportedTab].forEach((tab) => {
+  tab.addEventListener("click", () => loadAdminImages(tab.dataset.status));
+});
+adminImageList.addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-action]");
+  const card = event.target.closest(".admin-image-card");
+
+  if (!button || !card) {
+    return;
+  }
+
+  await moderateImage(card, button.dataset.action);
 });
 
 consentAcceptButton.addEventListener("click", () => {
@@ -2548,7 +3081,7 @@ myTitleList.addEventListener("click", async (event) => {
     return;
   }
 
-  openRankingLocation(Number(card.dataset.imageIndex), card.dataset.entryId);
+  openRankingLocation(card.dataset.imageKey || Number(card.dataset.imageIndex), card.dataset.entryId);
 });
 myTitleList.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" && event.key !== " ") {
@@ -2562,7 +3095,7 @@ myTitleList.addEventListener("keydown", (event) => {
   }
 
   event.preventDefault();
-  openRankingLocation(Number(card.dataset.imageIndex), card.dataset.entryId);
+  openRankingLocation(card.dataset.imageKey || Number(card.dataset.imageIndex), card.dataset.entryId);
 });
 myCommentList.addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-action='delete-my-comment']");
@@ -2597,7 +3130,7 @@ myCommentList.addEventListener("click", async (event) => {
     return;
   }
 
-  openRankingLocation(Number(card.dataset.imageIndex), card.dataset.entryId, card.dataset.commentId);
+  openRankingLocation(card.dataset.imageKey || Number(card.dataset.imageIndex), card.dataset.entryId, card.dataset.commentId);
 });
 myCommentList.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" && event.key !== " ") {
@@ -2611,7 +3144,7 @@ myCommentList.addEventListener("keydown", (event) => {
   }
 
   event.preventDefault();
-  openRankingLocation(Number(card.dataset.imageIndex), card.dataset.entryId, card.dataset.commentId);
+  openRankingLocation(card.dataset.imageKey || Number(card.dataset.imageIndex), card.dataset.entryId, card.dataset.commentId);
 });
 avatarEditButton.addEventListener("click", () => {
   avatarInput.click();
@@ -2649,6 +3182,11 @@ window.addEventListener("keydown", (event) => {
     return;
   }
 
+  if (!imageReportModal.hidden) {
+    closeReportModal();
+    return;
+  }
+
   if (!userInfoPopover.hidden) {
     closeUserPopover();
     return;
@@ -2670,6 +3208,7 @@ async function initializeApp() {
   renderUser();
   await verifyEmailFromUrl();
   await restoreSession();
+  await loadGalleryImages();
   initializeRoute();
 }
 

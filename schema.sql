@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
   bio TEXT NOT NULL DEFAULT '',
   is_profile_public INTEGER NOT NULL DEFAULT 1,
   profile_image_url TEXT,
+  role TEXT NOT NULL DEFAULT 'user',
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -41,6 +42,7 @@ CREATE INDEX IF NOT EXISTS idx_email_verification_tokens_expires_at ON email_ver
 CREATE TABLE IF NOT EXISTS submissions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   image_index INTEGER NOT NULL,
+  image_key TEXT,
   image_src TEXT NOT NULL,
   title TEXT NOT NULL,
   author_user_id INTEGER,
@@ -73,6 +75,7 @@ CREATE TABLE IF NOT EXISTS likes (
 );
 
 CREATE INDEX IF NOT EXISTS idx_submissions_image_index ON submissions(image_index);
+CREATE INDEX IF NOT EXISTS idx_submissions_image_key ON submissions(image_key);
 CREATE INDEX IF NOT EXISTS idx_submissions_author_user_id ON submissions(author_user_id);
 CREATE INDEX IF NOT EXISTS idx_comments_submission_id ON comments(submission_id);
 CREATE INDEX IF NOT EXISTS idx_likes_submission_id ON likes(submission_id);
@@ -95,3 +98,51 @@ CREATE TABLE IF NOT EXISTS messages (
 CREATE INDEX IF NOT EXISTS idx_messages_recipient_created_at ON messages(recipient_user_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_messages_recipient_read_at ON messages(recipient_user_id, read_at);
 CREATE INDEX IF NOT EXISTS idx_messages_sender_user_id ON messages(sender_user_id);
+
+CREATE TABLE IF NOT EXISTS uploaded_images (
+  id TEXT PRIMARY KEY,
+  uploader_user_id INTEGER NOT NULL,
+  storage_key TEXT NOT NULL,
+  thumbnail_key TEXT,
+  alt_text TEXT,
+  source_type TEXT NOT NULL,
+  source_url TEXT,
+  author_name TEXT,
+  license_name TEXT,
+  attribution_required INTEGER NOT NULL DEFAULT 0,
+  uploader_confirmed_rights INTEGER NOT NULL DEFAULT 0,
+  no_rights_violation_confirmed INTEGER NOT NULL DEFAULT 0,
+  prohibited_content_confirmed INTEGER NOT NULL DEFAULT 0,
+  policy_agreed INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'pending',
+  moderation_reason TEXT,
+  report_count INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  reviewed_at TEXT,
+  reviewed_by INTEGER,
+  FOREIGN KEY (uploader_user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL,
+  CHECK (source_type IN ('self', 'free_site', 'other')),
+  CHECK (status IN ('pending', 'approved', 'rejected', 'hidden', 'removed'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_uploaded_images_status_created_at ON uploaded_images(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_uploaded_images_uploader_user_id ON uploaded_images(uploader_user_id);
+CREATE INDEX IF NOT EXISTS idx_uploaded_images_report_count ON uploaded_images(report_count);
+
+CREATE TABLE IF NOT EXISTS image_reports (
+  id TEXT PRIMARY KEY,
+  image_id TEXT NOT NULL,
+  reporter_user_id INTEGER,
+  reporter_fingerprint TEXT,
+  reason TEXT NOT NULL,
+  detail TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (image_id) REFERENCES uploaded_images(id) ON DELETE CASCADE,
+  FOREIGN KEY (reporter_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_image_reports_image_id ON image_reports(image_id);
+CREATE INDEX IF NOT EXISTS idx_image_reports_reporter_user_id ON image_reports(reporter_user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_image_reports_user_once ON image_reports(image_id, reporter_user_id) WHERE reporter_user_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_image_reports_guest_once ON image_reports(image_id, reporter_fingerprint) WHERE reporter_user_id IS NULL AND reporter_fingerprint IS NOT NULL;

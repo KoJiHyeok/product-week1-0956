@@ -41,6 +41,8 @@
 
       <div class="top-actions">
         <a class="contact-link" id="contactLink" href="#contact">문의</a>
+        <button class="auth-button ghost small" id="uploadNavButton" type="button">사진 업로드</button>
+        <button class="auth-button ghost small" id="adminNavButton" type="button" hidden>관리자 검수</button>
 
         <div class="auth-actions" id="authActions">
           <button class="auth-link-button" id="loginButton" type="button">로그인</button>
@@ -74,6 +76,78 @@
       <p class="gallery-guide">사진에 어울리는 제목을 만들어보세요!!</p>
       <div class="gallery-grid" id="galleryGrid"></div>
       <button class="gallery-more-button" id="galleryMoreButton" type="button" hidden>사진 더 보기</button>
+    </section>
+
+    <section class="view upload-view" id="uploadView" hidden aria-label="사진 업로드">
+      <div class="page-head">
+        <p class="view-kicker">업로드</p>
+        <h1>사진 업로드</h1>
+      </div>
+
+      <form class="upload-form" id="imageUploadForm">
+        <div class="upload-preview-panel">
+          <label for="imageUploadInput">이미지 파일</label>
+          <input id="imageUploadInput" name="image" type="file" accept="image/jpeg,image/png,image/webp" required />
+          <div class="upload-preview" id="imageUploadPreview" aria-label="이미지 미리보기">
+            <span>미리보기</span>
+          </div>
+          <p class="field-hint">jpg, jpeg, png, webp 파일만 가능하며 최대 5MB까지 업로드할 수 있습니다.</p>
+        </div>
+
+        <div class="upload-fields">
+          <label for="imageAltInput">사진 설명 또는 alt text</label>
+          <input id="imageAltInput" name="altText" type="text" maxlength="240" autocomplete="off" required />
+
+          <label for="imageSourceTypeInput">사진 출처 유형</label>
+          <select id="imageSourceTypeInput" name="sourceType" required>
+            <option value="">출처 유형을 선택하세요</option>
+            <option value="self">내가 직접 촬영한 사진</option>
+            <option value="free_site">무료 이미지 사이트에서 가져온 사진</option>
+            <option value="other">기타</option>
+          </select>
+
+          <div class="source-extra-fields" id="sourceExtraFields" hidden>
+            <label for="imageSourceUrlInput">원본 이미지 URL</label>
+            <input id="imageSourceUrlInput" name="sourceUrl" type="url" maxlength="800" autocomplete="url" />
+
+            <label for="imageAuthorInput">작가명</label>
+            <input id="imageAuthorInput" name="authorName" type="text" maxlength="120" autocomplete="off" />
+
+            <label for="imageLicenseInput">라이선스 이름</label>
+            <input id="imageLicenseInput" name="licenseName" type="text" maxlength="120" autocomplete="off" />
+
+            <label class="terms-check source-attribution-check" for="imageAttributionInput">
+              <input id="imageAttributionInput" name="attributionRequired" type="checkbox" />
+              <span>출처 표기가 필요합니다.</span>
+            </label>
+          </div>
+
+          <div class="terms-panel upload-consents" aria-label="업로드 필수 동의">
+            <label class="terms-check">
+              <input class="upload-consent-input" id="uploadRightsInput" type="checkbox" />
+              <span>본인이 직접 촬영했거나, 업로드 및 서비스 이용 권한이 있는 이미지입니다.</span>
+            </label>
+            <label class="terms-check">
+              <input class="upload-consent-input" id="uploadNoViolationInput" type="checkbox" />
+              <span>타인의 저작권, 초상권, 상표권, 명예를 침해하지 않는 이미지입니다.</span>
+            </label>
+            <label class="terms-check">
+              <input class="upload-consent-input" id="uploadNoProhibitedInput" type="checkbox" />
+              <span>애니메이션, 만화, 웹툰, 영화, 드라마, 방송 캡처, 유명인 사진, 불법 촬영물, 개인정보가 포함된 이미지를 업로드하지 않습니다.</span>
+            </label>
+            <label class="terms-check">
+              <input class="upload-consent-input" id="uploadPolicyInput" type="checkbox" />
+              <span>운영 정책 위반 시 이미지 삭제, 업로드 제한, 계정 제한이 될 수 있음에 동의합니다.</span>
+            </label>
+          </div>
+
+          <p class="profile-edit-message" id="imageUploadMessage" aria-live="polite"></p>
+          <div class="form-actions">
+            <button class="auth-button ghost" id="uploadCancelButton" type="button">취소</button>
+            <button class="auth-button solid" id="imageUploadSubmitButton" type="submit" disabled>업로드 접수</button>
+          </div>
+        </div>
+      </form>
     </section>
 
     <section class="view play-view" id="titleView" hidden aria-label="제목 입력">
@@ -189,6 +263,21 @@
         <button class="auth-button danger full" id="accountDeleteButton" type="button">회원 탈퇴</button>
       </form>
     </section>
+
+    <section class="view admin-view" id="adminView" hidden aria-label="관리자 이미지 검수">
+      <div class="page-head admin-head">
+        <div>
+          <p class="view-kicker">관리자</p>
+          <h1>이미지 검수</h1>
+        </div>
+        <div class="admin-tabs" role="tablist" aria-label="검수 상태">
+          <button class="admin-tab is-active" id="adminPendingTab" type="button" data-status="pending">대기</button>
+          <button class="admin-tab" id="adminReportedTab" type="button" data-status="reported">신고</button>
+        </div>
+      </div>
+      <p class="profile-edit-message" id="adminImageMessage" aria-live="polite"></p>
+      <div class="admin-image-list" id="adminImageList"></div>
+    </section>
   </main>
 
   <aside class="profile-drawer" id="profileDrawer" aria-hidden="true" aria-label="회원 정보">
@@ -260,6 +349,37 @@
         <div class="confirm-actions">
           <button class="auth-button ghost" id="passwordCancelButton" type="button">취소</button>
           <button class="auth-button solid" type="submit">변경</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="confirm-modal" id="imageReportModal" hidden role="dialog" aria-modal="true" aria-labelledby="imageReportTitle">
+    <div class="confirm-card report-card">
+      <div class="message-compose-head">
+        <div>
+          <p class="modal-kicker">신고</p>
+          <h2 id="imageReportTitle">사진 신고</h2>
+        </div>
+        <button class="modal-close" id="imageReportCloseButton" type="button" aria-label="닫기"></button>
+      </div>
+      <form class="report-form" id="imageReportForm">
+        <label for="imageReportReasonInput">신고 사유</label>
+        <select id="imageReportReasonInput" required>
+          <option value="">신고 사유를 선택하세요</option>
+          <option value="copyright">저작권 침해</option>
+          <option value="portrait">초상권 침해</option>
+          <option value="privacy">개인정보 노출</option>
+          <option value="sexual_violent">음란/폭력적 이미지</option>
+          <option value="hate">혐오/차별</option>
+          <option value="other">기타</option>
+        </select>
+        <label for="imageReportDetailInput">상세 내용</label>
+        <textarea id="imageReportDetailInput" rows="5" maxlength="1000"></textarea>
+        <p class="profile-edit-message" id="imageReportMessage" aria-live="polite"></p>
+        <div class="confirm-actions">
+          <button class="auth-button ghost" id="imageReportCancelButton" type="button">취소</button>
+          <button class="auth-button solid" id="imageReportSubmitButton" type="submit">신고 접수</button>
         </div>
       </form>
     </div>

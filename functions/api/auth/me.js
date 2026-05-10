@@ -1,4 +1,5 @@
 import { getCurrentUser, json, publicUser } from "./_shared.js";
+import { isAdminUser } from "../images/_shared.js";
 
 export async function onRequestGet(context) {
   const user = await getCurrentUser(context);
@@ -12,6 +13,9 @@ export async function onRequestGet(context) {
 
   return json({
     authenticated: true,
-    user: publicUser(user),
+    user: {
+      ...publicUser(user),
+      role: (await isAdminUser(context, user)) ? "admin" : user.role || "user",
+    },
   });
 }

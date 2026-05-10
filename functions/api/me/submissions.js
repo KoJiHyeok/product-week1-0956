@@ -14,6 +14,7 @@ export async function onRequestGet(context) {
         `SELECT
            submissions.id,
            submissions.image_index,
+           submissions.image_key,
            submissions.image_src,
            submissions.title,
            submissions.created_at,
@@ -44,6 +45,7 @@ export async function onRequestGet(context) {
         return {
           id: String(row.id),
           imageIndex: row.image_index,
+          imageKey: row.image_key || String(row.image_index),
           imageSrc: row.image_src,
           title: row.title,
           createdAt: row.created_at,

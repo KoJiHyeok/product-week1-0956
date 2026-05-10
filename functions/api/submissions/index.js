@@ -7,12 +7,17 @@ export async function onRequestGet(context) {
     const user = await getCurrentUser(context);
     const url = new URL(context.request.url);
     const rawImageIndex = url.searchParams.get("imageIndex");
+    const imageKey = normalizeImageKey(url.searchParams.get("imageKey"), rawImageIndex);
     const imageIndex = Number(rawImageIndex);
     const guestVote = user ? { identifier: "", cookie: "" } : await getOrCreateGuestVoteIdentifier(context.request);
     const voteDate = getVoteDate();
 
-    if (!Number.isInteger(imageIndex)) {
+    if (!imageKey || !Number.isInteger(imageIndex)) {
       return json({ message: "사진 번호가 올바르지 않습니다." }, 400);
+    }
+
+    if (!(await canUseImageKey(db, imageKey))) {
+      return json({ submissions: [] });
     }
 
     const { results } = await db
@@ -40,11 +45,11 @@ export async function onRequestGet(context) {
          FROM submissions
          LEFT JOIN users ON users.id = submissions.author_user_id
          LEFT JOIN likes ON likes.submission_id = submissions.id
-         WHERE submissions.image_index = ?
+         WHERE COALESCE(submissions.image_key, CAST(submissions.image_index AS TEXT)) = ?
          GROUP BY submissions.id
          ORDER BY like_count DESC, submissions.created_at DESC`
       )
-      .bind(voteDate, user?.id || null, user?.id || null, guestVote.identifier, guestVote.identifier, imageIndex)
+      .bind(voteDate, user?.id || null, user?.id || null, guestVote.identifier, guestVote.identifier, imageKey)
       .all();
 
     const submissions = await Promise.all((results || []).map((row) => withComments(db, row, user)));
@@ -60,11 +65,12 @@ export async function onRequestPost(context) {
     const user = await getCurrentUser(context);
     const body = await readJson(context.request);
     const imageIndex = Number(body?.imageIndex);
+    const imageKey = normalizeImageKey(body?.imageKey, body?.imageIndex);
     const imageSrc = typeof body?.imageSrc === "string" ? body.imageSrc.trim() : "";
     const title = typeof body?.title === "string" ? body.title.trim() : "";
     const guestName = typeof body?.guestName === "string" ? body.guestName.trim() : "";
 
-    if (!Number.isInteger(imageIndex) || !imageSrc || !title) {
+    if (!Number.isInteger(imageIndex) || !imageKey || !imageSrc || !title) {
       return json({ message: "제목 정보가 올바르지 않습니다." }, 400);
     }
 
@@ -72,17 +78,21 @@ export async function onRequestPost(context) {
       return json({ message: "비회원 이름을 입력하세요." }, 400);
     }
 
+    if (!(await canUseImageKey(db, imageKey))) {
+      return json({ message: "공개된 사진에만 제목을 입력할 수 있습니다." }, 403);
+    }
+
     const result = await db
       .prepare(
-        `INSERT INTO submissions (image_index, image_src, title, author_user_id, guest_name)
-         VALUES (?, ?, ?, ?, ?)`
+        `INSERT INTO submissions (image_index, image_key, image_src, title, author_user_id, guest_name)
+         VALUES (?, ?, ?, ?, ?, ?)`
       )
-      .bind(imageIndex, imageSrc, title, user?.id || null, user ? null : guestName)
+      .bind(imageIndex, imageKey, imageSrc, title, user?.id || null, user ? null : guestName)
       .run();
 
     const row = await db
       .prepare(
-        `SELECT submissions.id, submissions.image_index, submissions.image_src, submissions.title,
+        `SELECT submissions.id, submissions.image_index, submissions.image_key, submissions.image_src, submissions.title,
                 submissions.author_user_id,
                 submissions.guest_name, submissions.created_at, users.username,
                 users.is_profile_public, users.profile_image_url,
@@ -116,6 +126,7 @@ async function withComments(db, row, user) {
   return {
     id: String(row.id),
     imageIndex: row.image_index,
+    imageKey: row.image_key || String(row.image_index),
     imageSrc: row.image_src,
     title: row.title,
     authorUserId: row.author_user_id ? String(row.author_user_id) : "",
@@ -137,4 +148,29 @@ async function withComments(db, row, user) {
       canDelete: Boolean(user && comment.author_user_id === user.id),
     })),
   };
+}
+
+function normalizeImageKey(value, fallbackIndex) {
+  const raw = typeof value === "string" ? value.trim() : "";
+
+  if (raw) {
+    return raw.slice(0, 160);
+  }
+
+  const imageIndex = Number(fallbackIndex);
+  return Number.isInteger(imageIndex) ? String(imageIndex) : "";
+}
+
+async function canUseImageKey(db, imageKey) {
+  if (!imageKey.startsWith("uploaded:")) {
+    return true;
+  }
+
+  const imageId = imageKey.slice("uploaded:".length);
+  const row = await db
+    .prepare("SELECT status FROM uploaded_images WHERE id = ? LIMIT 1")
+    .bind(imageId)
+    .first();
+
+  return row?.status === "approved";
 }

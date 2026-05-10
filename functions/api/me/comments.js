@@ -17,6 +17,7 @@ export async function onRequestGet(context) {
            comments.text,
            comments.created_at,
            submissions.image_index,
+           submissions.image_key,
            submissions.image_src,
            submissions.title AS submission_title
          FROM comments
@@ -32,6 +33,7 @@ export async function onRequestGet(context) {
         id: String(comment.id),
         submissionId: String(comment.submission_id),
         imageIndex: comment.image_index,
+        imageKey: comment.image_key || String(comment.image_index),
         imageSrc: comment.image_src,
         submissionTitle: comment.submission_title,
         text: comment.text,

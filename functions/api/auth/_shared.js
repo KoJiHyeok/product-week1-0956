@@ -83,6 +83,7 @@ export function publicUser(user) {
     isProfilePublic: user.is_profile_public !== 0,
     profileImageUrl: user.profile_image_url || "",
     authProvider: user.auth_provider || "password",
+    role: user.role || "user",
   };
 }
 
@@ -138,7 +139,7 @@ export async function getCurrentUser(context) {
     return await db
       .prepare(
         `SELECT users.id, users.login_id, users.username, users.email, users.email_verified_at,
-                users.bio, users.is_profile_public, users.profile_image_url, users.auth_provider
+                users.bio, users.is_profile_public, users.profile_image_url, users.auth_provider, users.role
          FROM sessions
          JOIN users ON users.id = sessions.user_id
          WHERE sessions.id = ? AND sessions.expires_at > ?
