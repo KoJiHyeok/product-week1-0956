@@ -394,7 +394,7 @@ function closeCookieSettings() {
   cookieSettingsModal.hidden = true;
 }
 
-function trapFocus(event, container) {
+function trapFocus(event, container, extraElements = []) {
   if (event.key !== "Tab" || !container || container.hidden || container.getAttribute("aria-hidden") === "true") {
     return false;
   }
@@ -403,7 +403,9 @@ function trapFocus(event, container) {
     container.querySelectorAll(
       'a[href], button:not([disabled]):not([hidden]), input:not([disabled]):not([hidden]), select:not([disabled]):not([hidden]), textarea:not([disabled]):not([hidden]), [tabindex]:not([tabindex="-1"])'
     )
-  ).filter((element) => element.offsetParent !== null);
+  ).filter((element) => element.getClientRects().length > 0);
+  const extraFocusable = extraElements.filter((element) => element && !element.hidden && element.getClientRects().length > 0);
+  focusable.push(...extraFocusable);
 
   if (focusable.length === 0) {
     return false;
@@ -1568,6 +1570,7 @@ function renderUser() {
     renderAvatar(drawerPhoto, null);
     renderAvatar(profileEditPhoto, null);
     renderDrawerMode();
+    syncDrawerEdgeState(profileDrawer.classList.contains("is-open"));
     return;
   }
 
@@ -1583,6 +1586,7 @@ function renderUser() {
   renderAvatar(drawerPhoto, currentUser);
   renderAvatar(profileEditPhoto, currentUser);
   renderDrawerMode();
+  syncDrawerEdgeState(profileDrawer.classList.contains("is-open"));
 }
 
 function renderAvatar(target, user) {
@@ -1988,6 +1992,17 @@ function syncGuestChipState(isOpen) {
   guestChip.setAttribute("aria-label", isOpen ? "비회원 메뉴 닫기" : "비회원 메뉴 열기");
 }
 
+function syncDrawerEdgeState(isOpen) {
+  if (!drawerEdgeClose) {
+    return;
+  }
+
+  drawerEdgeClose.classList.toggle("is-open", isOpen);
+  drawerEdgeClose.setAttribute("aria-expanded", String(isOpen));
+  drawerEdgeClose.setAttribute("aria-label", isOpen ? "프로필 메뉴 닫기" : "프로필 메뉴 열기");
+  drawerEdgeClose.textContent = isOpen ? "›" : "‹";
+}
+
 function openDrawer() {
   pageDim.hidden = false;
   profileDrawer.classList.add("is-open");
@@ -1995,6 +2010,7 @@ function openDrawer() {
   document.body.classList.add("drawer-open");
   userChip?.setAttribute("aria-expanded", "true");
   syncGuestChipState(true);
+  syncDrawerEdgeState(true);
   renderDrawerMode();
   showDrawerMenu();
   loadDrawerStats();
@@ -2008,14 +2024,11 @@ function closeDrawer() {
   document.body.classList.remove("drawer-open");
   userChip?.setAttribute("aria-expanded", "false");
   syncGuestChipState(false);
+  syncDrawerEdgeState(false);
   closeDeleteAccountModal();
   closePasswordChangeModal();
 
-  if (currentUser) {
-    userChip.focus();
-  } else {
-    guestChip.focus();
-  }
+  drawerEdgeClose.focus();
 }
 
 function showDrawerMenu() {
@@ -3375,7 +3388,13 @@ document.addEventListener("click", (event) => {
 });
 userChip.addEventListener("click", openDrawer);
 guestChip.addEventListener("click", openDrawer);
-drawerEdgeClose.addEventListener("click", closeDrawer);
+drawerEdgeClose.addEventListener("click", () => {
+  if (profileDrawer.classList.contains("is-open")) {
+    closeDrawer();
+  } else {
+    openDrawer();
+  }
+});
 pageDim.addEventListener("click", closeDrawer);
 logoutButton.addEventListener("click", logout);
 guestLoginButton.addEventListener("click", () => {
@@ -3535,7 +3554,7 @@ window.addEventListener("keydown", (event) => {
     trapFocus(event, messageComposeModal) ||
     trapFocus(event, imageReportModal) ||
     trapFocus(event, cookieSettingsModal) ||
-    trapFocus(event, profileDrawer)
+    trapFocus(event, profileDrawer, [drawerEdgeClose])
   ) {
     return;
   }
