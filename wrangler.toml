@@ -13,8 +13,4 @@ database_id = "89ecb707-e9aa-47e8-8c1c-a2d769fe2f15"
 # binding = "AVATARS"
 # bucket_name = "product-week1-0956-avatars"
 
-# User image uploads require a private R2 binding named IMAGE_BUCKET.
-# Create an R2 bucket such as product-week1-0956-images and bind it to Pages as IMAGE_BUCKET.
-# [[r2_buckets]]
-# binding = "IMAGE_BUCKET"
-# bucket_name = "product-week1-0956-images"
+# User image direct uploads are disabled. Approved gallery images are served from static assets.

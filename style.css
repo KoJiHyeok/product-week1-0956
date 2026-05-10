@@ -1831,6 +1831,7 @@ a[href]:focus-visible {
 }
 
 .upload-form,
+.suggestion-panel,
 .admin-image-card {
   display: grid;
   grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
@@ -1840,6 +1841,7 @@ a[href]:focus-visible {
 
 .upload-preview-panel,
 .upload-fields,
+.suggestion-card,
 .admin-image-card {
   border: 1px solid rgba(255, 255, 255, 0.24);
   border-radius: 8px;
@@ -1849,12 +1851,34 @@ a[href]:focus-visible {
 
 .upload-preview-panel,
 .upload-fields,
+.suggestion-card,
 .source-extra-fields,
 .upload-consents,
 .report-form,
 .admin-image-body {
   display: grid;
   gap: 12px;
+}
+
+.suggestion-panel {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.suggestion-card {
+  line-height: 1.55;
+}
+
+.suggestion-card h2,
+.suggestion-card p {
+  margin: 0;
+}
+
+.admin-upload-notice {
+  width: min(980px, 100%);
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-weight: 900;
+  line-height: 1.5;
 }
 
 .upload-form label,

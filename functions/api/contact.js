@@ -1,7 +1,7 @@
 import { json, readJson } from "./auth/_shared.js";
 
 const CONTACT_RECIPIENT = "wlgur2101@gmail.com";
-const ALLOWED_TYPES = new Set(["버그/악용 신고", "개선 방안 제안"]);
+const ALLOWED_TYPES = new Set(["버그/악용 신고", "개선 방안 제안", "이미지 제안"]);
 
 export async function onRequestPost(context) {
   try {

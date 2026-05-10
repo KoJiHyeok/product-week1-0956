@@ -6,7 +6,7 @@ export async function onRequestGet(context) {
     const bucket = getImageBucket(context);
 
     if (!bucket) {
-      return json({ message: "IMAGE_BUCKET R2 바인딩이 필요합니다." }, 500);
+      return json({ message: "이미지 직접 업로드 기능은 현재 비활성화되어 있습니다." }, 503);
     }
 
     const db = getDb(context);

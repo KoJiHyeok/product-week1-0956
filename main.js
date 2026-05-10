@@ -100,23 +100,9 @@ const contactTitleInput = document.querySelector("#contactTitleInput");
 const contactBodyInput = document.querySelector("#contactBodyInput");
 const contactMessage = document.querySelector("#contactMessage");
 const contactSubmitButton = document.querySelector("#contactSubmitButton");
-const imageUploadForm = document.querySelector("#imageUploadForm");
-const imageUploadInput = document.querySelector("#imageUploadInput");
-const imageUploadPreview = document.querySelector("#imageUploadPreview");
-const imageAltInput = document.querySelector("#imageAltInput");
-const imageSourceTypeInput = document.querySelector("#imageSourceTypeInput");
-const sourceExtraFields = document.querySelector("#sourceExtraFields");
-const imageSourceUrlInput = document.querySelector("#imageSourceUrlInput");
-const imageAuthorInput = document.querySelector("#imageAuthorInput");
-const imageLicenseInput = document.querySelector("#imageLicenseInput");
-const imageAttributionInput = document.querySelector("#imageAttributionInput");
-const uploadRightsInput = document.querySelector("#uploadRightsInput");
-const uploadNoViolationInput = document.querySelector("#uploadNoViolationInput");
-const uploadNoProhibitedInput = document.querySelector("#uploadNoProhibitedInput");
-const uploadPolicyInput = document.querySelector("#uploadPolicyInput");
+const imageSuggestionButton = document.querySelector("#imageSuggestionButton");
 const imageUploadMessage = document.querySelector("#imageUploadMessage");
 const uploadCancelButton = document.querySelector("#uploadCancelButton");
-const imageUploadSubmitButton = document.querySelector("#imageUploadSubmitButton");
 const adminPendingTab = document.querySelector("#adminPendingTab");
 const adminReportedTab = document.querySelector("#adminReportedTab");
 const adminImageMessage = document.querySelector("#adminImageMessage");
@@ -162,11 +148,15 @@ const photoSourcePresets = Object.freeze({
     modificationAllowed: false,
   }),
 });
+// 관리자가 승인한 정적 이미지는 assets/gallery에 파일을 넣고 아래 목록에 추가하면 공개됩니다.
+// 예: { src: "assets/gallery/example.webp", title: "이미지 제목", description: "이미지 설명" }
 const defaultGalleryImages = [
   {
     id: "photo-001",
     src: "assets/gallery/01-cat-smoke.png",
     webpSrc: "assets/gallery/webp/01-cat-smoke.webp",
+    title: "Cat reaching through smoke",
+    description: "Cat reaching through smoke",
     alt: "Cat reaching through smoke",
     ...photoSourcePresets.unknown,
   },
@@ -174,6 +164,8 @@ const defaultGalleryImages = [
     id: "photo-002",
     src: "assets/gallery/02-memorial.png",
     webpSrc: "assets/gallery/webp/02-memorial.webp",
+    title: "People placing flowers outside a store",
+    description: "People placing flowers outside a store",
     alt: "People placing flowers outside a store",
     ...photoSourcePresets.unknown,
   },
@@ -181,6 +173,8 @@ const defaultGalleryImages = [
     id: "photo-003",
     src: "assets/gallery/03-alligators.jpeg",
     webpSrc: "assets/gallery/webp/03-alligators.webp",
+    title: "Alligators resting together",
+    description: "Alligators resting together",
     alt: "Alligators resting together",
     ...photoSourcePresets.unknown,
   },
@@ -188,6 +182,8 @@ const defaultGalleryImages = [
     id: "photo-004",
     src: "assets/gallery/04-field-portrait.jpg",
     webpSrc: "assets/gallery/webp/04-field-portrait.webp",
+    title: "Person walking in a field",
+    description: "Person walking in a field",
     alt: "Person walking in a field",
     ...photoSourcePresets.unknown,
   },
@@ -195,6 +191,8 @@ const defaultGalleryImages = [
     id: "photo-005",
     src: "assets/gallery/05-screaming-man.png",
     webpSrc: "assets/gallery/webp/05-screaming-man.webp",
+    title: "Man shouting in a suit",
+    description: "Man shouting in a suit",
     alt: "Man shouting in a suit",
     ...photoSourcePresets.unknown,
   },
@@ -202,6 +200,8 @@ const defaultGalleryImages = [
     id: "photo-006",
     src: "assets/gallery/06-husky-bowl.jpg",
     webpSrc: "assets/gallery/webp/06-husky-bowl.webp",
+    title: "Husky staring at a food bowl",
+    description: "Husky staring at a food bowl",
     alt: "Husky staring at a food bowl",
     ...photoSourcePresets.unknown,
   },
@@ -209,6 +209,8 @@ const defaultGalleryImages = [
     id: "photo-007",
     src: "assets/gallery/07-puppy-oh-hi.jpg",
     webpSrc: "assets/gallery/webp/07-puppy-oh-hi.webp",
+    title: "Smiling puppy close to the camera",
+    description: "Smiling puppy close to the camera",
     alt: "Smiling puppy close to the camera",
     ...photoSourcePresets.unknown,
   },
@@ -216,6 +218,8 @@ const defaultGalleryImages = [
     id: "photo-008",
     src: "assets/gallery/08-convenience-store.jpg",
     webpSrc: "assets/gallery/webp/08-convenience-store.webp",
+    title: "Person reaching into a convenience store cooler",
+    description: "Person reaching into a convenience store cooler",
     alt: "Person reaching into a convenience store cooler",
     ...photoSourcePresets.unknown,
   },
@@ -223,6 +227,8 @@ const defaultGalleryImages = [
     id: "photo-009",
     src: "assets/gallery/09-reggae-singer.jpg",
     webpSrc: "assets/gallery/webp/09-reggae-singer.webp",
+    title: "Reggae singer performing on stage",
+    description: "Reggae singer performing on stage",
     alt: "Reggae singer performing on stage",
     ...photoSourcePresets.unknown,
   },
@@ -230,13 +236,14 @@ const defaultGalleryImages = [
     id: "photo-010",
     src: "assets/gallery/10-sparkler.jpg",
     webpSrc: "assets/gallery/webp/10-sparkler.webp",
+    title: "Person holding a lit sparkler",
+    description: "Person holding a lit sparkler",
     alt: "Person holding a lit sparkler",
     ...photoSourcePresets.unknown,
   },
 ];
 const authModeButtons = [loginTabButton, signupTabButton];
 const maxAvatarBytes = 5 * 1024 * 1024;
-const maxUploadBytes = 5 * 1024 * 1024;
 const galleryInitialCount = 6;
 const galleryPageSize = 4;
 
@@ -249,7 +256,6 @@ let selectedImageIndex = null;
 let pendingTitle = "";
 let activeReportImage = null;
 let activeAdminStatus = "pending";
-let uploadPreviewUrl = "";
 let toastTimer;
 let serverSubmissionsByImage = {};
 const expandedCommentIds = new Set();
@@ -754,15 +760,8 @@ function applyRoute(state) {
     selectedImageIndex = null;
     pendingTitle = "";
     showView(uploadView);
-
-    if (!currentUser) {
-      imageUploadMessage.textContent = "로그인한 회원만 사진을 업로드할 수 있습니다.";
-      openAuthModal("login");
-      return;
-    }
-
-    imageUploadMessage.textContent = "";
-    imageUploadInput.focus();
+    imageUploadMessage.textContent = "현재 직접 업로드는 준비 중이며, 이미지는 문의를 통해 제안할 수 있습니다.";
+    imageSuggestionButton.focus();
     return;
   }
 
@@ -837,13 +836,18 @@ function goContact() {
 }
 
 function goUpload() {
-  if (!currentUser) {
-    showToast("로그인 후 사진을 업로드할 수 있습니다.");
-    openAuthModal("login");
-    return;
+  navigateTo({ view: "upload" });
+}
+
+function goImageSuggestionContact() {
+  navigateTo({ view: "contact" });
+  contactTypeInput.value = "이미지 제안";
+
+  if (!contactTitleInput.value.trim()) {
+    contactTitleInput.value = "이미지 제안";
   }
 
-  navigateTo({ view: "upload" });
+  contactBodyInput.focus();
 }
 
 function goAdmin() {
@@ -2129,147 +2133,6 @@ async function uploadAvatar(file) {
   }
 }
 
-function updateSourceFields() {
-  const needsSource = imageSourceTypeInput.value === "free_site" || imageSourceTypeInput.value === "other";
-  sourceExtraFields.hidden = !needsSource;
-  imageSourceUrlInput.required = needsSource;
-  imageAuthorInput.required = needsSource;
-  imageLicenseInput.required = needsSource;
-}
-
-function updateUploadSubmitState() {
-  const allConsentsChecked =
-    uploadRightsInput.checked &&
-    uploadNoViolationInput.checked &&
-    uploadNoProhibitedInput.checked &&
-    uploadPolicyInput.checked;
-  imageUploadSubmitButton.disabled = !allConsentsChecked;
-}
-
-function updateUploadPreview() {
-  if (uploadPreviewUrl) {
-    URL.revokeObjectURL(uploadPreviewUrl);
-    uploadPreviewUrl = "";
-  }
-
-  const file = imageUploadInput.files?.[0];
-
-  if (!file) {
-    imageUploadPreview.replaceChildren(document.createTextNode("미리보기"));
-    return;
-  }
-
-  uploadPreviewUrl = URL.createObjectURL(file);
-  const image = document.createElement("img");
-  image.src = uploadPreviewUrl;
-  image.alt = "업로드 미리보기";
-  imageUploadPreview.replaceChildren(image);
-}
-
-function resetUploadForm() {
-  imageUploadForm.reset();
-  imageUploadMessage.textContent = "";
-  imageUploadMessage.classList.remove("is-success");
-  updateSourceFields();
-  updateUploadSubmitState();
-  updateUploadPreview();
-}
-
-async function submitImageUpload() {
-  if (!currentUser) {
-    imageUploadMessage.textContent = "로그인한 회원만 사진을 업로드할 수 있습니다.";
-    openAuthModal("login");
-    return;
-  }
-
-  const file = imageUploadInput.files?.[0];
-  const sourceType = imageSourceTypeInput.value;
-  const needsSource = sourceType === "free_site" || sourceType === "other";
-
-  imageUploadMessage.textContent = "";
-  imageUploadMessage.classList.remove("is-success");
-
-  if (!file) {
-    imageUploadMessage.textContent = "이미지 파일을 선택하세요.";
-    imageUploadInput.focus();
-    return;
-  }
-
-  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || !/\.(jpe?g|png|webp)$/i.test(file.name)) {
-    imageUploadMessage.textContent = "jpg, jpeg, png, webp 파일만 업로드할 수 있습니다.";
-    imageUploadInput.focus();
-    return;
-  }
-
-  if (file.size > maxUploadBytes) {
-    imageUploadMessage.textContent = "이미지는 5MB 이하만 업로드할 수 있습니다.";
-    imageUploadInput.focus();
-    return;
-  }
-
-  if (!imageAltInput.value.trim()) {
-    imageUploadMessage.textContent = "사진 설명 또는 alt text를 입력하세요.";
-    imageAltInput.focus();
-    return;
-  }
-
-  if (!sourceType) {
-    imageUploadMessage.textContent = "사진 출처 유형을 선택하세요.";
-    imageSourceTypeInput.focus();
-    return;
-  }
-
-  if (needsSource && (!imageSourceUrlInput.value.trim() || !imageAuthorInput.value.trim() || !imageLicenseInput.value.trim())) {
-    imageUploadMessage.textContent = "외부 출처 이미지는 원본 URL, 작가명, 라이선스 이름을 입력해야 합니다.";
-    (imageSourceUrlInput.value.trim() ? imageAuthorInput : imageSourceUrlInput).focus();
-    return;
-  }
-
-  if (imageUploadSubmitButton.disabled) {
-    imageUploadMessage.textContent = "필수 동의 항목을 모두 확인해야 업로드할 수 있습니다.";
-    return;
-  }
-
-  const formData = new FormData();
-  formData.append("image", file);
-  formData.append("altText", imageAltInput.value.trim());
-  formData.append("sourceType", sourceType);
-  formData.append("sourceUrl", needsSource ? imageSourceUrlInput.value.trim() : "");
-  formData.append("authorName", needsSource ? imageAuthorInput.value.trim() : "");
-  formData.append("licenseName", needsSource ? imageLicenseInput.value.trim() : "");
-  formData.append("attributionRequired", imageAttributionInput.checked ? "true" : "false");
-  formData.append("confirmedRights", uploadRightsInput.checked ? "true" : "false");
-  formData.append("confirmedNoViolation", uploadNoViolationInput.checked ? "true" : "false");
-  formData.append("confirmedNoProhibited", uploadNoProhibitedInput.checked ? "true" : "false");
-  formData.append("agreedPolicy", uploadPolicyInput.checked ? "true" : "false");
-
-  imageUploadSubmitButton.disabled = true;
-  imageUploadSubmitButton.textContent = "접수 중";
-
-  try {
-    const response = await fetch("/api/images/upload", {
-      method: "POST",
-      credentials: "include",
-      body: formData,
-    });
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      throw new Error(data.message || "이미지 업로드를 처리하지 못했습니다.");
-    }
-
-    resetUploadForm();
-    imageUploadMessage.textContent = data.message || "업로드가 접수되었습니다. 관리자 검수 후 공개됩니다.";
-    imageUploadMessage.classList.add("is-success");
-    showToast("업로드가 접수되었습니다.");
-  } catch (error) {
-    imageUploadMessage.textContent = error.message;
-  } finally {
-    imageUploadSubmitButton.textContent = "업로드 접수";
-    updateUploadSubmitState();
-  }
-}
-
 function openReportModal(image) {
   if (!image?.isUserUpload) {
     return;
@@ -2326,7 +2189,7 @@ async function submitImageReport() {
   }
 }
 
-async function loadAdminImages(status = "pending") {
+function loadAdminImages(status = "pending") {
   activeAdminStatus = status;
   [adminPendingTab, adminReportedTab].forEach((tab) => {
     const isActive = tab.dataset.status === status;
@@ -2334,17 +2197,7 @@ async function loadAdminImages(status = "pending") {
     tab.setAttribute("aria-selected", String(isActive));
   });
   adminImageMessage.textContent = "";
-  adminImageList.replaceChildren(createAdminMessage("불러오는 중입니다."));
-
-  try {
-    const data = await requestJson(`/api/admin/images?status=${encodeURIComponent(status)}`, {
-      method: "GET",
-      headers: {},
-    });
-    renderAdminImages(data.images || []);
-  } catch (error) {
-    adminImageList.replaceChildren(createAdminMessage(error.message));
-  }
+  adminImageList.replaceChildren(createAdminMessage("유저 직접 업로드는 비활성화되어 있습니다. 이미지는 관리자가 직접 추가합니다."));
 }
 
 function renderAdminImages(images) {
@@ -2776,18 +2629,9 @@ galleryMoreButton.addEventListener("click", () => {
   renderGallery();
 });
 
-imageUploadInput.addEventListener("change", updateUploadPreview);
-imageSourceTypeInput.addEventListener("change", updateSourceFields);
-[uploadRightsInput, uploadNoViolationInput, uploadNoProhibitedInput, uploadPolicyInput].forEach((input) => {
-  input.addEventListener("change", updateUploadSubmitState);
-});
+imageSuggestionButton.addEventListener("click", goImageSuggestionContact);
 uploadCancelButton.addEventListener("click", () => {
-  resetUploadForm();
   goHome();
-});
-imageUploadForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  await submitImageUpload();
 });
 imageReportCloseButton.addEventListener("click", closeReportModal);
 imageReportCancelButton.addEventListener("click", closeReportModal);
