@@ -14,6 +14,21 @@
   font-family: "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
 }
 
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #edf2ff;
+  --bg-deep: #dbe5ff;
+  --panel: rgba(255, 255, 255, 0.82);
+  --panel-strong: rgba(255, 255, 255, 0.94);
+  --text: #1f2745;
+  --muted: #526078;
+  --ink: #202334;
+  --paper: #ffffff;
+  --accent: #6630d9;
+  --yellow: #d99a00;
+  --shadow: rgba(35, 44, 86, 0.16);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -21,6 +36,17 @@
 html,
 body {
   min-height: 100%;
+}
+
+:root[data-theme="light"] body {
+  background:
+    radial-gradient(circle at 55% 18%, rgba(102, 48, 217, 0.1) 0 9rem, transparent 9.2rem),
+    radial-gradient(circle at 76% -12%, rgba(217, 154, 0, 0.13) 0 6rem, transparent 6.2rem),
+    linear-gradient(135deg, var(--bg-deep), var(--bg) 58%, #f8fbff);
+}
+
+body.drawer-open {
+  overflow: hidden;
 }
 
 body {
@@ -150,8 +176,8 @@ button {
 }
 
 .auth-button.ghost {
-  border: 1px solid rgba(255, 255, 255, 0.56);
-  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.18);
   color: var(--text);
 }
 
@@ -375,6 +401,15 @@ button {
   overflow: hidden;
   background-size: cover;
   background-position: center;
+}
+
+.guest-chip {
+  padding-inline: 8px;
+}
+
+.guest-photo {
+  background: linear-gradient(135deg, #ffffff, var(--yellow));
+  color: #202334;
 }
 
 .profile-photo.large {
@@ -751,6 +786,42 @@ button {
   align-items: start;
 }
 
+.ranking-results {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.ranking-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ranking-tab {
+  min-height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--text);
+  padding: 0 14px;
+  font-weight: 900;
+}
+
+.ranking-tab.is-active {
+  border-color: #ffffff;
+  background: var(--yellow);
+  color: #202334;
+}
+
+.like-help {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 900;
+  line-height: 1.45;
+}
+
 .ranking-photo-frame {
   aspect-ratio: 1 / 1;
   display: grid;
@@ -851,16 +922,27 @@ button {
 }
 
 .rank-content strong {
-  color: #ffffff;
+  color: var(--text);
   overflow-wrap: anywhere;
   font-size: 1.08rem;
-  text-shadow: 0 1px 2px rgba(3, 8, 39, 0.32);
+  text-shadow: 0 1px 2px rgba(3, 8, 39, 0.24);
 }
 
 .rank-content span {
-  color: #eef1ff;
+  color: var(--muted);
   font-size: 0.92rem;
   font-weight: 800;
+}
+
+.mine-badge {
+  justify-self: start;
+  border: 1px solid rgba(255, 199, 44, 0.82);
+  border-radius: 999px;
+  background: rgba(255, 199, 44, 0.18);
+  color: var(--text);
+  padding: 3px 8px;
+  font-size: 0.78rem;
+  font-weight: 900;
 }
 
 .user-name-button {
@@ -1001,7 +1083,7 @@ button {
   gap: 3px;
   padding: 10px 12px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .comment-head {
@@ -1147,6 +1229,7 @@ button {
   background: transparent;
   padding: 0;
   overflow: hidden;
+  overflow-y: auto;
 }
 
 .avatar-edit-overlay {
@@ -1183,6 +1266,49 @@ button {
 .drawer-menu {
   display: grid;
   gap: 8px;
+}
+
+.guest-drawer-copy {
+  margin: 0;
+  color: #4e5872;
+  font-weight: 800;
+  line-height: 1.55;
+}
+
+.drawer-stats {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #e3e6f2;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.drawer-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.drawer-stat-grid div {
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #f1f4fb;
+}
+
+.drawer-stat-grid strong {
+  color: #202334;
+  font-size: 1.05rem;
+}
+
+.drawer-stat-grid span,
+.drawer-badges {
+  margin: 0;
+  color: #5f6982;
+  font-size: 0.82rem;
+  font-weight: 800;
 }
 
 .drawer-menu-row {
@@ -1426,6 +1552,11 @@ button {
 .heart-button.is-liked {
   border-color: rgba(255, 77, 109, 0.9);
   background: rgba(255, 77, 109, 0.24);
+}
+
+.cookie-settings-form {
+  display: grid;
+  gap: 12px;
 }
 
 .auth-modal {
@@ -1805,6 +1936,8 @@ button:focus-visible,
 .message-list-item:focus-visible,
 .user-name-button:focus-visible,
 .ranking-self-link:focus-visible,
+.ranking-tab:focus-visible,
+.admin-tab:focus-visible,
 .delete-button:focus-visible,
 .comment-delete:focus-visible,
 .comment-toggle:focus-visible,
@@ -1822,6 +1955,9 @@ button:focus-visible,
 .profile-edit-form input:focus-visible,
 .profile-edit-form textarea:focus-visible,
 .message-compose-form textarea:focus-visible,
+.report-form select:focus-visible,
+.report-form textarea:focus-visible,
+.cookie-settings-form input:focus-visible,
 .contact-form input:focus-visible,
 .contact-form select:focus-visible,
 .contact-form textarea:focus-visible,
@@ -1993,6 +2129,10 @@ a[href]:focus-visible {
   color: var(--text);
 }
 
+.admin-report-card {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .admin-image-preview {
   min-height: 240px;
   max-height: 360px;
@@ -2009,6 +2149,56 @@ a[href]:focus-visible {
 .admin-image-source {
   color: var(--muted);
   font-weight: 800;
+}
+
+:root[data-theme="light"] .contact-notice,
+:root[data-theme="light"] .contact-form,
+:root[data-theme="light"] .profile-edit-panel,
+:root[data-theme="light"] .suggestion-card,
+:root[data-theme="light"] .ranking-item,
+:root[data-theme="light"] .ranking-empty,
+:root[data-theme="light"] .compact-form {
+  border-color: #ccd5ea;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--text);
+}
+
+:root[data-theme="light"] .auth-button.ghost,
+:root[data-theme="light"] .ranking-tab,
+:root[data-theme="light"] .admin-tab,
+:root[data-theme="light"] .heart-button,
+:root[data-theme="light"] .delete-button,
+:root[data-theme="light"] .comment-delete,
+:root[data-theme="light"] .comment-toggle {
+  border-color: #c7d0e6;
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--text);
+}
+
+:root[data-theme="light"] .ranking-tab.is-active,
+:root[data-theme="light"] .admin-tab.is-active,
+:root[data-theme="light"] .upload-nav-button {
+  border-color: #fff6d6;
+  background: #ffc72c;
+  color: #202334;
+}
+
+:root[data-theme="light"] .comments-panel {
+  background: rgba(49, 59, 94, 0.08);
+}
+
+:root[data-theme="light"] .comment-item {
+  background: #ffffff;
+}
+
+:root[data-theme="light"] .contact-message,
+:root[data-theme="light"] .profile-edit-panel .profile-edit-message {
+  color: #a11228;
+}
+
+:root[data-theme="light"] .contact-message.is-success,
+:root[data-theme="light"] .profile-edit-panel .profile-edit-message.is-success {
+  color: #17642e;
 }
 
 [hidden] {
@@ -2056,6 +2246,7 @@ a[href]:focus-visible {
 
   .auth-actions,
   .member-actions,
+  .guest-chip,
   .user-chip,
   .upload-nav-button,
   .top-actions {
@@ -2120,12 +2311,17 @@ a[href]:focus-visible {
     grid-template-columns: 1fr;
   }
 
+  .ranking-photo-frame {
+    width: min(100%, 420px);
+    justify-self: center;
+  }
+
   .contact-layout {
     grid-template-columns: 1fr;
   }
 
   .profile-drawer {
-    width: min(88vw, 520px);
+    width: min(92vw, 520px);
     min-width: 0;
     padding: 22px 18px;
   }
@@ -2212,9 +2408,9 @@ a[href]:focus-visible {
 
   .ranking-item,
   .ranking-empty {
-    grid-template-columns: 34px minmax(0, 1fr) auto;
+    grid-template-columns: 34px minmax(0, 1fr);
     gap: 10px;
-    padding: 12px;
+    padding: 12px 12px 46px;
   }
 
   .rank-number {
@@ -2236,7 +2432,17 @@ a[href]:focus-visible {
   }
 
   .rank-actions {
+    grid-column: 2;
+    justify-content: flex-start;
     gap: 6px;
+  }
+
+  .comment-form {
+    grid-template-columns: 1fr;
+  }
+
+  .comment-form .auth-button {
+    width: 100%;
   }
 }
 
@@ -2257,6 +2463,17 @@ a[href]:focus-visible {
     min-height: 34px;
   }
 
+  .top-actions {
+    gap: 8px;
+  }
+
+  .contact-link,
+  .auth-link-button {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+  }
+
   .gallery-guide {
     margin-bottom: 18px;
     font-size: 1.35rem;
@@ -2269,5 +2486,29 @@ a[href]:focus-visible {
   .rank-actions {
     grid-column: 2;
     justify-content: flex-start;
+  }
+
+  .confirm-modal,
+  .auth-modal {
+    padding: 12px;
+  }
+
+  .auth-card,
+  .confirm-card {
+    padding: 20px;
+  }
+
+  .profile-drawer {
+    width: calc(100vw - 18px);
+    padding: 20px 14px;
+  }
+
+  .drawer-edge-close {
+    left: -12px;
+    width: 30px;
+  }
+
+  .drawer-stat-grid {
+    grid-template-columns: 1fr;
   }
 }

@@ -17,6 +17,7 @@ const validReportReasons = new Set([
   "privacy",
   "sexual_violent",
   "hate",
+  "abuse",
   "other",
 ]);
 

@@ -18,10 +18,12 @@ const titleInput = document.querySelector("#titleInput");
 const guestForm = document.querySelector("#guestForm");
 const guestNameInput = document.querySelector("#guestNameInput");
 const rankingList = document.querySelector("#rankingList");
+const rankingTabs = document.querySelectorAll(".ranking-tab");
 const galleryMoreButton = document.querySelector("#galleryMoreButton");
 const backToGalleryButton = document.querySelector("#backToGalleryButton");
 const rankingSelfLink = document.querySelector("#rankingSelfLink");
 const authActions = document.querySelector("#authActions");
+const guestChip = document.querySelector("#guestChip");
 const loginButton = document.querySelector("#loginButton");
 const signupButton = document.querySelector("#signupButton");
 const memberActions = document.querySelector("#memberActions");
@@ -37,6 +39,9 @@ const profilePhoto = document.querySelector("#profilePhoto");
 const pageDim = document.querySelector("#pageDim");
 const profileDrawer = document.querySelector("#profileDrawer");
 const drawerEdgeClose = document.querySelector("#drawerEdgeClose");
+const drawerTitle = document.querySelector("#drawerTitle");
+const guestDrawerCopy = document.querySelector("#guestDrawerCopy");
+const drawerStats = document.querySelector("#drawerStats");
 const logoutButton = document.querySelector("#logoutButton");
 const drawerName = document.querySelector("#drawerName");
 const drawerPhoto = document.querySelector("#drawerPhoto");
@@ -45,6 +50,11 @@ const avatarInput = document.querySelector("#avatarInput");
 const profileEditButton = document.querySelector("#profileEditButton");
 const myTitlesButton = document.querySelector("#myTitlesButton");
 const myCommentsButton = document.querySelector("#myCommentsButton");
+const guestLoginButton = document.querySelector("#guestLoginButton");
+const guestSignupButton = document.querySelector("#guestSignupButton");
+const themeToggleButton = document.querySelector("#themeToggleButton");
+const cookieSettingsButton = document.querySelector("#cookieSettingsButton");
+const drawerContactButton = document.querySelector("#drawerContactButton");
 const drawerMenuView = document.querySelector("#drawerMenuView");
 const myTitlesView = document.querySelector("#myTitlesView");
 const myCommentsView = document.querySelector("#myCommentsView");
@@ -97,6 +107,7 @@ const signupMessage = document.querySelector("#signupMessage");
 const contactForm = document.querySelector("#contactForm");
 const contactTypeInput = document.querySelector("#contactTypeInput");
 const contactTitleInput = document.querySelector("#contactTitleInput");
+const contactReplyEmailInput = document.querySelector("#contactReplyEmailInput");
 const contactBodyInput = document.querySelector("#contactBodyInput");
 const contactMessage = document.querySelector("#contactMessage");
 const contactSubmitButton = document.querySelector("#contactSubmitButton");
@@ -108,6 +119,7 @@ const adminReportedTab = document.querySelector("#adminReportedTab");
 const adminImageMessage = document.querySelector("#adminImageMessage");
 const adminImageList = document.querySelector("#adminImageList");
 const imageReportModal = document.querySelector("#imageReportModal");
+const imageReportTitle = document.querySelector("#imageReportTitle");
 const imageReportForm = document.querySelector("#imageReportForm");
 const imageReportCloseButton = document.querySelector("#imageReportCloseButton");
 const imageReportCancelButton = document.querySelector("#imageReportCancelButton");
@@ -128,12 +140,21 @@ const messageSendButton = document.querySelector("#messageSendButton");
 const consentBanner = document.querySelector("#consentBanner");
 const consentAcceptButton = document.querySelector("#consentAcceptButton");
 const consentRejectButton = document.querySelector("#consentRejectButton");
+const cookieSettingsModal = document.querySelector("#cookieSettingsModal");
+const cookieSettingsForm = document.querySelector("#cookieSettingsForm");
+const cookieSettingsCloseButton = document.querySelector("#cookieSettingsCloseButton");
+const cookieSettingsCancelButton = document.querySelector("#cookieSettingsCancelButton");
+const analyticsCookieInput = document.querySelector("#analyticsCookieInput");
+const adsCookieInput = document.querySelector("#adsCookieInput");
+const cookieSettingsMessage = document.querySelector("#cookieSettingsMessage");
 const toast = document.querySelector("#toast");
 
 const analyticsMeasurementId = "G-V7K1RJ7C62";
 const clarityProjectId = "wme6uejz4h";
 const adsenseClientId = "ca-pub-2571483149742375";
 const trackingConsentStorageKey = "title-academy-tracking-consent";
+const cookieSettingsStorageKey = "title-academy-cookie-settings";
+const themeStorageKey = "title-academy-theme";
 const legacyUserStorageKey = "title-making-google-user";
 const guestStorageKey = "title-academy-guest-name";
 const submissionsStorageKey = "title-academy-submissions";
@@ -244,8 +265,8 @@ const defaultGalleryImages = [
 ];
 const authModeButtons = [loginTabButton, signupTabButton];
 const maxAvatarBytes = 5 * 1024 * 1024;
-const galleryInitialCount = 6;
-const galleryPageSize = 4;
+const galleryInitialCount = defaultGalleryImages.length;
+const galleryPageSize = 0;
 
 localStorage.removeItem(legacyUserStorageKey);
 
@@ -255,7 +276,10 @@ let currentGuestName = sessionStorage.getItem(guestStorageKey) || "";
 let selectedImageIndex = null;
 let pendingTitle = "";
 let activeReportImage = null;
+let activeReportTarget = null;
 let activeAdminStatus = "pending";
+let activeRankingTab = "popular";
+let activeTheme = "dark";
 let toastTimer;
 let serverSubmissionsByImage = {};
 const expandedCommentIds = new Set();
@@ -263,7 +287,8 @@ let pendingRankingFocus = null;
 let activeUserProfile = null;
 let activeMessageRecipient = null;
 let visibleGalleryCount = Math.min(galleryInitialCount, galleryImages.length);
-let trackingScriptsLoaded = false;
+let analyticsScriptsLoaded = false;
+let adsScriptsLoaded = false;
 
 function createId(prefix) {
   if (globalThis.crypto?.randomUUID) {
@@ -273,41 +298,146 @@ function createId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function initializeTheme() {
+  const storedTheme = localStorage.getItem(themeStorageKey);
+  activeTheme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : "dark";
+  document.documentElement.dataset.theme = activeTheme;
+  updateThemeToggle();
+}
+
+function setTheme(theme) {
+  activeTheme = theme === "light" ? "light" : "dark";
+  localStorage.setItem(themeStorageKey, activeTheme);
+  document.documentElement.dataset.theme = activeTheme;
+  updateThemeToggle();
+}
+
+function updateThemeToggle() {
+  if (!themeToggleButton) {
+    return;
+  }
+
+  const isLight = activeTheme === "light";
+  themeToggleButton.textContent = isLight ? "다크 모드로 전환" : "라이트 모드로 전환";
+  themeToggleButton.setAttribute("aria-pressed", String(isLight));
+}
+
+function getCookieSettings() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(cookieSettingsStorageKey) || "{}");
+    return {
+      necessary: true,
+      analytics: Boolean(parsed.analytics),
+      ads: Boolean(parsed.ads),
+      saved: Boolean(parsed.saved),
+    };
+  } catch {
+    return { necessary: true, analytics: false, ads: false, saved: false };
+  }
+}
+
 function initializeTrackingConsent() {
-  const consent = localStorage.getItem(trackingConsentStorageKey);
+  const settings = getCookieSettings();
+  const legacyConsent = localStorage.getItem(trackingConsentStorageKey);
 
-  if (consent === "accepted") {
-    consentBanner.hidden = true;
-    loadTrackingScripts();
+  if (!settings.saved && legacyConsent === "accepted") {
+    saveCookieSettings({ analytics: true, ads: true });
     return;
   }
 
-  if (consent === "rejected") {
-    consentBanner.hidden = true;
+  if (!settings.saved && legacyConsent === "rejected") {
+    saveCookieSettings({ analytics: false, ads: false });
     return;
   }
 
-  consentBanner.hidden = false;
+  consentBanner.hidden = settings.saved;
+
+  if (settings.analytics || settings.ads) {
+    loadTrackingScripts(settings);
+  }
 }
 
 function saveTrackingConsent(consent) {
-  localStorage.setItem(trackingConsentStorageKey, consent);
+  saveCookieSettings({
+    analytics: consent === "accepted",
+    ads: consent === "accepted",
+  });
+}
+
+function saveCookieSettings(settings) {
+  const next = {
+    necessary: true,
+    analytics: Boolean(settings.analytics),
+    ads: Boolean(settings.ads),
+    saved: true,
+  };
+  localStorage.setItem(cookieSettingsStorageKey, JSON.stringify(next));
+  localStorage.setItem(trackingConsentStorageKey, next.analytics || next.ads ? "accepted" : "rejected");
   consentBanner.hidden = true;
 
-  if (consent === "accepted") {
-    loadTrackingScripts();
+  if (next.analytics || next.ads) {
+    loadTrackingScripts(next);
   }
 }
 
-function loadTrackingScripts() {
-  if (trackingScriptsLoaded) {
-    return;
+function openCookieSettings() {
+  const settings = getCookieSettings();
+  analyticsCookieInput.checked = settings.analytics;
+  adsCookieInput.checked = settings.ads;
+  cookieSettingsMessage.textContent = "";
+  cookieSettingsMessage.classList.remove("is-success");
+  cookieSettingsModal.hidden = false;
+  analyticsCookieInput.focus();
+}
+
+function closeCookieSettings() {
+  cookieSettingsModal.hidden = true;
+}
+
+function trapFocus(event, container) {
+  if (event.key !== "Tab" || !container || container.hidden || container.getAttribute("aria-hidden") === "true") {
+    return false;
   }
 
-  trackingScriptsLoaded = true;
-  loadGoogleAnalytics();
-  loadMicrosoftClarity();
-  loadAdsense();
+  const focusable = Array.from(
+    container.querySelectorAll(
+      'a[href], button:not([disabled]):not([hidden]), input:not([disabled]):not([hidden]), select:not([disabled]):not([hidden]), textarea:not([disabled]):not([hidden]), [tabindex]:not([tabindex="-1"])'
+    )
+  ).filter((element) => element.offsetParent !== null);
+
+  if (focusable.length === 0) {
+    return false;
+  }
+
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+    return true;
+  }
+
+  if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+    return true;
+  }
+
+  return false;
+}
+
+function loadTrackingScripts(settings = getCookieSettings()) {
+  if (settings.analytics && !analyticsScriptsLoaded) {
+    analyticsScriptsLoaded = true;
+    loadGoogleAnalytics();
+    loadMicrosoftClarity();
+  }
+
+  if (settings.ads && !adsScriptsLoaded) {
+    adsScriptsLoaded = true;
+    loadAdsense();
+  }
 }
 
 function loadGoogleAnalytics() {
@@ -373,6 +503,9 @@ function setCurrentUser(user) {
 
   if (currentUser) {
     refreshUnreadCount();
+    if (contactReplyEmailInput && currentUser.email && !contactReplyEmailInput.value.trim()) {
+      contactReplyEmailInput.value = currentUser.email;
+    }
   } else {
     renderUnreadCount(0);
   }
@@ -438,12 +571,12 @@ async function loadGalleryImages() {
         imageKey: image.imageKey || String(index),
         isUserUpload: Boolean(image.isUserUpload),
       }));
-      visibleGalleryCount = Math.min(Math.max(visibleGalleryCount, galleryInitialCount), galleryImages.length);
+      visibleGalleryCount = galleryImages.length;
       renderGallery();
     }
   } catch {
     galleryImages = defaultGalleryImages.map((image, index) => ({ ...image, imageKey: String(index), isUserUpload: false }));
-    visibleGalleryCount = Math.min(galleryInitialCount, galleryImages.length);
+    visibleGalleryCount = galleryImages.length;
     renderGallery();
   }
 }
@@ -613,6 +746,14 @@ function getSortedEntries(entries) {
   });
 }
 
+function getLatestEntries(entries) {
+  return entries.slice().sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+}
+
+function isMyEntry(entry) {
+  return Boolean(entry?.canDelete || canDeleteLocalAuthor(entry?.author));
+}
+
 function routeToHash(state) {
   if (state.view === "upload") {
     return "#upload";
@@ -752,6 +893,9 @@ function applyRoute(state) {
     selectedImageIndex = null;
     pendingTitle = "";
     showView(contactView);
+    if (currentUser?.email && !contactReplyEmailInput.value.trim()) {
+      contactReplyEmailInput.value = currentUser.email;
+    }
     contactTypeInput.focus();
     return;
   }
@@ -1010,12 +1154,21 @@ function getCurrentRankingEntries() {
   const imageKey = getSelectedImageKey();
   const cachedEntries = serverSubmissionsByImage[imageKey];
   const submissions = loadSubmissions();
-
-  return Array.isArray(cachedEntries)
-    ? getSortedEntries(cachedEntries)
+  const entries = Array.isArray(cachedEntries)
+    ? cachedEntries.slice()
     : Array.isArray(submissions[imageKey])
-      ? getSortedEntries(submissions[imageKey])
+      ? submissions[imageKey].slice()
       : [];
+
+  if (activeRankingTab === "latest") {
+    return getLatestEntries(entries);
+  }
+
+  if (activeRankingTab === "mine") {
+    return getLatestEntries(entries.filter(isMyEntry));
+  }
+
+  return getSortedEntries(entries);
 }
 
 function renderGallery() {
@@ -1069,15 +1222,13 @@ function renderGallery() {
 
       actions.append(rankingButton);
 
-      if (image.isUserUpload) {
-        const reportButton = document.createElement("button");
-        reportButton.className = "photo-action photo-report-action";
-        reportButton.type = "button";
-        reportButton.dataset.action = "report";
-        reportButton.textContent = "신고";
-        reportButton.setAttribute("aria-label", "사진 신고");
-        actions.append(reportButton);
-      }
+      const reportButton = document.createElement("button");
+      reportButton.className = "photo-action photo-report-action";
+      reportButton.type = "button";
+      reportButton.dataset.action = "report";
+      reportButton.textContent = "신고";
+      reportButton.setAttribute("aria-label", "사진 신고");
+      actions.append(reportButton);
 
       card.classList.add("has-image");
       card.tabIndex = 0;
@@ -1095,8 +1246,10 @@ function renderGallery() {
   }
 
   galleryGrid.replaceChildren(fragment);
-  galleryMoreButton.hidden = visibleGalleryCount >= slotCount;
-  galleryMoreButton.textContent = `사진 더 보기 (${Math.max(slotCount - visibleGalleryCount, 0)}장)`;
+  if (galleryMoreButton) {
+    galleryMoreButton.hidden = true;
+    galleryMoreButton.textContent = "";
+  }
 }
 
 function renderRanking() {
@@ -1106,6 +1259,7 @@ function renderRanking() {
     return;
   }
 
+  updateRankingTabs();
   rankingPhoto.src = image.src;
   rankingPhoto.alt = image.alt;
 
@@ -1115,7 +1269,7 @@ function renderRanking() {
     const empty = document.createElement("li");
     empty.className = "ranking-empty";
     const emptyText = document.createElement("p");
-    emptyText.textContent = "아직 등록된 제목이 없습니다.";
+    emptyText.textContent = activeRankingTab === "mine" ? "내가 작성한 제목이 없습니다." : "아직 등록된 제목이 없습니다.";
 
     const writeButton = document.createElement("button");
     writeButton.className = "auth-button solid ranking-write-button";
@@ -1157,6 +1311,17 @@ function renderRanking() {
     title.textContent = entry.title;
 
     const author = createAuthorButton(entry, isMine ? "내 제목" : "");
+    const meta = document.createElement("span");
+    meta.textContent = formatDate(entry.createdAt);
+
+    if (isMine) {
+      const mineBadge = document.createElement("span");
+      mineBadge.className = "mine-badge";
+      mineBadge.textContent = "내가 작성함";
+      content.append(title, author, meta, mineBadge);
+    } else {
+      content.append(title, author, meta);
+    }
 
     const actions = document.createElement("div");
     actions.className = "rank-actions";
@@ -1185,6 +1350,15 @@ function renderRanking() {
     actions.append(voteGroup);
 
     if (isMine) {
+      const editButton = document.createElement("button");
+      editButton.className = "delete-button";
+      editButton.type = "button";
+      editButton.dataset.action = "edit-submission";
+      editButton.dataset.entryId = entry.id;
+      editButton.textContent = "수정";
+      editButton.setAttribute("aria-label", "제목 수정");
+      actions.append(editButton);
+
       const deleteButton = document.createElement("button");
       deleteButton.className = "delete-button";
       deleteButton.type = "button";
@@ -1195,7 +1369,15 @@ function renderRanking() {
       actions.append(deleteButton);
     }
 
-    content.append(title, author);
+    const reportButton = document.createElement("button");
+    reportButton.className = "delete-button report-button";
+    reportButton.type = "button";
+    reportButton.dataset.action = "report-submission";
+    reportButton.dataset.entryId = entry.id;
+    reportButton.textContent = "신고";
+    reportButton.setAttribute("aria-label", "제목 신고");
+    actions.append(reportButton);
+
     item.append(rank, content, actions, toggleButton);
 
     if (isExpanded) {
@@ -1207,6 +1389,14 @@ function renderRanking() {
 
   rankingList.replaceChildren(fragment);
   applyPendingRankingFocus();
+}
+
+function updateRankingTabs() {
+  rankingTabs.forEach((tab) => {
+    const isActive = tab.dataset.rankingTab === activeRankingTab;
+    tab.classList.toggle("is-active", isActive);
+    tab.setAttribute("aria-selected", String(isActive));
+  });
 }
 
 function createCommentsPanel(entry) {
@@ -1245,6 +1435,16 @@ function createCommentsPanel(entry) {
         deleteButton.setAttribute("aria-label", "댓글 삭제");
         commentHead.append(deleteButton);
       }
+
+      const reportButton = document.createElement("button");
+      reportButton.className = "comment-delete report-button";
+      reportButton.type = "button";
+      reportButton.dataset.action = "report-comment";
+      reportButton.dataset.entryId = entry.id;
+      reportButton.dataset.commentId = comment.id;
+      reportButton.textContent = "신고";
+      reportButton.setAttribute("aria-label", "댓글 신고");
+      commentHead.append(reportButton);
 
       const text = document.createElement("span");
       text.textContent = comment.text;
@@ -1360,17 +1560,21 @@ function scrollToMyRanking() {
 function renderUser() {
   if (!currentUser) {
     authActions.hidden = false;
+    guestChip.hidden = false;
     memberActions.hidden = true;
     adminNavButton.hidden = true;
+    guestChip.setAttribute("aria-expanded", String(profileDrawer.classList.contains("is-open")));
     drawerName.textContent = "";
     renderAvatar(drawerPhoto, null);
     renderAvatar(profileEditPhoto, null);
+    renderDrawerMode();
     return;
   }
 
   const displayName = getUserDisplayName();
 
   authActions.hidden = true;
+  guestChip.hidden = true;
   memberActions.hidden = false;
   adminNavButton.hidden = !isCurrentAdmin();
   userName.textContent = displayName;
@@ -1378,6 +1582,7 @@ function renderUser() {
   drawerName.textContent = displayName;
   renderAvatar(drawerPhoto, currentUser);
   renderAvatar(profileEditPhoto, currentUser);
+  renderDrawerMode();
 }
 
 function renderAvatar(target, user) {
@@ -1387,8 +1592,28 @@ function renderAvatar(target, user) {
 
   const displayName = user?.username || "";
   const imageUrl = user?.profileImageUrl || "";
-  target.textContent = imageUrl ? "" : getInitials(displayName);
+  target.textContent = imageUrl ? "" : getInitials(displayName) || "?";
   target.style.backgroundImage = imageUrl ? `url("${imageUrl}")` : "";
+}
+
+function renderDrawerMode() {
+  const isGuest = !currentUser;
+  drawerTitle.textContent = isGuest ? "비회원 안내" : "회원 정보";
+  drawerName.textContent = isGuest ? "비회원" : getUserDisplayName();
+  guestDrawerCopy.hidden = !isGuest;
+  avatarEditButton.disabled = isGuest;
+  avatarEditButton.setAttribute("aria-disabled", String(isGuest));
+  document.querySelectorAll(".guest-only").forEach((item) => {
+    item.hidden = !isGuest;
+  });
+  document.querySelectorAll(".member-only").forEach((item) => {
+    item.hidden = isGuest;
+  });
+
+  if (isGuest) {
+    drawerStats.hidden = true;
+    renderAvatar(drawerPhoto, null);
+  }
 }
 
 async function openUserPopover(trigger) {
@@ -1755,15 +1980,15 @@ function startGoogleLogin() {
 }
 
 function openDrawer() {
-  if (!currentUser) {
-    openAuthModal("login");
-    return;
-  }
-
   pageDim.hidden = false;
   profileDrawer.classList.add("is-open");
   profileDrawer.setAttribute("aria-hidden", "false");
+  document.body.classList.add("drawer-open");
+  userChip?.setAttribute("aria-expanded", "true");
+  guestChip?.setAttribute("aria-expanded", "true");
+  renderDrawerMode();
   showDrawerMenu();
+  loadDrawerStats();
   drawerEdgeClose.focus();
 }
 
@@ -1771,11 +1996,16 @@ function closeDrawer() {
   pageDim.hidden = true;
   profileDrawer.classList.remove("is-open");
   profileDrawer.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("drawer-open");
+  userChip?.setAttribute("aria-expanded", "false");
+  guestChip?.setAttribute("aria-expanded", "false");
   closeDeleteAccountModal();
   closePasswordChangeModal();
 
   if (currentUser) {
     userChip.focus();
+  } else {
+    guestChip.focus();
   }
 }
 
@@ -1830,6 +2060,50 @@ function showProfileEdit() {
 
   closeDrawer();
   navigateTo({ view: "profile" });
+}
+
+async function loadDrawerStats() {
+  if (!currentUser) {
+    return;
+  }
+
+  drawerStats.hidden = false;
+  drawerStats.textContent = "활동 통계를 불러오는 중입니다.";
+
+  try {
+    const data = await requestJson("/api/me/stats", { method: "GET", headers: {} });
+    renderDrawerStats(data.stats);
+  } catch {
+    drawerStats.textContent = "활동 통계를 불러오지 못했습니다.";
+  }
+}
+
+function renderDrawerStats(stats = {}) {
+  const badges = Array.isArray(stats.badges) ? stats.badges : [];
+  const badgeText = badges.length ? badges.map((badge) => badge.label).join(" · ") : "획득한 뱃지가 없습니다.";
+  drawerStats.replaceChildren();
+
+  const grid = document.createElement("div");
+  grid.className = "drawer-stat-grid";
+  [
+    ["작성한 제목", stats.titleCount || 0],
+    ["작성한 댓글", stats.commentCount || 0],
+    ["받은 좋아요", stats.receivedLikes || 0],
+    ["최고 기록", stats.bestTitle ? `${stats.bestTitle.likes}개` : "-"],
+  ].forEach(([label, value]) => {
+    const item = document.createElement("div");
+    const strong = document.createElement("strong");
+    const span = document.createElement("span");
+    strong.textContent = String(value);
+    span.textContent = label;
+    item.append(strong, span);
+    grid.append(item);
+  });
+
+  const badge = document.createElement("p");
+  badge.className = "drawer-badges";
+  badge.textContent = badgeText;
+  drawerStats.append(grid, badge);
 }
 
 function hydrateProfileForm() {
@@ -2133,12 +2407,14 @@ async function uploadAvatar(file) {
   }
 }
 
-function openReportModal(image) {
-  if (!image?.isUserUpload) {
+function openReportModal(target) {
+  if (!target?.targetId) {
     return;
   }
 
-  activeReportImage = image;
+  activeReportTarget = target;
+  activeReportImage = target.image || null;
+  imageReportTitle.textContent = target.title || "신고";
   imageReportForm.reset();
   imageReportMessage.textContent = "";
   imageReportModal.hidden = false;
@@ -2148,12 +2424,13 @@ function openReportModal(image) {
 function closeReportModal() {
   imageReportModal.hidden = true;
   activeReportImage = null;
+  activeReportTarget = null;
   imageReportForm.reset();
   imageReportMessage.textContent = "";
 }
 
 async function submitImageReport() {
-  if (!activeReportImage?.id) {
+  if (!activeReportTarget?.targetId) {
     return;
   }
 
@@ -2171,14 +2448,19 @@ async function submitImageReport() {
   imageReportMessage.textContent = "";
 
   try {
-    const data = await requestJson(`/api/images/${encodeURIComponent(activeReportImage.id)}/report`, {
+    const data = await requestJson("/api/reports", {
       method: "POST",
-      body: JSON.stringify({ reason, detail }),
+      body: JSON.stringify({
+        targetType: activeReportTarget.targetType,
+        targetId: activeReportTarget.targetId,
+        reason,
+        detail,
+      }),
     });
     closeReportModal();
     showToast(data.message || "신고가 접수되었습니다.");
 
-    if (data.hidden) {
+    if (data.hidden || data.reviewRequired) {
       await loadGalleryImages();
     }
   } catch (error) {
@@ -2197,7 +2479,93 @@ function loadAdminImages(status = "pending") {
     tab.setAttribute("aria-selected", String(isActive));
   });
   adminImageMessage.textContent = "";
+
+  if (status === "reported") {
+    loadAdminReports();
+    return;
+  }
+
   adminImageList.replaceChildren(createAdminMessage("유저 직접 업로드는 비활성화되어 있습니다. 이미지는 관리자가 직접 추가합니다."));
+}
+
+async function loadAdminReports() {
+  adminImageList.replaceChildren(createAdminMessage("신고 목록을 불러오는 중입니다."));
+
+  try {
+    const data = await requestJson("/api/admin/reports?status=pending", { method: "GET", headers: {} });
+    renderAdminReports(data.reports || []);
+  } catch (error) {
+    adminImageList.replaceChildren(createAdminMessage(error.message));
+  }
+}
+
+function renderAdminReports(reports) {
+  if (reports.length === 0) {
+    adminImageList.replaceChildren(createAdminMessage("처리할 신고가 없습니다."));
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  reports.forEach((report) => {
+    const card = document.createElement("article");
+    card.className = "admin-image-card admin-report-card";
+    card.dataset.reportId = report.id;
+
+    const body = document.createElement("div");
+    body.className = "admin-image-body";
+
+    const title = document.createElement("h2");
+    title.textContent = `${getReportTargetLabel(report.targetType)} 신고`;
+
+    const meta = document.createElement("p");
+    meta.className = "admin-image-meta";
+    meta.textContent = `사유 ${getReportReasonLabel(report.reason)} · 신고자 ${report.reporter} · ${formatDate(report.createdAt)}`;
+
+    const target = document.createElement("p");
+    target.className = "admin-image-source";
+    target.textContent = `대상 ID: ${report.targetId}`;
+
+    const detail = document.createElement("p");
+    detail.textContent = report.detail || "상세 내용 없음";
+
+    const actions = document.createElement("div");
+    actions.className = "admin-image-actions";
+    [
+      ["reviewing", "검토 중"],
+      ["resolved", "처리 완료"],
+      ["dismissed", "기각"],
+    ].forEach(([status, label]) => {
+      const button = document.createElement("button");
+      button.className = status === "resolved" ? "auth-button solid" : "auth-button ghost";
+      button.type = "button";
+      button.dataset.action = "report-status";
+      button.dataset.status = status;
+      button.textContent = label;
+      actions.append(button);
+    });
+
+    body.append(title, meta, target, detail, actions);
+    card.append(body);
+    fragment.append(card);
+  });
+
+  adminImageList.replaceChildren(fragment);
+}
+
+function getReportTargetLabel(type) {
+  return { photo: "사진", title: "제목", comment: "댓글" }[type] || "콘텐츠";
+}
+
+function getReportReasonLabel(reason) {
+  return {
+    copyright: "저작권 침해",
+    portrait: "초상권 침해",
+    privacy: "개인정보 노출",
+    sexual_violent: "음란/폭력적 내용",
+    hate: "혐오/차별",
+    abuse: "욕설/비방",
+    other: "기타",
+  }[reason] || reason;
 }
 
 function renderAdminImages(images) {
@@ -2340,7 +2708,13 @@ galleryGrid.addEventListener("click", (event) => {
   }
 
   if (actionButton?.dataset.action === "report") {
-    openReportModal(galleryImages[imageIndex]);
+    const image = galleryImages[imageIndex];
+    openReportModal({
+      targetType: "photo",
+      targetId: getImageKey(image, imageIndex),
+      title: "사진 신고",
+      image,
+    });
     return;
   }
 
@@ -2506,6 +2880,58 @@ rankingList.addEventListener("click", async (event) => {
     return;
   }
 
+  if (button.dataset.action === "edit-submission") {
+    const imageKey = getSelectedImageKey();
+    const serverEntries = serverSubmissionsByImage[imageKey];
+    const entry = Array.isArray(serverEntries)
+      ? serverEntries.find((item) => item.id === entryId)
+      : getCurrentRankingEntries().find((item) => item.id === entryId);
+    const nextTitle = window.prompt("수정할 제목을 입력하세요.", entry?.title || "");
+
+    if (!nextTitle || !nextTitle.trim()) {
+      return;
+    }
+
+    if (entry && isServerEntry(entry)) {
+      try {
+        const data = await requestJson(`/api/submissions/${encodeURIComponent(entryId)}`, {
+          method: "PATCH",
+          body: JSON.stringify({ title: nextTitle.trim() }),
+        });
+        entry.title = data.title;
+        renderRanking();
+        showToast("제목을 수정했습니다.");
+      } catch (error) {
+        showToast(error.message);
+      }
+      return;
+    }
+
+    updateSubmission(entryId, (entry) => {
+      if (!canDeleteLocalAuthor(entry.author)) {
+        showToast("본인이 작성한 제목만 수정할 수 있습니다.");
+        return;
+      }
+
+      entry.title = nextTitle.trim().slice(0, 60);
+    });
+    return;
+  }
+
+  if (button.dataset.action === "report-submission") {
+    if (!isServerEntry({ id: entryId })) {
+      showToast("서버에 저장된 제목만 신고할 수 있습니다.");
+      return;
+    }
+
+    openReportModal({
+      targetType: "title",
+      targetId: entryId,
+      title: "제목 신고",
+    });
+    return;
+  }
+
   if (button.dataset.action === "delete-comment") {
     if (!currentUser) {
       showToast("로그인이 필요합니다.");
@@ -2537,6 +2963,20 @@ rankingList.addEventListener("click", async (event) => {
     }
 
     removeLocalComment(entryId, commentId);
+    return;
+  }
+
+  if (button.dataset.action === "report-comment") {
+    if (!/^\d+$/.test(String(button.dataset.commentId || ""))) {
+      showToast("서버에 저장된 댓글만 신고할 수 있습니다.");
+      return;
+    }
+
+    openReportModal({
+      targetType: "comment",
+      targetId: button.dataset.commentId,
+      title: "댓글 신고",
+    });
     return;
   }
 
@@ -2624,7 +3064,28 @@ function updatePreviousLikedEntry(entries, data) {
 
 backToGalleryButton.addEventListener("click", goHome);
 rankingSelfLink.addEventListener("click", scrollToMyRanking);
-galleryMoreButton.addEventListener("click", () => {
+rankingTabs.forEach((tab) => {
+  tab.addEventListener("click", () => {
+    activeRankingTab = tab.dataset.rankingTab || "popular";
+    renderRanking();
+  });
+  tab.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") {
+      return;
+    }
+
+    event.preventDefault();
+    const tabs = Array.from(rankingTabs);
+    const currentIndex = tabs.indexOf(tab);
+    const nextIndex =
+      event.key === "ArrowRight"
+        ? (currentIndex + 1) % tabs.length
+        : (currentIndex - 1 + tabs.length) % tabs.length;
+    tabs[nextIndex].focus();
+    tabs[nextIndex].click();
+  });
+});
+galleryMoreButton?.addEventListener("click", () => {
   visibleGalleryCount = Math.min(visibleGalleryCount + galleryPageSize, galleryImages.length);
   renderGallery();
 });
@@ -2655,6 +3116,20 @@ adminImageList.addEventListener("click", async (event) => {
     return;
   }
 
+  if (button.dataset.action === "report-status") {
+    try {
+      await requestJson(`/api/admin/reports/${encodeURIComponent(card.dataset.reportId)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: button.dataset.status }),
+      });
+      showToast("신고 상태를 저장했습니다.");
+      await loadAdminReports();
+    } catch (error) {
+      adminImageMessage.textContent = error.message;
+    }
+    return;
+  }
+
   await moderateImage(card, button.dataset.action);
 });
 
@@ -2664,6 +3139,28 @@ consentAcceptButton.addEventListener("click", () => {
 
 consentRejectButton.addEventListener("click", () => {
   saveTrackingConsent("rejected");
+});
+cookieSettingsButton.addEventListener("click", openCookieSettings);
+cookieSettingsCloseButton.addEventListener("click", closeCookieSettings);
+cookieSettingsCancelButton.addEventListener("click", closeCookieSettings);
+cookieSettingsModal.addEventListener("click", (event) => {
+  if (event.target === cookieSettingsModal) {
+    closeCookieSettings();
+  }
+});
+cookieSettingsForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  saveCookieSettings({
+    analytics: analyticsCookieInput.checked,
+    ads: adsCookieInput.checked,
+  });
+  cookieSettingsMessage.textContent = "쿠키 설정이 저장되었습니다.";
+  cookieSettingsMessage.classList.add("is-success");
+  closeCookieSettings();
+  showToast("쿠키 설정이 저장되었습니다.");
+});
+themeToggleButton.addEventListener("click", () => {
+  setTheme(activeTheme === "light" ? "dark" : "light");
 });
 
 loginButton.addEventListener("click", () => {
@@ -2767,6 +3264,7 @@ contactForm.addEventListener("submit", async (event) => {
 
   const type = contactTypeInput.value.trim();
   const title = contactTitleInput.value.trim();
+  const replyEmail = contactReplyEmailInput.value.trim();
   const body = contactBodyInput.value.trim();
 
   if (!type) {
@@ -2787,13 +3285,19 @@ contactForm.addEventListener("submit", async (event) => {
     return;
   }
 
+  if (!replyEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyEmail)) {
+    contactMessage.textContent = "답변 받을 이메일을 올바르게 입력하세요.";
+    contactReplyEmailInput.focus();
+    return;
+  }
+
   contactSubmitButton.disabled = true;
   contactSubmitButton.textContent = "제출 중";
 
   try {
     const data = await requestJson("/api/contact", {
       method: "POST",
-      body: JSON.stringify({ type, title, body }),
+      body: JSON.stringify({ type, title, replyEmail, body }),
     });
     contactForm.reset();
     contactMessage.textContent = data.message || "문의가 접수되었습니다.";
@@ -2861,9 +3365,22 @@ document.addEventListener("click", (event) => {
   }
 });
 userChip.addEventListener("click", openDrawer);
+guestChip.addEventListener("click", openDrawer);
 drawerEdgeClose.addEventListener("click", closeDrawer);
 pageDim.addEventListener("click", closeDrawer);
 logoutButton.addEventListener("click", logout);
+guestLoginButton.addEventListener("click", () => {
+  closeDrawer();
+  openAuthModal("login");
+});
+guestSignupButton.addEventListener("click", () => {
+  closeDrawer();
+  openAuthModal("signup");
+});
+drawerContactButton.addEventListener("click", () => {
+  closeDrawer();
+  goContact();
+});
 profileEditButton.addEventListener("click", showProfileEdit);
 myTitlesButton.addEventListener("click", showMyTitles);
 myCommentsButton.addEventListener("click", showMyComments);
@@ -3002,6 +3519,18 @@ window.addEventListener("popstate", (event) => {
 });
 
 window.addEventListener("keydown", (event) => {
+  if (
+    trapFocus(event, authModal) ||
+    trapFocus(event, deleteAccountModal) ||
+    trapFocus(event, passwordChangeModal) ||
+    trapFocus(event, messageComposeModal) ||
+    trapFocus(event, imageReportModal) ||
+    trapFocus(event, cookieSettingsModal) ||
+    trapFocus(event, profileDrawer)
+  ) {
+    return;
+  }
+
   if (event.key !== "Escape") {
     return;
   }
@@ -3026,6 +3555,11 @@ window.addEventListener("keydown", (event) => {
     return;
   }
 
+  if (!cookieSettingsModal.hidden) {
+    closeCookieSettings();
+    return;
+  }
+
   if (!imageReportModal.hidden) {
     closeReportModal();
     return;
@@ -3047,6 +3581,7 @@ window.addEventListener("keydown", (event) => {
 });
 
 async function initializeApp() {
+  initializeTheme();
   initializeTrackingConsent();
   renderGallery();
   renderUser();

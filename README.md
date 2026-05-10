@@ -35,6 +35,10 @@ Google OAuth 콘솔에는 Redirect URI를 `https://도메인/api/auth/google/cal
 
 유저가 사이트에서 이미지를 직접 업로드하는 기능은 비활성화되어 있습니다. 이미지는 문의 유형 `이미지 제안`으로 제안받고, 관리자가 이메일로 받은 파일을 검토한 뒤 승인된 이미지만 `assets/gallery` 같은 정적 폴더에 추가합니다.
 
+## 문의 메일 환경변수
+
+문의 API는 민감한 수신 주소와 발송 키를 코드에 하드코딩하지 않습니다. 배포 환경에는 `RESEND_API_KEY`, `CONTACT_TO_EMAIL`, 선택적으로 `CONTACT_FROM_EMAIL`을 설정해야 합니다.
+
 갤러리에 이미지를 공개하려면 이미지 파일을 정적 assets에 넣고 `main.js`와 `functions/api/images/index.js`의 정적 이미지 목록에 항목을 추가합니다.
 
 `/api/images/upload`와 `/api/images/file/:id`는 직접 업로드 비활성화 안내를 503으로 반환하므로, `IMAGE_BUCKET` 바인딩이 없어도 사이트 기본 기능과 정적 갤러리는 동작합니다.

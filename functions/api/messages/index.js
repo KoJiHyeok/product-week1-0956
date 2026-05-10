@@ -1,4 +1,4 @@
-import { getCurrentUser, getDb, json, readJson } from "../auth/_shared.js";
+import { ensureUserCanWrite, getCurrentUser, getDb, json, readJson } from "../auth/_shared.js";
 import { ensureMessagesSchema } from "./_schema.js";
 
 const MAX_MESSAGE_LENGTH = 1000;
@@ -74,6 +74,12 @@ export async function onRequestPost(context) {
 
     if (recipientUserId === user.id) {
       return json({ message: "본인에게는 쪽지를 보낼 수 없습니다." }, 400);
+    }
+
+    const restrictionResponse = await ensureUserCanWrite(context, user, "message");
+
+    if (restrictionResponse) {
+      return restrictionResponse;
     }
 
     const db = getDb(context);

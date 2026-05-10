@@ -84,6 +84,10 @@ export function publicUser(user) {
     profileImageUrl: user.profile_image_url || "",
     authProvider: user.auth_provider || "password",
     role: user.role || "user",
+    status: user.status || "active",
+    blockedReason: user.blocked_reason || "",
+    blockedUntil: user.blocked_until || "",
+    themePreference: user.theme_preference || "dark",
   };
 }
 
@@ -139,7 +143,8 @@ export async function getCurrentUser(context) {
     return await db
       .prepare(
         `SELECT users.id, users.login_id, users.username, users.email, users.email_verified_at,
-                users.bio, users.is_profile_public, users.profile_image_url, users.auth_provider, users.role
+                users.bio, users.is_profile_public, users.profile_image_url, users.auth_provider, users.role,
+                users.status, users.blocked_reason, users.blocked_until, users.theme_preference
          FROM sessions
          JOIN users ON users.id = sessions.user_id
          WHERE sessions.id = ? AND sessions.expires_at > ?
@@ -159,6 +164,68 @@ export async function getCurrentUser(context) {
       .bind(sessionId, now)
       .first();
   }
+}
+
+export async function getWriteRestriction(context, user, restrictionType = "write") {
+  if (!user) {
+    return null;
+  }
+
+  const now = new Date().toISOString();
+
+  if (user.status === "blocked" && (!user.blocked_until || user.blocked_until > now)) {
+    return {
+      type: restrictionType,
+      reason: user.blocked_reason || "관리자에 의해 작성 기능이 제한되었습니다.",
+      expiresAt: user.blocked_until || "",
+    };
+  }
+
+  try {
+    const db = getDb(context);
+    const row = await db
+      .prepare(
+        `SELECT restriction_type, reason, expires_at
+         FROM user_restrictions
+         WHERE user_id = ?
+           AND restriction_type IN (?, 'write')
+           AND (expires_at IS NULL OR expires_at > ?)
+         ORDER BY created_at DESC
+         LIMIT 1`
+      )
+      .bind(user.id, restrictionType, now)
+      .first();
+
+    if (!row) {
+      return null;
+    }
+
+    return {
+      type: row.restriction_type,
+      reason: row.reason || "관리자에 의해 작성 기능이 제한되었습니다.",
+      expiresAt: row.expires_at || "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function ensureUserCanWrite(context, user, restrictionType = "write") {
+  const restriction = await getWriteRestriction(context, user, restrictionType);
+
+  if (!restriction) {
+    return null;
+  }
+
+  return json(
+    {
+      message: restriction.reason,
+      restricted: true,
+      restrictionType: restriction.type,
+      expiresAt: restriction.expiresAt,
+    },
+    403
+  );
 }
 
 export async function deleteCurrentSession(context) {

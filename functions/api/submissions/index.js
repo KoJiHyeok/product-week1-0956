@@ -1,4 +1,4 @@
-import { getCurrentUser, getDb, json, readJson } from "../auth/_shared.js";
+import { ensureUserCanWrite, getCurrentUser, getDb, json, readJson } from "../auth/_shared.js";
 import { getOrCreateGuestVoteIdentifier, getVoteDate } from "./_vote.js";
 
 export async function onRequestGet(context) {
@@ -76,6 +76,12 @@ export async function onRequestPost(context) {
 
     if (!user && !guestName) {
       return json({ message: "비회원 이름을 입력하세요." }, 400);
+    }
+
+    const restrictionResponse = await ensureUserCanWrite(context, user, "write");
+
+    if (restrictionResponse) {
+      return restrictionResponse;
     }
 
     if (!(await canUseImageKey(db, imageKey))) {

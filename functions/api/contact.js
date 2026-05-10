@@ -1,6 +1,5 @@
-import { json, readJson } from "./auth/_shared.js";
+import { getCurrentUser, json, readJson, validateEmail } from "./auth/_shared.js";
 
-const CONTACT_RECIPIENT = "wlgur2101@gmail.com";
 const ALLOWED_TYPES = new Set(["버그/악용 신고", "개선 방안 제안", "이미지 제안"]);
 
 export async function onRequestPost(context) {
@@ -21,6 +20,8 @@ async function handleContact(context) {
   const type = normalizeText(body.type);
   const title = normalizeText(body.title);
   const message = normalizeText(body.body);
+  const replyEmail = normalizeText(body.replyEmail).toLowerCase();
+  const user = await getCurrentUser(context);
 
   if (!ALLOWED_TYPES.has(type)) {
     return json({ message: "문의 유형을 선택하세요." }, 400);
@@ -34,8 +35,24 @@ async function handleContact(context) {
     return json({ message: "문의 내용을 입력하세요." }, 400);
   }
 
+  if (!replyEmail) {
+    return json({ message: "답변 받을 이메일을 입력하세요." }, 400);
+  }
+
+  const emailError = validateEmail(replyEmail);
+
+  if (emailError) {
+    return json({ message: emailError }, 400);
+  }
+
   if (!context.env.RESEND_API_KEY) {
     return json({ message: "메일 발송 환경변수가 설정되지 않았습니다." }, 500);
+  }
+
+  const recipient = context.env.CONTACT_TO_EMAIL;
+
+  if (!recipient) {
+    return json({ message: "문의 수신 이메일 환경변수가 설정되지 않았습니다." }, 500);
   }
 
   const sender = context.env.CONTACT_FROM_EMAIL || "Title Academy <onboarding@resend.dev>";
@@ -47,11 +64,14 @@ async function handleContact(context) {
     },
     body: JSON.stringify({
       from: sender,
-      to: CONTACT_RECIPIENT,
+      to: recipient,
+      reply_to: replyEmail,
       subject: `[제목 학원 문의] ${type} - ${title}`,
       text: [
         `문의 유형: ${type}`,
         `문의 제목: ${title}`,
+        `답변 받을 이메일: ${replyEmail}`,
+        `로그인 회원: ${user ? `${user.username} (#${user.id})` : "비회원"}`,
         "",
         "문의 내용:",
         message,

@@ -44,6 +44,9 @@
       <div class="top-actions">
         <a class="contact-link" id="contactLink" href="#contact">문의</a>
         <button class="auth-button ghost small" id="adminNavButton" type="button" hidden>관리자 검수</button>
+        <button class="user-chip guest-chip" id="guestChip" type="button" aria-label="비회원 메뉴 열기" aria-expanded="false" aria-controls="profileDrawer">
+          <span class="profile-photo guest-photo" aria-hidden="true">?</span>
+        </button>
 
         <div class="auth-actions" id="authActions">
           <button class="auth-link-button" id="loginButton" type="button">로그인</button>
@@ -76,7 +79,6 @@
     <section class="view gallery-view" id="homeView" aria-label="사진 선택">
       <p class="gallery-guide">사진에 어울리는 제목을 만들어보세요!!</p>
       <div class="gallery-grid" id="galleryGrid"></div>
-      <button class="gallery-more-button" id="galleryMoreButton" type="button" hidden>사진 더 보기</button>
     </section>
 
     <section class="view upload-view" id="uploadView" hidden aria-label="이미지 제안">
@@ -129,7 +131,7 @@
         <div>
           <p class="view-kicker">랭킹</p>
           <h1>이 사진의 제목들</h1>
-          <p class="ranking-sort-note">좋아요 수가 많은 순서로 정렬됩니다.</p>
+          <p class="ranking-sort-note" id="rankingSortNote">좋아요는 하루에 한 번만 누를 수 있습니다.</p>
         </div>
         <div class="ranking-head-actions">
           <button class="ranking-self-link" id="rankingSelfLink" type="button">본인 랭킹 확인</button>
@@ -141,7 +143,15 @@
         <div class="ranking-photo-frame">
           <img class="ranking-photo" id="rankingPhoto" alt="" decoding="async" />
         </div>
-        <ol class="ranking-list" id="rankingList"></ol>
+        <div class="ranking-results">
+          <div class="ranking-tabs" role="tablist" aria-label="랭킹 정렬">
+            <button class="ranking-tab is-active" id="rankingPopularTab" type="button" role="tab" aria-selected="true" data-ranking-tab="popular">인기순</button>
+            <button class="ranking-tab" id="rankingLatestTab" type="button" role="tab" aria-selected="false" data-ranking-tab="latest">최신순</button>
+            <button class="ranking-tab" id="rankingMineTab" type="button" role="tab" aria-selected="false" data-ranking-tab="mine">내 제목</button>
+          </div>
+          <p class="like-help">좋아요는 하루에 한 번만 누를 수 있습니다. 다른 제목을 누르면 오늘의 좋아요가 이동합니다.</p>
+          <ol class="ranking-list" id="rankingList"></ol>
+        </div>
       </div>
     </section>
 
@@ -157,9 +167,9 @@
           <ul>
             <li>문의 전 자주 발생하는 문제인지 확인해주세요.</li>
             <li>버그/악용 신고는 가능한 한 구체적인 상황을 적어주세요.</li>
-            <li>개선 방안 제안은 서비스 운영에 참고되며, 모든 제안이 반영되지는 않을 수 있습니다.</li>
-            <li>이미지 파일은 현재 사이트에서 직접 첨부할 수 없습니다. 이미지 제안은 이메일 답장 또는 관리자에게 별도 전달 방식으로 진행됩니다.</li>
-            <li>답변이 필요한 경우 정확한 이메일 정보를 함께 남겨주세요.</li>
+            <li>개선 제안은 운영 상황에 맞춰 검토합니다.</li>
+            <li>이미지 파일은 사이트에서 직접 첨부하지 않고 이메일 답장 또는 별도 전달 방식으로 받습니다.</li>
+            <li>답변이 필요하면 받을 수 있는 이메일 주소를 정확히 입력해주세요.</li>
           </ul>
         </section>
 
@@ -174,6 +184,9 @@
 
           <label for="contactTitleInput">문의 제목</label>
           <input id="contactTitleInput" name="title" type="text" maxlength="120" autocomplete="off" required />
+
+          <label for="contactReplyEmailInput">답변 받을 이메일</label>
+          <input id="contactReplyEmailInput" name="replyEmail" type="email" maxlength="254" autocomplete="email" required />
 
           <label for="contactBodyInput">문의 내용</label>
           <textarea id="contactBodyInput" name="body" rows="9" maxlength="3000" required></textarea>
@@ -232,10 +245,10 @@
     </section>
   </main>
 
-  <aside class="profile-drawer" id="profileDrawer" aria-hidden="true" aria-label="회원 정보">
+  <aside class="profile-drawer" id="profileDrawer" aria-hidden="true" aria-label="프로필 메뉴">
     <button class="drawer-edge-close" id="drawerEdgeClose" type="button" aria-label="닫기">&gt;</button>
     <div class="drawer-head">
-      <h2>회원 정보</h2>
+      <h2 id="drawerTitle">회원 정보</h2>
     </div>
 
     <div class="drawer-view is-active" id="drawerMenuView">
@@ -252,10 +265,17 @@
       </div>
 
       <div class="drawer-menu">
-        <button class="drawer-menu-row" id="profileEditButton" type="button">개인정보 수정</button>
-        <button class="drawer-menu-row" id="myTitlesButton" type="button">나의 제목들</button>
-        <button class="drawer-menu-row" id="myCommentsButton" type="button">나의 댓글들</button>
-        <button class="drawer-menu-row danger" id="logoutButton" type="button">로그아웃</button>
+        <p class="guest-drawer-copy" id="guestDrawerCopy" hidden>비회원으로도 제목과 댓글을 작성할 수 있습니다. 로그인하면 나의 제목과 댓글을 더 쉽게 관리할 수 있습니다.</p>
+        <div class="drawer-stats" id="drawerStats" hidden></div>
+        <button class="drawer-menu-row member-only" id="profileEditButton" type="button">개인정보 수정</button>
+        <button class="drawer-menu-row member-only" id="myTitlesButton" type="button">나의 제목들</button>
+        <button class="drawer-menu-row member-only" id="myCommentsButton" type="button">나의 댓글들</button>
+        <button class="drawer-menu-row guest-only" id="guestLoginButton" type="button">로그인</button>
+        <button class="drawer-menu-row guest-only" id="guestSignupButton" type="button">회원가입</button>
+        <button class="drawer-menu-row" id="themeToggleButton" type="button" aria-pressed="false">라이트 모드로 전환</button>
+        <button class="drawer-menu-row" id="cookieSettingsButton" type="button">쿠키 설정</button>
+        <button class="drawer-menu-row" id="drawerContactButton" type="button">문의하기</button>
+        <button class="drawer-menu-row danger member-only" id="logoutButton" type="button">로그아웃</button>
       </div>
     </div>
 
@@ -322,8 +342,9 @@
           <option value="copyright">저작권 침해</option>
           <option value="portrait">초상권 침해</option>
           <option value="privacy">개인정보 노출</option>
-          <option value="sexual_violent">음란/폭력적 이미지</option>
+          <option value="sexual_violent">음란/폭력적 내용</option>
           <option value="hate">혐오/차별</option>
+          <option value="abuse">욕설/비방</option>
           <option value="other">기타</option>
         </select>
         <label for="imageReportDetailInput">상세 내용</label>
@@ -445,6 +466,37 @@
   </div>
 
   <div class="toast" id="toast" aria-live="polite"></div>
+
+  <div class="confirm-modal" id="cookieSettingsModal" hidden role="dialog" aria-modal="true" aria-labelledby="cookieSettingsTitle">
+    <div class="confirm-card cookie-settings-card">
+      <div class="message-compose-head">
+        <div>
+          <p class="modal-kicker">설정</p>
+          <h2 id="cookieSettingsTitle">쿠키 설정</h2>
+        </div>
+        <button class="modal-close" id="cookieSettingsCloseButton" type="button" aria-label="닫기"></button>
+      </div>
+      <form class="cookie-settings-form" id="cookieSettingsForm">
+        <label class="terms-check">
+          <input type="checkbox" checked disabled />
+          <span>필수 쿠키</span>
+        </label>
+        <label class="terms-check" for="analyticsCookieInput">
+          <input id="analyticsCookieInput" type="checkbox" />
+          <span>분석 쿠키</span>
+        </label>
+        <label class="terms-check" for="adsCookieInput">
+          <input id="adsCookieInput" type="checkbox" />
+          <span>광고 쿠키</span>
+        </label>
+        <p class="profile-edit-message" id="cookieSettingsMessage" aria-live="polite"></p>
+        <div class="confirm-actions">
+          <button class="auth-button ghost" id="cookieSettingsCancelButton" type="button">취소</button>
+          <button class="auth-button solid" type="submit">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <section class="consent-banner" id="consentBanner" hidden aria-label="쿠키 및 추적 동의">
     <div>
