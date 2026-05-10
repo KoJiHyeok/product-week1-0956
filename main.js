@@ -445,6 +445,10 @@ function loadTrackingScripts(settings = getCookieSettings()) {
 }
 
 function loadGoogleAnalytics() {
+  if (document.querySelector(`script[src*="googletagmanager.com/gtag/js?id=${analyticsMeasurementId}"]`)) {
+    return;
+  }
+
   window.dataLayer = window.dataLayer || [];
   window.gtag = function gtag() {
     window.dataLayer.push(arguments);
