@@ -44,7 +44,9 @@ const guestDrawerCopy = document.querySelector("#guestDrawerCopy");
 const drawerStats = document.querySelector("#drawerStats");
 const logoutButton = document.querySelector("#logoutButton");
 const drawerName = document.querySelector("#drawerName");
+const drawerProvider = document.querySelector("#drawerProvider");
 const drawerPhoto = document.querySelector("#drawerPhoto");
+const drawerProfile = document.querySelector(".drawer-profile");
 const avatarEditButton = document.querySelector("#avatarEditButton");
 const avatarInput = document.querySelector("#avatarInput");
 const profileEditButton = document.querySelector("#profileEditButton");
@@ -394,7 +396,7 @@ function closeCookieSettings() {
   cookieSettingsModal.hidden = true;
 }
 
-function trapFocus(event, container) {
+function trapFocus(event, container, extraElements = []) {
   if (event.key !== "Tab" || !container || container.hidden || container.getAttribute("aria-hidden") === "true") {
     return false;
   }
@@ -403,7 +405,9 @@ function trapFocus(event, container) {
     container.querySelectorAll(
       'a[href], button:not([disabled]):not([hidden]), input:not([disabled]):not([hidden]), select:not([disabled]):not([hidden]), textarea:not([disabled]):not([hidden]), [tabindex]:not([tabindex="-1"])'
     )
-  ).filter((element) => element.offsetParent !== null);
+  ).filter((element) => element.getClientRects().length > 0);
+  const extraFocusable = extraElements.filter((element) => element && !element.hidden && element.getClientRects().length > 0);
+  focusable.push(...extraFocusable);
 
   if (focusable.length === 0) {
     return false;
@@ -1563,11 +1567,12 @@ function renderUser() {
     guestChip.hidden = false;
     memberActions.hidden = true;
     adminNavButton.hidden = true;
-    guestChip.setAttribute("aria-expanded", String(profileDrawer.classList.contains("is-open")));
+    syncGuestChipState(profileDrawer.classList.contains("is-open"));
     drawerName.textContent = "";
     renderAvatar(drawerPhoto, null);
     renderAvatar(profileEditPhoto, null);
     renderDrawerMode();
+    syncDrawerEdgeState(profileDrawer.classList.contains("is-open"));
     return;
   }
 
@@ -1583,6 +1588,7 @@ function renderUser() {
   renderAvatar(drawerPhoto, currentUser);
   renderAvatar(profileEditPhoto, currentUser);
   renderDrawerMode();
+  syncDrawerEdgeState(profileDrawer.classList.contains("is-open"));
 }
 
 function renderAvatar(target, user) {
@@ -1598,11 +1604,14 @@ function renderAvatar(target, user) {
 
 function renderDrawerMode() {
   const isGuest = !currentUser;
-  drawerTitle.textContent = isGuest ? "비회원 안내" : "회원 정보";
-  drawerName.textContent = isGuest ? "비회원" : getUserDisplayName();
+  drawerTitle.textContent = "프로필 메뉴";
+  drawerName.textContent = isGuest ? "" : getUserDisplayName();
+  drawerProvider.textContent = isGuest ? "" : currentUser.email || "이메일 정보 없음";
   guestDrawerCopy.hidden = !isGuest;
+  drawerProfile.hidden = isGuest;
   avatarEditButton.disabled = isGuest;
   avatarEditButton.setAttribute("aria-disabled", String(isGuest));
+  avatarEditButton.hidden = isGuest;
   document.querySelectorAll(".guest-only").forEach((item) => {
     item.hidden = !isGuest;
   });
@@ -1610,8 +1619,9 @@ function renderDrawerMode() {
     item.hidden = isGuest;
   });
 
+  drawerStats.hidden = true;
+
   if (isGuest) {
-    drawerStats.hidden = true;
     renderAvatar(drawerPhoto, null);
   }
 }
@@ -1979,16 +1989,36 @@ function startGoogleLogin() {
   window.location.href = `/api/auth/google?next=${encodeURIComponent(next)}`;
 }
 
+function syncGuestChipState(isOpen) {
+  if (!guestChip || guestChip.hidden) {
+    return;
+  }
+
+  guestChip.setAttribute("aria-expanded", String(isOpen));
+  guestChip.setAttribute("aria-label", isOpen ? "비회원 메뉴 닫기" : "비회원 메뉴 열기");
+}
+
+function syncDrawerEdgeState(isOpen) {
+  if (!drawerEdgeClose) {
+    return;
+  }
+
+  drawerEdgeClose.classList.toggle("is-open", isOpen);
+  drawerEdgeClose.setAttribute("aria-expanded", String(isOpen));
+  drawerEdgeClose.setAttribute("aria-label", isOpen ? "프로필 메뉴 닫기" : "프로필 메뉴 열기");
+  drawerEdgeClose.textContent = isOpen ? ">" : "<";
+}
+
 function openDrawer() {
   pageDim.hidden = false;
   profileDrawer.classList.add("is-open");
   profileDrawer.setAttribute("aria-hidden", "false");
   document.body.classList.add("drawer-open");
   userChip?.setAttribute("aria-expanded", "true");
-  guestChip?.setAttribute("aria-expanded", "true");
+  syncGuestChipState(true);
+  syncDrawerEdgeState(true);
   renderDrawerMode();
   showDrawerMenu();
-  loadDrawerStats();
   drawerEdgeClose.focus();
 }
 
@@ -1998,15 +2028,12 @@ function closeDrawer() {
   profileDrawer.setAttribute("aria-hidden", "true");
   document.body.classList.remove("drawer-open");
   userChip?.setAttribute("aria-expanded", "false");
-  guestChip?.setAttribute("aria-expanded", "false");
+  syncGuestChipState(false);
+  syncDrawerEdgeState(false);
   closeDeleteAccountModal();
   closePasswordChangeModal();
 
-  if (currentUser) {
-    userChip.focus();
-  } else {
-    guestChip.focus();
-  }
+  drawerEdgeClose.focus();
 }
 
 function showDrawerMenu() {
@@ -2033,6 +2060,17 @@ async function showMyTitles() {
   } catch (error) {
     myTitleList.replaceChildren(createMyTitleMessage(error.message));
   }
+}
+
+function showImageRequestHistory() {
+  drawerMenuView.hidden = true;
+  myTitlesView.hidden = false;
+  myCommentsView.hidden = true;
+  drawerMenuView.classList.remove("is-active");
+  myTitlesView.classList.add("is-active");
+  myCommentsView.classList.remove("is-active");
+  myTitlesView.querySelector("h3").textContent = "내 이미지 제안 내역";
+  myTitleList.replaceChildren(createMyTitleMessage("현재 이미지 제안 내역은 준비 중입니다."));
 }
 
 async function showMyComments() {
@@ -3366,7 +3404,13 @@ document.addEventListener("click", (event) => {
 });
 userChip.addEventListener("click", openDrawer);
 guestChip.addEventListener("click", openDrawer);
-drawerEdgeClose.addEventListener("click", closeDrawer);
+drawerEdgeClose.addEventListener("click", () => {
+  if (profileDrawer.classList.contains("is-open")) {
+    closeDrawer();
+  } else {
+    openDrawer();
+  }
+});
 pageDim.addEventListener("click", closeDrawer);
 logoutButton.addEventListener("click", logout);
 guestLoginButton.addEventListener("click", () => {
@@ -3382,7 +3426,7 @@ drawerContactButton.addEventListener("click", () => {
   goContact();
 });
 profileEditButton.addEventListener("click", showProfileEdit);
-myTitlesButton.addEventListener("click", showMyTitles);
+myTitlesButton.addEventListener("click", showImageRequestHistory);
 myCommentsButton.addEventListener("click", showMyComments);
 drawerBackButton.addEventListener("click", showDrawerMenu);
 commentsBackButton.addEventListener("click", showDrawerMenu);
@@ -3526,7 +3570,7 @@ window.addEventListener("keydown", (event) => {
     trapFocus(event, messageComposeModal) ||
     trapFocus(event, imageReportModal) ||
     trapFocus(event, cookieSettingsModal) ||
-    trapFocus(event, profileDrawer)
+    trapFocus(event, profileDrawer, [drawerEdgeClose])
   ) {
     return;
   }
