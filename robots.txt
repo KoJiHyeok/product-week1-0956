@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://product-week1-0956.pages.dev/sitemap.xml
+Sitemap: https://jemokhakwon.com/sitemap.xml

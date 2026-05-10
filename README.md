@@ -22,7 +22,7 @@
 
 추가 환경변수:
 
-- `APP_ORIGIN`: 이메일 인증 링크에 사용할 서비스 origin입니다. 예: `https://product-week1-0956.pages.dev`
+- `APP_ORIGIN`: 이메일 인증 링크에 사용할 서비스 origin입니다. 예: `https://jemokhakwon.com`
 - `AUTH_FROM_EMAIL`: 인증 메일 발신자입니다. 생략 시 `CONTACT_FROM_EMAIL`, 그다음 `Title Academy <onboarding@resend.dev>`를 사용합니다.
 - `RESEND_API_KEY`: 인증 메일 발송에도 사용합니다.
 - `GOOGLE_OAUTH_CLIENT_ID`: Google OAuth Client ID입니다.
