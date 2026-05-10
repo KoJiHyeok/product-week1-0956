@@ -108,6 +108,19 @@ button {
   min-width: 0;
 }
 
+.upload-nav-button {
+  grid-column: 2;
+  justify-self: center;
+  border: 2px solid #ffffff;
+  background: var(--yellow);
+  color: var(--ink);
+  box-shadow: 0 10px 22px rgba(3, 8, 39, 0.22);
+}
+
+.upload-nav-button:hover {
+  background: #ffd95f;
+}
+
 .contact-link {
   color: var(--text);
   font-weight: 900;
@@ -2044,12 +2057,18 @@ a[href]:focus-visible {
   .auth-actions,
   .member-actions,
   .user-chip,
+  .upload-nav-button,
   .top-actions {
     grid-column: auto;
     justify-self: start;
   }
 
+  .upload-nav-button {
+    order: 2;
+  }
+
   .top-actions {
+    order: 3;
     flex-wrap: wrap;
     justify-content: flex-start;
   }
