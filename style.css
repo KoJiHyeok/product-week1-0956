@@ -784,6 +784,105 @@ button {
   resize: vertical;
 }
 
+.contact-attachment-field {
+  display: grid;
+  gap: 8px;
+}
+
+.contact-attachment-label {
+  font-weight: 900;
+}
+
+.contact-attachment-dropzone {
+  display: grid;
+  gap: 6px;
+  border: 1.5px dashed rgba(216, 220, 236, 0.78);
+  border-radius: 8px;
+  background: rgba(251, 252, 255, 0.92);
+  color: var(--ink);
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.contact-attachment-dropzone input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.contact-attachment-dropzone.is-dragging {
+  border-color: #ffc72c;
+  background: #fff8dc;
+  box-shadow: 0 0 0 3px rgba(255, 199, 44, 0.2);
+}
+
+.contact-attachment-dropzone:focus-within {
+  outline: 3px solid rgba(255, 199, 44, 0.82);
+  outline-offset: 3px;
+}
+
+.contact-attachment-title {
+  font-weight: 900;
+}
+
+.contact-attachment-help,
+.contact-attachment-rule {
+  color: #526079;
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.contact-attachment-preview {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid rgba(216, 220, 236, 0.78);
+  border-radius: 8px;
+  background: rgba(251, 252, 255, 0.92);
+  color: var(--ink);
+  padding: 10px;
+}
+
+.contact-attachment-preview img {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #e9edf7;
+}
+
+.contact-attachment-meta {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.contact-attachment-meta strong,
+.contact-attachment-meta span {
+  overflow-wrap: anywhere;
+}
+
+.contact-attachment-meta strong {
+  font-size: 0.94rem;
+  line-height: 1.25;
+}
+
+.contact-attachment-meta span {
+  color: #526079;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.contact-attachment-remove {
+  min-height: 38px;
+  padding-inline: 14px;
+}
+
 .contact-message {
   min-height: 20px;
   margin: 2px 0 0;
@@ -2444,6 +2543,20 @@ a[href]:focus-visible {
 
   .contact-layout {
     grid-template-columns: 1fr;
+  }
+
+  .contact-attachment-preview {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .contact-attachment-preview img {
+    width: 64px;
+    height: 64px;
+  }
+
+  .contact-attachment-remove {
+    grid-column: 1 / -1;
+    justify-self: start;
   }
 
   .profile-drawer {

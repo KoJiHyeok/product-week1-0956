@@ -111,6 +111,13 @@ const contactTypeInput = document.querySelector("#contactTypeInput");
 const contactTitleInput = document.querySelector("#contactTitleInput");
 const contactReplyEmailInput = document.querySelector("#contactReplyEmailInput");
 const contactBodyInput = document.querySelector("#contactBodyInput");
+const contactImageInput = document.querySelector("#contactImageInput");
+const contactAttachmentDropzone = document.querySelector("#contactAttachmentDropzone");
+const contactAttachmentPreview = document.querySelector("#contactAttachmentPreview");
+const contactAttachmentImage = document.querySelector("#contactAttachmentImage");
+const contactAttachmentName = document.querySelector("#contactAttachmentName");
+const contactAttachmentSize = document.querySelector("#contactAttachmentSize");
+const contactAttachmentRemoveButton = document.querySelector("#contactAttachmentRemoveButton");
 const contactMessage = document.querySelector("#contactMessage");
 const contactSubmitButton = document.querySelector("#contactSubmitButton");
 const imageSuggestionButton = document.querySelector("#imageSuggestionButton");
@@ -363,6 +370,9 @@ const defaultGalleryImages = [
 ];
 const authModeButtons = [loginTabButton, signupTabButton];
 const maxAvatarBytes = 5 * 1024 * 1024;
+const maxContactImageBytes = 5 * 1024 * 1024;
+const allowedContactImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+const allowedContactImageExtensions = new Set(["jpg", "jpeg", "png", "webp"]);
 const galleryInitialCount = defaultGalleryImages.length;
 const galleryPageSize = 0;
 
@@ -378,6 +388,8 @@ let activeReportTarget = null;
 let activeRankingTab = "popular";
 let activeTheme = "dark";
 let toastTimer;
+let selectedContactImage = null;
+let selectedContactImageUrl = "";
 let serverSubmissionsByImage = {};
 const expandedCommentIds = new Set();
 let pendingRankingFocus = null;
@@ -644,6 +656,21 @@ async function requestJson(path, options = {}) {
       ...(options.headers || {}),
     },
     ...options,
+  });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.message || "요청 처리 중 오류가 발생했습니다.");
+  }
+
+  return data;
+}
+
+async function requestFormJson(path, formData, options = {}) {
+  const response = await fetch(path, {
+    credentials: "include",
+    ...options,
+    body: formData,
   });
   const data = await response.json().catch(() => ({}));
 
@@ -1116,6 +1143,85 @@ function goImageSuggestionContact() {
   }
 
   contactBodyInput.focus();
+}
+
+function getFileExtension(fileName) {
+  const normalizedName = typeof fileName === "string" ? fileName.trim().toLowerCase() : "";
+  const dotIndex = normalizedName.lastIndexOf(".");
+
+  return dotIndex >= 0 ? normalizedName.slice(dotIndex + 1) : "";
+}
+
+function formatFileSize(bytes) {
+  if (bytes >= 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+  }
+
+  return `${Math.max(1, Math.ceil(bytes / 1024))}KB`;
+}
+
+function validateContactImage(file) {
+  if (!file) {
+    return "";
+  }
+
+  const extension = getFileExtension(file.name);
+
+  if (!allowedContactImageExtensions.has(extension) || !allowedContactImageTypes.has(file.type)) {
+    return "jpg, jpeg, png, webp 이미지 파일만 첨부할 수 있습니다.";
+  }
+
+  if (file.size > maxContactImageBytes) {
+    return "이미지는 최대 5MB까지만 첨부할 수 있습니다.";
+  }
+
+  if (file.size <= 0) {
+    return "비어 있는 이미지 파일은 첨부할 수 없습니다.";
+  }
+
+  return "";
+}
+
+function clearContactAttachment(resetInput = true) {
+  selectedContactImage = null;
+
+  if (selectedContactImageUrl) {
+    URL.revokeObjectURL(selectedContactImageUrl);
+    selectedContactImageUrl = "";
+  }
+
+  if (resetInput && contactImageInput) {
+    contactImageInput.value = "";
+  }
+
+  contactAttachmentPreview.hidden = true;
+  contactAttachmentImage.removeAttribute("src");
+  contactAttachmentName.textContent = "";
+  contactAttachmentSize.textContent = "";
+}
+
+function setContactAttachment(file) {
+  const error = validateContactImage(file);
+
+  if (error) {
+    clearContactAttachment();
+    contactMessage.textContent = error;
+    contactMessage.classList.remove("is-success");
+    return;
+  }
+
+  if (selectedContactImageUrl) {
+    URL.revokeObjectURL(selectedContactImageUrl);
+  }
+
+  selectedContactImage = file;
+  selectedContactImageUrl = URL.createObjectURL(file);
+  contactAttachmentImage.src = selectedContactImageUrl;
+  contactAttachmentName.textContent = file.name || "첨부 이미지";
+  contactAttachmentSize.textContent = formatFileSize(file.size);
+  contactAttachmentPreview.hidden = false;
+  contactMessage.textContent = "";
+  contactMessage.classList.remove("is-success");
 }
 
 function goAdmin() {
@@ -3445,6 +3551,44 @@ signupForm.addEventListener("submit", async (event) => {
   }
 });
 
+contactImageInput.addEventListener("change", () => {
+  const [file] = contactImageInput.files || [];
+
+  if (file) {
+    setContactAttachment(file);
+  } else {
+    clearContactAttachment(false);
+  }
+});
+
+["dragenter", "dragover"].forEach((eventName) => {
+  contactAttachmentDropzone.addEventListener(eventName, (event) => {
+    event.preventDefault();
+    contactAttachmentDropzone.classList.add("is-dragging");
+  });
+});
+
+["dragleave", "drop"].forEach((eventName) => {
+  contactAttachmentDropzone.addEventListener(eventName, (event) => {
+    event.preventDefault();
+    contactAttachmentDropzone.classList.remove("is-dragging");
+  });
+});
+
+contactAttachmentDropzone.addEventListener("drop", (event) => {
+  const [file] = event.dataTransfer?.files || [];
+
+  if (file) {
+    setContactAttachment(file);
+  }
+});
+
+contactAttachmentRemoveButton.addEventListener("click", () => {
+  clearContactAttachment();
+  contactMessage.textContent = "";
+  contactMessage.classList.remove("is-success");
+});
+
 contactForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   contactMessage.textContent = "";
@@ -3479,15 +3623,32 @@ contactForm.addEventListener("submit", async (event) => {
     return;
   }
 
+  const imageError = validateContactImage(selectedContactImage);
+
+  if (imageError) {
+    contactMessage.textContent = imageError;
+    contactMessage.classList.remove("is-success");
+    contactImageInput.focus();
+    return;
+  }
+
   contactSubmitButton.disabled = true;
-  contactSubmitButton.textContent = "제출 중";
+  contactSubmitButton.textContent = "제출 중...";
 
   try {
-    const data = await requestJson("/api/contact", {
-      method: "POST",
-      body: JSON.stringify({ type, title, replyEmail, body }),
-    });
+    const formData = new FormData();
+    formData.append("type", type);
+    formData.append("title", title);
+    formData.append("replyEmail", replyEmail);
+    formData.append("body", body);
+
+    if (selectedContactImage) {
+      formData.append("image", selectedContactImage);
+    }
+
+    const data = await requestFormJson("/api/contact", formData, { method: "POST" });
     contactForm.reset();
+    clearContactAttachment(false);
     contactMessage.textContent = data.message || "문의가 접수되었습니다.";
     contactMessage.classList.add("is-success");
   } catch (error) {
