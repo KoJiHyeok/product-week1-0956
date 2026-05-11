@@ -13,6 +13,18 @@ const defaultImages = [
   { id: "photo-008", imageKey: "7", src: "assets/gallery/08-convenience-store.jpg", webpSrc: "assets/gallery/webp/08-convenience-store.webp", title: "Person reaching into a convenience store cooler", description: "Person reaching into a convenience store cooler", alt: "Person reaching into a convenience store cooler", isUserUpload: false },
   { id: "photo-009", imageKey: "8", src: "assets/gallery/09-reggae-singer.jpg", webpSrc: "assets/gallery/webp/09-reggae-singer.webp", title: "Reggae singer performing on stage", description: "Reggae singer performing on stage", alt: "Reggae singer performing on stage", isUserUpload: false },
   { id: "photo-010", imageKey: "9", src: "assets/gallery/10-sparkler.jpg", webpSrc: "assets/gallery/webp/10-sparkler.webp", title: "Person holding a lit sparkler", description: "Person holding a lit sparkler", alt: "Person holding a lit sparkler", isUserUpload: false },
+  { id: "subject-1", imageKey: "10", src: "assets/gallery/Subject1.jpg", title: "제목 학원 이미지", description: "제목 학원 이미지", alt: "제목 학원 이미지", isUserUpload: false },
+  { id: "subject-2", imageKey: "11", src: "assets/gallery/Subject2.png", title: "제목 학원 이미지", description: "제목 학원 이미지", alt: "제목 학원 이미지", isUserUpload: false },
+  { id: "subject-3", imageKey: "12", src: "assets/gallery/Subject3.png", title: "제목 학원 이미지", description: "제목 학원 이미지", alt: "제목 학원 이미지", isUserUpload: false },
+  { id: "subject-4", imageKey: "13", src: "assets/gallery/Subject4.png", title: "제목 학원 이미지", description: "제목 학원 이미지", alt: "제목 학원 이미지", isUserUpload: false },
+  { id: "subject-5", imageKey: "14", src: "assets/gallery/Subject5.png", title: "제목 학원 이미지", description: "제목 학원 이미지", alt: "제목 학원 이미지", isUserUpload: false },
+  { id: "subject-6", imageKey: "15", src: "assets/gallery/Subject6.png", title: "제목 학원 이미지", description: "제목 학원 이미지", alt: "제목 학원 이미지", isUserUpload: false },
+  { id: "subject-7", imageKey: "16", src: "assets/gallery/Subject7.png", title: "제목 학원 이미지", description: "제목 학원 이미지", alt: "제목 학원 이미지", isUserUpload: false },
+  { id: "subject-8", imageKey: "17", src: "assets/gallery/Subject8.png", title: "제목 학원 이미지", description: "제목 학원 이미지", alt: "제목 학원 이미지", isUserUpload: false },
+  { id: "subject-9", imageKey: "18", src: "assets/gallery/Subject9.png", title: "제목 학원 이미지", description: "제목 학원 이미지", alt: "제목 학원 이미지", isUserUpload: false },
+  { id: "subject-10", imageKey: "19", src: "assets/gallery/Subject10.png", title: "제목 학원 이미지", description: "제목 학원 이미지", alt: "제목 학원 이미지", isUserUpload: false },
+  { id: "subject-11", imageKey: "20", src: "assets/gallery/Subject11.png", title: "제목 학원 이미지", description: "제목 학원 이미지", alt: "제목 학원 이미지", isUserUpload: false },
+  { id: "subject-12", imageKey: "21", src: "assets/gallery/Subject12.png", title: "제목 학원 이미지", description: "제목 학원 이미지", alt: "제목 학원 이미지", isUserUpload: false },
 ];
 
 export async function onRequestGet(context) {

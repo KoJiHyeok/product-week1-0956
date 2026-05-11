@@ -264,6 +264,102 @@ const defaultGalleryImages = [
     alt: "Person holding a lit sparkler",
     ...photoSourcePresets.unknown,
   },
+  {
+    id: "subject-1",
+    src: "assets/gallery/Subject1.jpg",
+    title: "제목 학원 이미지",
+    description: "제목 학원 이미지",
+    alt: "제목 학원 이미지",
+    ...photoSourcePresets.unknown,
+  },
+  {
+    id: "subject-2",
+    src: "assets/gallery/Subject2.png",
+    title: "제목 학원 이미지",
+    description: "제목 학원 이미지",
+    alt: "제목 학원 이미지",
+    ...photoSourcePresets.unknown,
+  },
+  {
+    id: "subject-3",
+    src: "assets/gallery/Subject3.png",
+    title: "제목 학원 이미지",
+    description: "제목 학원 이미지",
+    alt: "제목 학원 이미지",
+    ...photoSourcePresets.unknown,
+  },
+  {
+    id: "subject-4",
+    src: "assets/gallery/Subject4.png",
+    title: "제목 학원 이미지",
+    description: "제목 학원 이미지",
+    alt: "제목 학원 이미지",
+    ...photoSourcePresets.unknown,
+  },
+  {
+    id: "subject-5",
+    src: "assets/gallery/Subject5.png",
+    title: "제목 학원 이미지",
+    description: "제목 학원 이미지",
+    alt: "제목 학원 이미지",
+    ...photoSourcePresets.unknown,
+  },
+  {
+    id: "subject-6",
+    src: "assets/gallery/Subject6.png",
+    title: "제목 학원 이미지",
+    description: "제목 학원 이미지",
+    alt: "제목 학원 이미지",
+    ...photoSourcePresets.unknown,
+  },
+  {
+    id: "subject-7",
+    src: "assets/gallery/Subject7.png",
+    title: "제목 학원 이미지",
+    description: "제목 학원 이미지",
+    alt: "제목 학원 이미지",
+    ...photoSourcePresets.unknown,
+  },
+  {
+    id: "subject-8",
+    src: "assets/gallery/Subject8.png",
+    title: "제목 학원 이미지",
+    description: "제목 학원 이미지",
+    alt: "제목 학원 이미지",
+    ...photoSourcePresets.unknown,
+  },
+  {
+    id: "subject-9",
+    src: "assets/gallery/Subject9.png",
+    title: "제목 학원 이미지",
+    description: "제목 학원 이미지",
+    alt: "제목 학원 이미지",
+    ...photoSourcePresets.unknown,
+  },
+  {
+    id: "subject-10",
+    src: "assets/gallery/Subject10.png",
+    title: "제목 학원 이미지",
+    description: "제목 학원 이미지",
+    alt: "제목 학원 이미지",
+    ...photoSourcePresets.unknown,
+  },
+  {
+    id: "subject-11",
+    src: "assets/gallery/Subject11.png",
+    title: "제목 학원 이미지",
+    description: "제목 학원 이미지",
+    alt: "제목 학원 이미지",
+    ...photoSourcePresets.unknown,
+  },
+  {
+    id: "subject-12",
+    src: "assets/gallery/Subject12.png",
+    title: "제목 학원 이미지",
+    description: "제목 학원 이미지",
+    alt: "제목 학원 이미지",
+    ...photoSourcePresets.unknown,
+  },
 ];
 const authModeButtons = [loginTabButton, signupTabButton];
 const maxAvatarBytes = 5 * 1024 * 1024;
@@ -944,8 +1040,7 @@ function applyRoute(state) {
   const image = getSelectedImage();
 
   if (route.view === "title") {
-    selectedPhoto.src = image.src;
-    selectedPhoto.alt = image.alt;
+    setPreviewImage(selectedPhoto, image);
     titleInput.value = pendingTitle;
     showView(titleView);
     titleInput.focus();
@@ -1179,6 +1274,22 @@ function getCurrentRankingEntries() {
   return getSortedEntries(entries);
 }
 
+function setPreviewImage(photo, image) {
+  const frame = photo.parentElement;
+  frame?.classList.remove("is-image-missing");
+  photo.hidden = false;
+  photo.onerror = () => {
+    frame?.classList.add("is-image-missing");
+    photo.hidden = true;
+  };
+  photo.onload = () => {
+    frame?.classList.remove("is-image-missing");
+    photo.hidden = false;
+  };
+  photo.src = image.src;
+  photo.alt = image.alt;
+}
+
 function renderGallery() {
   const fragment = document.createDocumentFragment();
   const slotCount = galleryImages.length;
@@ -1210,7 +1321,14 @@ function renderGallery() {
       photo.alt = image.alt;
       photo.loading = "lazy";
       photo.decoding = "async";
+      photo.addEventListener("error", () => {
+        card.classList.add("is-image-missing");
+      }, { once: true });
       picture.append(photo);
+
+      const placeholder = document.createElement("span");
+      placeholder.className = "photo-card-placeholder";
+      placeholder.textContent = "이미지 준비 중";
 
       const actions = document.createElement("div");
       actions.className = "photo-card-actions";
@@ -1242,7 +1360,7 @@ function renderGallery() {
       card.tabIndex = 0;
       card.setAttribute("role", "button");
       card.setAttribute("aria-label", `${image.alt} 제목 입력`);
-      card.append(picture, actions);
+      card.append(picture, placeholder, actions);
     } else {
       card.classList.add("is-empty");
       card.tabIndex = 0;
@@ -1268,8 +1386,7 @@ function renderRanking() {
   }
 
   updateRankingTabs();
-  rankingPhoto.src = image.src;
-  rankingPhoto.alt = image.alt;
+  setPreviewImage(rankingPhoto, image);
 
   const entries = getCurrentRankingEntries();
 
