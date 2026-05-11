@@ -2089,6 +2089,61 @@ a[href]:focus-visible {
   line-height: 1.5;
 }
 
+.admin-account-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: min(980px, 100%);
+  margin-bottom: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 16px;
+}
+
+.admin-account-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.admin-role-badge {
+  border-radius: 999px;
+  background: var(--yellow);
+  color: #202334;
+  padding: 8px 12px;
+  font-weight: 900;
+}
+
+.admin-section-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  width: min(980px, 100%);
+}
+
+.admin-section-card {
+  min-height: 150px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 18px;
+}
+
+.admin-section-card h2,
+.admin-section-card p {
+  margin: 0;
+}
+
+.admin-section-card {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
 .upload-form label,
 .report-form label {
   font-weight: 900;
@@ -2214,6 +2269,8 @@ a[href]:focus-visible {
 :root[data-theme="light"] .contact-form,
 :root[data-theme="light"] .profile-edit-panel,
 :root[data-theme="light"] .suggestion-card,
+:root[data-theme="light"] .admin-account-panel,
+:root[data-theme="light"] .admin-section-card,
 :root[data-theme="light"] .ranking-item,
 :root[data-theme="light"] .ranking-empty,
 :root[data-theme="light"] .compact-form {
@@ -2334,8 +2391,14 @@ a[href]:focus-visible {
   }
 
   .upload-form,
-  .admin-image-card {
+  .admin-image-card,
+  .admin-section-grid {
     grid-template-columns: 1fr;
+  }
+
+  .admin-account-panel {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .notification-panel {

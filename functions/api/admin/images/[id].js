@@ -29,13 +29,13 @@ export async function onRequestDelete(context) {
     await db
       .prepare(
         `UPDATE uploaded_images
-         SET status = 'removed', reviewed_at = CURRENT_TIMESTAMP, reviewed_by = ?
+         SET status = 'deleted', reviewed_at = CURRENT_TIMESTAMP, reviewed_by = ?
          WHERE id = ?`
       )
       .bind(admin.user.id, id)
       .run();
 
-    return json({ removed: true });
+    return json({ deleted: true });
   } catch {
     return json({ message: "이미지를 삭제하지 못했습니다." }, 500);
   }

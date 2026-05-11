@@ -2,6 +2,7 @@ import {
   getDb,
   hashToken,
   json,
+  OWNER_EMAIL,
   readJson,
 } from "../_shared.js";
 
@@ -40,8 +41,13 @@ async function handleVerify(context) {
   }
 
   await db
-    .prepare("UPDATE users SET email_verified_at = ? WHERE id = ? AND email = ?")
-    .bind(now, record.user_id, record.email)
+    .prepare(
+      `UPDATE users
+       SET email_verified_at = ?,
+           role = CASE WHEN lower(email) = ? THEN 'owner' ELSE role END
+       WHERE id = ? AND email = ?`
+    )
+    .bind(now, OWNER_EMAIL, record.user_id, record.email)
     .run();
 
   await db

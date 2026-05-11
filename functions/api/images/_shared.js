@@ -10,7 +10,8 @@ const allowedImageTypes = new Map([
 ]);
 const allowedExtensions = new Set(["jpg", "jpeg", "png", "webp"]);
 const validSourceTypes = new Set(["self", "free_site", "other"]);
-const validStatuses = new Set(["pending", "approved", "rejected", "hidden", "removed"]);
+const adminRoles = new Set(["admin", "owner"]);
+const validStatuses = new Set(["pending", "approved", "rejected", "deleted"]);
 const validReportReasons = new Set([
   "copyright",
   "portrait",
@@ -44,21 +45,14 @@ export async function isAdminUser(context, user) {
     return false;
   }
 
-  const configuredIds = parseEnvList(context.env.ADMIN_USER_IDS);
-  const configuredEmails = parseEnvList(context.env.ADMIN_EMAILS).map((email) => email.toLowerCase());
-
-  if (configuredIds.has(String(user.id))) {
-    return true;
-  }
-
-  if (user.email && configuredEmails.has(String(user.email).toLowerCase())) {
+  if (adminRoles.has(user.role)) {
     return true;
   }
 
   try {
     const db = getDb(context);
     const row = await db.prepare("SELECT role FROM users WHERE id = ? LIMIT 1").bind(user.id).first();
-    return row?.role === "admin";
+    return adminRoles.has(row?.role);
   } catch {
     return false;
   }

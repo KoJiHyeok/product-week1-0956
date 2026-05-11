@@ -15,7 +15,7 @@ export async function onRequestPost(context) {
       .prepare(
         `UPDATE uploaded_images
          SET status = 'approved', moderation_reason = NULL, reviewed_at = CURRENT_TIMESTAMP, reviewed_by = ?
-         WHERE id = ? AND status IN ('pending', 'hidden', 'rejected')`
+         WHERE id = ? AND status IN ('pending', 'rejected')`
       )
       .bind(admin.user.id, id)
       .run();

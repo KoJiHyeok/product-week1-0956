@@ -63,7 +63,7 @@
 
       <div class="top-actions">
         <a class="contact-link" id="contactLink" href="#contact">문의</a>
-        <button class="auth-button ghost small" id="adminNavButton" type="button" hidden>관리자 검수</button>
+        <button class="auth-button ghost small" id="adminNavButton" type="button" hidden>관리자</button>
         <div class="auth-actions" id="authActions">
           <button class="auth-link-button" id="loginButton" type="button">로그인</button>
           <button class="auth-button solid small" id="signupButton" type="button">회원가입</button>
@@ -248,20 +248,50 @@
       </form>
     </section>
 
-    <section class="view admin-view" id="adminView" hidden aria-label="관리자 이미지 검수">
+    <section class="view admin-view" id="adminView" hidden aria-label="관리자">
       <div class="page-head admin-head">
         <div>
           <p class="view-kicker">관리자</p>
-          <h1>이미지 검수</h1>
-        </div>
-        <div class="admin-tabs" role="tablist" aria-label="검수 상태">
-          <button class="admin-tab is-active" id="adminPendingTab" type="button" data-status="pending">대기</button>
-          <button class="admin-tab" id="adminReportedTab" type="button" data-status="reported">신고</button>
+          <h1>관리자 대시보드</h1>
         </div>
       </div>
       <p class="profile-edit-message" id="adminImageMessage" aria-live="polite"></p>
-      <p class="admin-upload-notice">유저 직접 업로드는 비활성화되어 있습니다. 이미지는 관리자가 직접 추가합니다.</p>
-      <div class="admin-image-list" id="adminImageList"></div>
+
+      <section class="admin-account-panel" aria-label="현재 관리자 계정">
+        <div>
+          <span class="admin-account-label">현재 로그인 계정</span>
+          <strong id="adminCurrentUser">확인 중</strong>
+        </div>
+        <span class="admin-role-badge" id="adminRoleBadge">role 확인 중</span>
+      </section>
+
+      <div class="admin-section-grid" id="adminImageList">
+        <article class="admin-section-card">
+          <p class="view-kicker">Dashboard</p>
+          <h2>관리자 대시보드</h2>
+          <p>운영 현황과 처리 대기 항목을 붙일 기본 영역입니다.</p>
+        </article>
+        <article class="admin-section-card">
+          <p class="view-kicker">Images</p>
+          <h2>이미지 제안 관리</h2>
+          <p>상태값: pending, approved, rejected, deleted</p>
+        </article>
+        <article class="admin-section-card">
+          <p class="view-kicker">Reports</p>
+          <h2>신고 관리</h2>
+          <p>상태값: new, reviewing, resolved, rejected</p>
+        </article>
+        <article class="admin-section-card">
+          <p class="view-kicker">Users</p>
+          <h2>회원 관리</h2>
+          <p>role: user, admin, owner 기반으로 확장합니다.</p>
+        </article>
+        <article class="admin-section-card">
+          <p class="view-kicker">Inquiries</p>
+          <h2>문의 관리</h2>
+          <p>상태값: new, reviewing, resolved, ignored</p>
+        </article>
+      </div>
     </section>
   </main>
 

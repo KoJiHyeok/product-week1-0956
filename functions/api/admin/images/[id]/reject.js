@@ -15,9 +15,9 @@ export async function onRequestPost(context) {
     const id = String(context.params.id || "");
     const result = await db
       .prepare(
-        `UPDATE uploaded_images
+         `UPDATE uploaded_images
          SET status = 'rejected', moderation_reason = ?, reviewed_at = CURRENT_TIMESTAMP, reviewed_by = ?
-         WHERE id = ? AND status != 'removed'`
+         WHERE id = ? AND status != 'deleted'`
       )
       .bind(reason || null, admin.user.id, id)
       .run();

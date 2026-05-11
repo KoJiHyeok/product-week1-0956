@@ -43,7 +43,7 @@ export async function onRequestPost(context) {
     }
 
     const count = await db
-      .prepare("SELECT COUNT(*) AS report_count FROM reports WHERE target_type = ? AND target_id = ? AND status = 'pending'")
+      .prepare("SELECT COUNT(*) AS report_count FROM reports WHERE target_type = ? AND target_id = ? AND status = 'new'")
       .bind(targetType, targetId)
       .first();
     const reportCount = Number(count?.report_count) || 0;
@@ -79,7 +79,7 @@ async function targetExists(db, targetType, targetId) {
     }
 
     const row = await db
-      .prepare("SELECT id FROM uploaded_images WHERE id = ? AND status IN ('approved', 'hidden') LIMIT 1")
+      .prepare("SELECT id FROM uploaded_images WHERE id = ? AND status = 'approved' LIMIT 1")
       .bind(targetId.slice("uploaded:".length))
       .first();
     return Boolean(row);

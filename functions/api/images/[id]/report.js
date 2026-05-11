@@ -17,7 +17,7 @@ export async function onRequestPost(context) {
     }
 
     const image = await db
-      .prepare("SELECT id, status FROM uploaded_images WHERE id = ? AND status IN ('approved', 'hidden') LIMIT 1")
+      .prepare("SELECT id, status FROM uploaded_images WHERE id = ? AND status = 'approved' LIMIT 1")
       .bind(imageId)
       .first();
 
@@ -49,7 +49,7 @@ export async function onRequestPost(context) {
     await db
       .prepare(
         `UPDATE uploaded_images
-         SET report_count = ?, status = CASE WHEN ? >= 3 AND status = 'approved' THEN 'hidden' ELSE status END
+         SET report_count = ?, status = CASE WHEN ? >= 3 AND status = 'approved' THEN 'rejected' ELSE status END
          WHERE id = ?`
       )
       .bind(reportCount, reportCount, imageId)
@@ -57,9 +57,9 @@ export async function onRequestPost(context) {
 
     return json(
       {
-        message: reportCount >= 3 ? "신고가 접수되어 해당 사진이 임시 비공개 처리되었습니다." : "신고가 접수되었습니다.",
+        message: reportCount >= 3 ? "신고가 접수되어 해당 사진이 관리자 검토 대상으로 전환되었습니다." : "신고가 접수되었습니다.",
         reportCount,
-        hidden: reportCount >= 3,
+        reviewRequired: reportCount >= 3,
       },
       201,
       reporter.cookie ? { "set-cookie": reporter.cookie } : {}

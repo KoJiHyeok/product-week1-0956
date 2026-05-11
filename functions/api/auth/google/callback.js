@@ -1,6 +1,7 @@
 import {
   createRandomToken,
   createSession,
+  getVerifiedEmailRole,
   getDb,
   json,
 } from "../_shared.js";
@@ -92,7 +93,7 @@ async function upsertGoogleUser(db, profile) {
   let user = await db
     .prepare(
       `SELECT id, login_id, username, email, email_verified_at, bio, is_profile_public,
-              profile_image_url, auth_provider
+              profile_image_url, auth_provider, role
        FROM users
        WHERE google_sub = ? OR email = ?
        LIMIT 1`
@@ -104,10 +105,19 @@ async function upsertGoogleUser(db, profile) {
     await db
       .prepare(
         `UPDATE users
-         SET google_sub = ?, email_verified_at = COALESCE(email_verified_at, ?), auth_provider = ?
+         SET google_sub = ?,
+             email_verified_at = COALESCE(email_verified_at, ?),
+             auth_provider = ?,
+             role = CASE WHEN ? = 'owner' THEN 'owner' ELSE role END
          WHERE id = ?`
       )
-      .bind(googleSub, emailVerifiedAt, user.auth_provider === "password" ? "password_google" : "google", user.id)
+      .bind(
+        googleSub,
+        emailVerifiedAt,
+        user.auth_provider === "password" ? "password_google" : "google",
+        getVerifiedEmailRole(email, emailVerifiedAt),
+        user.id
+      )
       .run();
 
     return {
@@ -115,29 +125,32 @@ async function upsertGoogleUser(db, profile) {
       google_sub: googleSub,
       email_verified_at: user.email_verified_at || emailVerifiedAt,
       auth_provider: user.auth_provider === "password" ? "password_google" : "google",
+      role: getVerifiedEmailRole(email, emailVerifiedAt) === "owner" ? "owner" : user.role,
     };
   }
 
   const loginId = await createUniqueLoginId(db, googleSub);
   const username = await createUniqueUsername(db, displayName);
+  const role = getVerifiedEmailRole(email, emailVerifiedAt);
   const result = await db
     .prepare(
-      `INSERT INTO users (login_id, email, username, password_hash, email_verified_at, google_sub, auth_provider)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO users (login_id, email, username, password_hash, email_verified_at, google_sub, auth_provider, role)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     )
-    .bind(loginId, email, username, `oauth_google_${createRandomToken(24)}`, emailVerifiedAt, googleSub, "google")
+    .bind(loginId, email, username, `oauth_google_${createRandomToken(24)}`, emailVerifiedAt, googleSub, "google", role)
     .run();
 
   return {
     id: result.meta.last_row_id,
     login_id: loginId,
-      email,
-      username,
-      email_verified_at: emailVerifiedAt,
-      bio: "",
-      is_profile_public: 1,
-      profile_image_url: "",
-      auth_provider: "google",
+    email,
+    username,
+    email_verified_at: emailVerifiedAt,
+    bio: "",
+    is_profile_public: 1,
+    profile_image_url: "",
+    auth_provider: "google",
+    role,
   };
 }
 

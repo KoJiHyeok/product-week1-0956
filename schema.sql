@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS uploaded_images (
   FOREIGN KEY (uploader_user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL,
   CHECK (source_type IN ('self', 'free_site', 'other')),
-  CHECK (status IN ('pending', 'approved', 'rejected', 'hidden', 'removed'))
+  CHECK (status IN ('pending', 'approved', 'rejected', 'deleted'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_uploaded_images_status_created_at ON uploaded_images(status, created_at);
@@ -159,14 +159,14 @@ CREATE TABLE IF NOT EXISTS reports (
   reporter_fingerprint TEXT,
   reason TEXT NOT NULL,
   detail TEXT,
-  status TEXT NOT NULL DEFAULT 'pending',
+  status TEXT NOT NULL DEFAULT 'new',
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   reviewed_at TEXT,
   reviewed_by INTEGER,
   FOREIGN KEY (reporter_user_id) REFERENCES users(id) ON DELETE SET NULL,
   FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL,
   CHECK (target_type IN ('photo', 'title', 'comment')),
-  CHECK (status IN ('pending', 'reviewing', 'resolved', 'dismissed'))
+  CHECK (status IN ('new', 'reviewing', 'resolved', 'rejected'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_reports_target ON reports(target_type, target_id);
@@ -174,6 +174,25 @@ CREATE INDEX IF NOT EXISTS idx_reports_status_created_at ON reports(status, crea
 CREATE INDEX IF NOT EXISTS idx_reports_reporter_user_id ON reports(reporter_user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_reports_user_once ON reports(target_type, target_id, reporter_user_id) WHERE reporter_user_id IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_reports_guest_once ON reports(target_type, target_id, reporter_fingerprint) WHERE reporter_user_id IS NULL AND reporter_fingerprint IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS contact_inquiries (
+  id TEXT PRIMARY KEY,
+  user_id INTEGER,
+  type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  reply_email TEXT NOT NULL,
+  body TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'new',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  reviewed_at TEXT,
+  reviewed_by INTEGER,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL,
+  CHECK (status IN ('new', 'reviewing', 'resolved', 'ignored'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_contact_inquiries_status_created_at ON contact_inquiries(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_contact_inquiries_user_id ON contact_inquiries(user_id);
 
 CREATE TABLE IF NOT EXISTS user_restrictions (
   id TEXT PRIMARY KEY,

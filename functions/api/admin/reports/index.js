@@ -11,7 +11,7 @@ export async function onRequestGet(context) {
 
     const db = getDb(context);
     const url = new URL(context.request.url);
-    const status = url.searchParams.get("status") || "pending";
+    const status = url.searchParams.get("status") || "new";
     const { results } = await db
       .prepare(
         `SELECT reports.id, reports.target_type, reports.target_id, reports.reason, reports.detail,

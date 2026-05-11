@@ -116,10 +116,10 @@ const contactSubmitButton = document.querySelector("#contactSubmitButton");
 const imageSuggestionButton = document.querySelector("#imageSuggestionButton");
 const imageUploadMessage = document.querySelector("#imageUploadMessage");
 const uploadCancelButton = document.querySelector("#uploadCancelButton");
-const adminPendingTab = document.querySelector("#adminPendingTab");
-const adminReportedTab = document.querySelector("#adminReportedTab");
 const adminImageMessage = document.querySelector("#adminImageMessage");
 const adminImageList = document.querySelector("#adminImageList");
+const adminCurrentUser = document.querySelector("#adminCurrentUser");
+const adminRoleBadge = document.querySelector("#adminRoleBadge");
 const imageReportModal = document.querySelector("#imageReportModal");
 const imageReportTitle = document.querySelector("#imageReportTitle");
 const imageReportForm = document.querySelector("#imageReportForm");
@@ -375,7 +375,6 @@ let selectedImageIndex = null;
 let pendingTitle = "";
 let activeReportImage = null;
 let activeReportTarget = null;
-let activeAdminStatus = "pending";
 let activeRankingTab = "popular";
 let activeTheme = "dark";
 let toastTimer;
@@ -616,7 +615,7 @@ function setCurrentUser(user) {
 }
 
 function isCurrentAdmin() {
-  return currentUser?.role === "admin";
+  return currentUser?.role === "admin" || currentUser?.role === "owner";
 }
 
 async function requestAuth(path, options = {}) {
@@ -890,6 +889,28 @@ function routeToHash(state) {
   return "#home";
 }
 
+function routeToUrl(state) {
+  if (state.view === "admin") {
+    return "/admin";
+  }
+
+  if (state.view === "home") {
+    return "/";
+  }
+
+  return `/${routeToHash(state)}`;
+}
+
+function parseRouteFromLocation() {
+  const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
+
+  if (pathname === "/admin") {
+    return { view: "admin" };
+  }
+
+  return parseRouteFromHash(window.location.hash);
+}
+
 function parseRouteFromHash(hash) {
   const cleanHash = hash.replace(/^#/, "");
 
@@ -979,7 +1000,7 @@ function applyRoute(state) {
   const route = getValidRoute(state);
 
   if (!route) {
-    history.replaceState({ view: "home" }, "", routeToHash({ view: "home" }));
+    history.replaceState({ view: "home" }, "", routeToUrl({ view: "home" }));
     applyRoute({ view: "home" });
     return;
   }
@@ -1032,7 +1053,7 @@ function applyRoute(state) {
     selectedImageIndex = null;
     pendingTitle = "";
     showView(adminView);
-    loadAdminImages(activeAdminStatus);
+    loadAdminImages();
     return;
   }
 
@@ -1063,14 +1084,14 @@ function navigateTo(state, options = {}) {
   const route = getValidRoute(state) || { view: "home" };
   const method = options.replace ? "replaceState" : "pushState";
 
-  history[method](route, "", routeToHash(route));
+  history[method](route, "", routeToUrl(route));
   applyRoute(route);
 }
 
 function initializeRoute() {
-  const route = getValidRoute(parseRouteFromHash(window.location.hash)) || { view: "home" };
+  const route = getValidRoute(parseRouteFromLocation()) || { view: "home" };
 
-  history.replaceState(route, "", routeToHash(route));
+  history.replaceState(route, "", routeToUrl(route));
   applyRoute(route);
 }
 
@@ -2630,28 +2651,39 @@ async function submitImageReport() {
   }
 }
 
-function loadAdminImages(status = "pending") {
-  activeAdminStatus = status;
-  [adminPendingTab, adminReportedTab].forEach((tab) => {
-    const isActive = tab.dataset.status === status;
-    tab.classList.toggle("is-active", isActive);
-    tab.setAttribute("aria-selected", String(isActive));
-  });
-  adminImageMessage.textContent = "";
+async function loadAdminImages() {
+  adminImageMessage.textContent = "관리자 권한을 확인하는 중입니다.";
+  adminCurrentUser.textContent = "확인 중";
+  adminRoleBadge.textContent = "role 확인 중";
 
-  if (status === "reported") {
-    loadAdminReports();
-    return;
+  try {
+    const data = await requestJson("/api/admin/me", { method: "GET", headers: {} });
+    const adminUser = data.user || {};
+    adminCurrentUser.textContent = `${adminUser.username || "관리자"}${adminUser.email ? ` (${adminUser.email})` : ""}`;
+    adminRoleBadge.textContent = `role: ${adminUser.role || "user"}`;
+    adminImageMessage.textContent = "";
+
+    if (currentUser && String(currentUser.id) === String(adminUser.id)) {
+      currentUser = { ...currentUser, role: adminUser.role };
+      renderUser();
+    }
+  } catch (error) {
+    adminImageMessage.textContent = error.message;
+    goHome();
+
+    if (!currentUser) {
+      openAuthModal("login");
+    }
+
+    showToast(error.message);
   }
-
-  adminImageList.replaceChildren(createAdminMessage("유저 직접 업로드는 비활성화되어 있습니다. 이미지는 관리자가 직접 추가합니다."));
 }
 
 async function loadAdminReports() {
   adminImageList.replaceChildren(createAdminMessage("신고 목록을 불러오는 중입니다."));
 
   try {
-    const data = await requestJson("/api/admin/reports?status=pending", { method: "GET", headers: {} });
+    const data = await requestJson("/api/admin/reports?status=new", { method: "GET", headers: {} });
     renderAdminReports(data.reports || []);
   } catch (error) {
     adminImageList.replaceChildren(createAdminMessage(error.message));
@@ -2692,7 +2724,7 @@ function renderAdminReports(reports) {
     [
       ["reviewing", "검토 중"],
       ["resolved", "처리 완료"],
-      ["dismissed", "기각"],
+      ["rejected", "기각"],
     ].forEach(([status, label]) => {
       const button = document.createElement("button");
       button.className = status === "resolved" ? "auth-button solid" : "auth-button ghost";
@@ -2822,7 +2854,7 @@ async function moderateImage(card, action) {
       options
     );
     showToast("검수 상태를 변경했습니다.");
-    await loadAdminImages(activeAdminStatus);
+    await loadAdminImages();
     await loadGalleryImages();
   } catch (error) {
     adminImageMessage.textContent = error.message;
@@ -3264,9 +3296,6 @@ imageReportForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   await submitImageReport();
 });
-[adminPendingTab, adminReportedTab].forEach((tab) => {
-  tab.addEventListener("click", () => loadAdminImages(tab.dataset.status));
-});
 adminImageList.addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-action]");
   const card = event.target.closest(".admin-image-card");
@@ -3680,7 +3709,7 @@ avatarInput.addEventListener("change", () => {
 });
 
 window.addEventListener("popstate", (event) => {
-  applyRoute(getValidRoute(event.state) || parseRouteFromHash(window.location.hash) || { view: "home" });
+  applyRoute(getValidRoute(event.state) || parseRouteFromLocation() || { view: "home" });
 });
 
 window.addEventListener("keydown", (event) => {

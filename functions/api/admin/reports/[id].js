@@ -1,7 +1,7 @@
 import { getDb, json, readJson } from "../../auth/_shared.js";
 import { requireAdmin } from "../../images/_shared.js";
 
-const validStatuses = new Set(["pending", "reviewing", "resolved", "dismissed"]);
+const validStatuses = new Set(["new", "reviewing", "resolved", "rejected"]);
 
 export async function onRequestPatch(context) {
   try {

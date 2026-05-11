@@ -55,6 +55,9 @@ async function handleContact(context) {
     return json({ message: "문의 수신 이메일 환경변수가 설정되지 않았습니다." }, 500);
   }
 
+  const inquiryId = crypto.randomUUID();
+  await saveInquiry(context, inquiryId, user, { type, title, replyEmail, message });
+
   const sender = context.env.CONTACT_FROM_EMAIL || "Title Academy <onboarding@resend.dev>";
   const result = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -84,6 +87,24 @@ async function handleContact(context) {
   }
 
   return json({ message: "문의가 접수되었습니다." });
+}
+
+async function saveInquiry(context, inquiryId, user, inquiry) {
+  if (!context.env.DB) {
+    return;
+  }
+
+  try {
+    await context.env.DB
+      .prepare(
+        `INSERT INTO contact_inquiries (id, user_id, type, title, reply_email, body)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .bind(inquiryId, user?.id || null, inquiry.type, inquiry.title, inquiry.replyEmail, inquiry.message)
+      .run();
+  } catch {
+    // The email path remains the source of truth until the inquiry table migration is applied.
+  }
 }
 
 function normalizeText(value) {
