@@ -1,5 +1,5 @@
 import { getDb, json, readJson } from "../../../auth/_shared.js";
-import { requireAdmin } from "../../../images/_shared.js";
+import { requireAdmin } from "../../_shared.js";
 
 const validTypes = new Set(["write", "upload", "message"]);
 

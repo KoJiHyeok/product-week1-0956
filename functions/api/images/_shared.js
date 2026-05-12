@@ -1,4 +1,4 @@
-import { getCurrentUser, getDb, json } from "../auth/_shared.js";
+export { isAdminUser, requireAdmin } from "../admin/_shared.js";
 
 export const IMAGE_BUCKET_BINDING = "IMAGE_BUCKET";
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -10,7 +10,6 @@ const allowedImageTypes = new Map([
 ]);
 const allowedExtensions = new Set(["jpg", "jpeg", "png", "webp"]);
 const validSourceTypes = new Set(["self", "free_site", "other"]);
-const adminRoles = new Set(["admin", "owner"]);
 const validStatuses = new Set(["pending", "approved", "rejected", "deleted"]);
 const validReportReasons = new Set([
   "copyright",
@@ -24,38 +23,6 @@ const validReportReasons = new Set([
 
 export function getImageBucket(context) {
   return context.env[IMAGE_BUCKET_BINDING] || null;
-}
-
-export async function requireAdmin(context) {
-  const user = await getCurrentUser(context);
-
-  if (!user) {
-    return { response: json({ message: "로그인이 필요합니다." }, 401), user: null };
-  }
-
-  if (await isAdminUser(context, user)) {
-    return { response: null, user };
-  }
-
-  return { response: json({ message: "관리자 권한이 필요합니다." }, 403), user };
-}
-
-export async function isAdminUser(context, user) {
-  if (!user) {
-    return false;
-  }
-
-  if (adminRoles.has(user.role)) {
-    return true;
-  }
-
-  try {
-    const db = getDb(context);
-    const row = await db.prepare("SELECT role FROM users WHERE id = ? LIMIT 1").bind(user.id).first();
-    return adminRoles.has(row?.role);
-  } catch {
-    return false;
-  }
 }
 
 export function parseEnvList(value) {

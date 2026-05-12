@@ -1,5 +1,5 @@
 import { getDb, json } from "../../auth/_shared.js";
-import { requireAdmin } from "../../images/_shared.js";
+import { requireAdmin, REPORT_STATUSES } from "../_shared.js";
 
 export async function onRequestGet(context) {
   try {
@@ -12,6 +12,11 @@ export async function onRequestGet(context) {
     const db = getDb(context);
     const url = new URL(context.request.url);
     const status = url.searchParams.get("status") || "new";
+
+    if (!REPORT_STATUSES.has(status)) {
+      return json({ message: "신고 상태가 올바르지 않습니다." }, 400);
+    }
+
     const { results } = await db
       .prepare(
         `SELECT reports.id, reports.target_type, reports.target_id, reports.reason, reports.detail,

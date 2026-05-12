@@ -3,6 +3,7 @@ import {
   hashToken,
   json,
   OWNER_EMAIL,
+  OWNER_LOGIN_ID,
   readJson,
 } from "../_shared.js";
 
@@ -44,10 +45,10 @@ async function handleVerify(context) {
     .prepare(
       `UPDATE users
        SET email_verified_at = ?,
-           role = CASE WHEN lower(email) = ? THEN 'owner' ELSE role END
+           role = CASE WHEN login_id = ? OR lower(email) = ? THEN 'owner' ELSE role END
        WHERE id = ? AND email = ?`
     )
-    .bind(now, OWNER_EMAIL, record.user_id, record.email)
+    .bind(now, OWNER_LOGIN_ID, OWNER_EMAIL, record.user_id, record.email)
     .run();
 
   await db

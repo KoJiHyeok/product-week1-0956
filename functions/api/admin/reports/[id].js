@@ -1,7 +1,5 @@
 import { getDb, json, readJson } from "../../auth/_shared.js";
-import { requireAdmin } from "../../images/_shared.js";
-
-const validStatuses = new Set(["new", "reviewing", "resolved", "rejected"]);
+import { requireAdmin, REPORT_STATUSES } from "../_shared.js";
 
 export async function onRequestPatch(context) {
   try {
@@ -14,7 +12,7 @@ export async function onRequestPatch(context) {
     const body = await readJson(context.request);
     const status = String(body?.status || "").trim();
 
-    if (!validStatuses.has(status)) {
+    if (!REPORT_STATUSES.has(status)) {
       return json({ message: "처리 상태가 올바르지 않습니다." }, 400);
     }
 

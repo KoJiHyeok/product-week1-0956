@@ -1,5 +1,5 @@
 import { getDb, json } from "../../../auth/_shared.js";
-import { requireAdmin } from "../../../images/_shared.js";
+import { requireAdmin } from "../../_shared.js";
 
 export async function onRequestPost(context) {
   try {

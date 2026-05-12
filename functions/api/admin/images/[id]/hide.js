@@ -1,5 +1,6 @@
 import { getDb, json, readJson } from "../../../auth/_shared.js";
-import { requireAdmin, sanitizeLongText } from "../../../images/_shared.js";
+import { requireAdmin } from "../../_shared.js";
+import { sanitizeLongText } from "../../../images/_shared.js";
 
 export async function onRequestPost(context) {
   try {

@@ -1,5 +1,5 @@
 import { json } from "../../auth/_shared.js";
-import { requireAdmin } from "../../images/_shared.js";
+import { requireAdmin } from "../_shared.js";
 
 export async function onRequestGet(context) {
   try {

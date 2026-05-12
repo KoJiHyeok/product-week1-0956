@@ -4,6 +4,7 @@ const PASSWORD_HASH_ALGORITHM = "pbkdf2_sha256";
 const PASSWORD_HASH_ITERATIONS = 100000;
 const PASSWORD_KEY_BITS = 256;
 export const OWNER_EMAIL = "wlgur2101@gmail.com";
+export const OWNER_LOGIN_ID = "wlgur2101";
 const textEncoder = new TextEncoder();
 
 export function onRequest() {
@@ -49,8 +50,8 @@ export function normalizeEmail(email) {
   return typeof email === "string" ? email.trim().toLowerCase() : "";
 }
 
-export function getVerifiedEmailRole(email, emailVerifiedAt) {
-  if (normalizeEmail(email) === OWNER_EMAIL && emailVerifiedAt) {
+export function getVerifiedEmailRole(email, emailVerifiedAt, loginId = "") {
+  if ((normalizeEmail(email) === OWNER_EMAIL || normalizeLoginId(loginId) === OWNER_LOGIN_ID) && emailVerifiedAt) {
     return "owner";
   }
 

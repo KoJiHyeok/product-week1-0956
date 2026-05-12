@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
   bio TEXT NOT NULL DEFAULT '',
   is_profile_public INTEGER NOT NULL DEFAULT 1,
   profile_image_url TEXT,
-  role TEXT NOT NULL DEFAULT 'user',
+  role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin', 'owner')),
   status TEXT NOT NULL DEFAULT 'active',
   blocked_reason TEXT,
   blocked_until TEXT,
