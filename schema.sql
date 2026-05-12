@@ -81,6 +81,8 @@ CREATE TABLE IF NOT EXISTS likes (
 CREATE INDEX IF NOT EXISTS idx_submissions_image_index ON submissions(image_index);
 CREATE INDEX IF NOT EXISTS idx_submissions_image_key ON submissions(image_key);
 CREATE INDEX IF NOT EXISTS idx_submissions_author_user_id ON submissions(author_user_id);
+CREATE INDEX IF NOT EXISTS idx_submissions_user_duplicate_guard ON submissions(author_user_id, image_key, title, created_at) WHERE author_user_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_submissions_guest_duplicate_guard ON submissions(guest_name, image_key, title, created_at) WHERE author_user_id IS NULL;
 CREATE INDEX IF NOT EXISTS idx_comments_submission_id ON comments(submission_id);
 CREATE INDEX IF NOT EXISTS idx_likes_submission_id ON likes(submission_id);
 CREATE INDEX IF NOT EXISTS idx_likes_vote_date ON likes(vote_date);

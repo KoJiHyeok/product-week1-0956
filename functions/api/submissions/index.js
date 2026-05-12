@@ -88,6 +88,12 @@ export async function onRequestPost(context) {
       return json({ message: "공개된 사진에만 제목을 입력할 수 있습니다." }, 403);
     }
 
+    const duplicateRow = await findRecentDuplicateSubmission(db, { imageKey, title, user, guestName });
+
+    if (duplicateRow) {
+      return json({ submission: await withComments(db, duplicateRow, user) }, 200);
+    }
+
     const result = await db
       .prepare(
         `INSERT INTO submissions (image_index, image_key, image_src, title, author_user_id, guest_name)
@@ -114,6 +120,32 @@ export async function onRequestPost(context) {
   } catch {
     return json({ message: "제목을 저장하지 못했습니다." }, 500);
   }
+}
+
+async function findRecentDuplicateSubmission(db, { imageKey, title, user, guestName }) {
+  const authorCondition = user
+    ? "submissions.author_user_id = ?"
+    : "submissions.author_user_id IS NULL AND submissions.guest_name = ?";
+  const authorValue = user ? user.id : guestName;
+
+  return db
+    .prepare(
+      `SELECT submissions.id, submissions.image_index, submissions.image_key, submissions.image_src, submissions.title,
+              submissions.author_user_id,
+              submissions.guest_name, submissions.created_at, users.username,
+              users.is_profile_public, users.profile_image_url,
+              0 AS like_count, 0 AS liked_by_me
+       FROM submissions
+       LEFT JOIN users ON users.id = submissions.author_user_id
+       WHERE COALESCE(submissions.image_key, CAST(submissions.image_index AS TEXT)) = ?
+         AND submissions.title = ?
+         AND ${authorCondition}
+         AND submissions.created_at >= datetime('now', '-10 seconds')
+       ORDER BY submissions.created_at DESC, submissions.id DESC
+       LIMIT 1`
+    )
+    .bind(imageKey, title, authorValue)
+    .first();
 }
 
 async function withComments(db, row, user) {

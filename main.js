@@ -15,8 +15,10 @@ const selectedPhoto = document.querySelector("#selectedPhoto");
 const rankingPhoto = document.querySelector("#rankingPhoto");
 const titleForm = document.querySelector("#titleForm");
 const titleInput = document.querySelector("#titleInput");
+const titleSubmitButton = titleForm.querySelector('button[type="submit"]');
 const guestForm = document.querySelector("#guestForm");
 const guestNameInput = document.querySelector("#guestNameInput");
+const guestSubmitButton = guestForm.querySelector('button[type="submit"]');
 const rankingList = document.querySelector("#rankingList");
 const rankingTabs = document.querySelectorAll(".ranking-tab");
 const galleryMoreButton = document.querySelector("#galleryMoreButton");
@@ -379,6 +381,7 @@ let galleryImages = defaultGalleryImages.map((image, index) => ({ ...image, imag
 let currentGuestName = sessionStorage.getItem(guestStorageKey) || "";
 let selectedImageIndex = null;
 let pendingTitle = "";
+let isTitleSubmitting = false;
 let activeReportImage = null;
 let activeAdminSection = "images";
 let currentAdminRole = "user";
@@ -859,6 +862,11 @@ function getActiveAuthor() {
   return getUserDisplayName() || currentGuestName || "비회원";
 }
 
+function setTitleSubmitting(isSubmitting) {
+  titleSubmitButton.disabled = isSubmitting;
+  guestSubmitButton.disabled = isSubmitting;
+}
+
 function isServerEntry(entry) {
   return /^\d+$/.test(String(entry?.id || ""));
 }
@@ -1278,13 +1286,29 @@ async function refreshRanking() {
   renderRanking();
 }
 
+function prependServerSubmission(imageKey, submission) {
+  if (!submission) {
+    return;
+  }
+
+  const currentList = Array.isArray(serverSubmissionsByImage[imageKey]) ? serverSubmissionsByImage[imageKey] : [];
+  serverSubmissionsByImage[imageKey] = [submission, ...currentList.filter((entry) => entry.id !== submission.id)];
+}
+
 async function addSubmission(author) {
+  if (isTitleSubmitting) {
+    return;
+  }
+
   const image = getSelectedImage();
 
   if (!image || !pendingTitle) {
     goHome();
     return;
   }
+
+  isTitleSubmitting = true;
+  setTitleSubmitting(true);
 
   try {
     const data = await requestJson("/api/submissions", {
@@ -1298,8 +1322,7 @@ async function addSubmission(author) {
       }),
     });
     const imageKey = getSelectedImageKey();
-    const currentList = Array.isArray(serverSubmissionsByImage[imageKey]) ? serverSubmissionsByImage[imageKey] : [];
-    serverSubmissionsByImage[imageKey] = [data.submission, ...currentList].filter(Boolean);
+    prependServerSubmission(imageKey, data.submission);
     pendingTitle = "";
     renderRanking();
     navigateTo({ view: "ranking", imageIndex: selectedImageIndex });
@@ -1310,6 +1333,9 @@ async function addSubmission(author) {
       showToast("서버 저장소를 사용할 수 없습니다.");
       return;
     }
+  } finally {
+    isTitleSubmitting = false;
+    setTitleSubmitting(false);
   }
 
   const submissions = loadSubmissions();
@@ -3381,6 +3407,10 @@ galleryGrid.addEventListener("keydown", (event) => {
 titleForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
+  if (isTitleSubmitting) {
+    return;
+  }
+
   const title = titleInput.value.trim();
 
   if (!title) {
@@ -3401,6 +3431,10 @@ titleForm.addEventListener("submit", async (event) => {
 
 guestForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+
+  if (isTitleSubmitting) {
+    return;
+  }
 
   const guestName = guestNameInput.value.trim();
 
