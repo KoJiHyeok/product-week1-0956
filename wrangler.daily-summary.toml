@@ -1,0 +1,11 @@
+name = "titleacademy-daily-summary"
+main = "workers/daily-summary.js"
+compatibility_date = "2026-05-05"
+
+[triggers]
+crons = ["0 12 * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "product-week1-0956-auth"
+database_id = "89ecb707-e9aa-47e8-8c1c-a2d769fe2f15"
