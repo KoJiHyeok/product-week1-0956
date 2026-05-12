@@ -17,7 +17,7 @@ export async function onRequestDelete(context) {
     }
 
     const comment = await db
-      .prepare("SELECT author_user_id FROM comments WHERE id = ? AND submission_id = ? LIMIT 1")
+      .prepare("SELECT author_user_id FROM comments WHERE id = ? AND submission_id = ? AND deleted_at IS NULL LIMIT 1")
       .bind(commentId, submissionId)
       .first();
 
@@ -29,7 +29,10 @@ export async function onRequestDelete(context) {
       return json({ message: "본인이 작성한 댓글만 삭제할 수 있습니다." }, 403);
     }
 
-    await db.prepare("DELETE FROM comments WHERE id = ?").bind(commentId).run();
+    await db
+      .prepare("UPDATE comments SET deleted_at = CURRENT_TIMESTAMP, deleted_reason = 'author_deleted' WHERE id = ?")
+      .bind(commentId)
+      .run();
     return json({ deleted: true });
   } catch {
     return json({ message: "댓글을 삭제하지 못했습니다." }, 500);

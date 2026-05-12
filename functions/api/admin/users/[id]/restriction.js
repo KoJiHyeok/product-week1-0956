@@ -1,5 +1,5 @@
 import { getDb, json, readJson } from "../../../auth/_shared.js";
-import { isOwnerRole, logAdminAction, requireAdmin } from "../../_shared.js";
+import { isOwnerRole, isProtectedOwnerUser, logAdminAction, requireAdmin } from "../../_shared.js";
 
 const validTypes = new Set(["write", "upload", "message"]);
 
@@ -21,14 +21,18 @@ export async function onRequestPatch(context) {
       return json({ message: "제한 정보가 올바르지 않습니다." }, 400);
     }
 
+    if (userId === admin.user.id) {
+      return json({ message: "자기 자신은 정지할 수 없습니다." }, 403);
+    }
+
     const db = getDb(context);
-    const target = await db.prepare("SELECT id, role FROM users WHERE id = ? LIMIT 1").bind(userId).first();
+    const target = await db.prepare("SELECT id, email, role FROM users WHERE id = ? LIMIT 1").bind(userId).first();
 
     if (!target) {
       return json({ message: "회원을 찾을 수 없습니다." }, 404);
     }
 
-    if (isOwnerRole(target.role) && !isOwnerRole(admin.user.role)) {
+    if (isProtectedOwnerUser(target) && !isOwnerRole(admin.user.role)) {
       return json({ message: "owner 계정은 admin이 정지할 수 없습니다." }, 403);
     }
 
@@ -68,14 +72,18 @@ export async function onRequestDelete(context) {
       return json({ message: "회원 정보가 올바르지 않습니다." }, 400);
     }
 
+    if (userId === admin.user.id) {
+      return json({ message: "자기 자신은 정지 해제할 수 없습니다." }, 403);
+    }
+
     const db = getDb(context);
-    const target = await db.prepare("SELECT id, role FROM users WHERE id = ? LIMIT 1").bind(userId).first();
+    const target = await db.prepare("SELECT id, email, role FROM users WHERE id = ? LIMIT 1").bind(userId).first();
 
     if (!target) {
       return json({ message: "회원을 찾을 수 없습니다." }, 404);
     }
 
-    if (isOwnerRole(target.role) && !isOwnerRole(admin.user.role)) {
+    if (isProtectedOwnerUser(target) && !isOwnerRole(admin.user.role)) {
       return json({ message: "owner 계정은 admin이 정지 해제할 수 없습니다." }, 403);
     }
 

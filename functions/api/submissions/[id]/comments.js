@@ -23,6 +23,23 @@ export async function onRequestPost(context) {
       return restrictionResponse;
     }
 
+    const submission = await db
+      .prepare(
+        `SELECT id
+         FROM submissions
+         WHERE id = ?
+           AND hidden_at IS NULL
+           AND deleted_at IS NULL
+           AND excluded_from_ranking = 0
+         LIMIT 1`
+      )
+      .bind(submissionId)
+      .first();
+
+    if (!submission) {
+      return json({ message: "댓글을 작성할 제목을 찾을 수 없습니다." }, 404);
+    }
+
     const result = await db
       .prepare(
         `INSERT INTO comments (submission_id, author_user_id, guest_name, text)

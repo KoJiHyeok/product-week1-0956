@@ -1,4 +1,4 @@
-import { getCurrentUser, getDb, json, readJson } from "../auth/_shared.js";
+import { ensureUserCanWrite, getCurrentUser, getDb, json, readJson } from "../auth/_shared.js";
 import { sanitizeLongText } from "../images/_shared.js";
 
 const reportCookieName = "title_school_content_reporter";
@@ -21,6 +21,12 @@ export async function onRequestPost(context) {
 
     if (!validReasons.has(reason)) {
       return json({ message: "신고 사유를 선택하세요." }, 400);
+    }
+
+    const restrictionResponse = await ensureUserCanWrite(context, user, "write");
+
+    if (restrictionResponse) {
+      return restrictionResponse;
     }
 
     if (!(await targetExists(db, targetType, targetId))) {
@@ -64,12 +70,26 @@ export async function onRequestPost(context) {
 
 async function targetExists(db, targetType, targetId) {
   if (targetType === "title") {
-    const row = await db.prepare("SELECT id FROM submissions WHERE id = ? LIMIT 1").bind(Number(targetId)).first();
+    const row = await db
+      .prepare(
+        `SELECT id
+         FROM submissions
+         WHERE id = ?
+           AND hidden_at IS NULL
+           AND deleted_at IS NULL
+           AND excluded_from_ranking = 0
+         LIMIT 1`
+      )
+      .bind(Number(targetId))
+      .first();
     return Boolean(row);
   }
 
   if (targetType === "comment") {
-    const row = await db.prepare("SELECT id FROM comments WHERE id = ? LIMIT 1").bind(Number(targetId)).first();
+    const row = await db
+      .prepare("SELECT id FROM comments WHERE id = ? AND hidden_at IS NULL AND deleted_at IS NULL LIMIT 1")
+      .bind(Number(targetId))
+      .first();
     return Boolean(row);
   }
 

@@ -2054,6 +2054,7 @@ button:focus-visible,
 .ranking-self-link:focus-visible,
 .ranking-tab:focus-visible,
 .admin-tab:focus-visible,
+.admin-section-card:focus-visible,
 .delete-button:focus-visible,
 .comment-delete:focus-visible,
 .comment-toggle:focus-visible,
@@ -2187,7 +2188,9 @@ a[href]:focus-visible {
   border: 1px solid rgba(255, 255, 255, 0.24);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
   padding: 18px;
+  text-align: left;
 }
 
 .admin-section-card h2,
@@ -2302,6 +2305,39 @@ a[href]:focus-visible {
   gap: 16px;
 }
 
+.admin-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.admin-table {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-table th {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.admin-table td {
+  font-weight: 800;
+  line-height: 1.45;
+}
+
 .admin-image-card {
   width: 100%;
   color: var(--text);
@@ -2335,6 +2371,7 @@ a[href]:focus-visible {
 :root[data-theme="light"] .suggestion-card,
 :root[data-theme="light"] .admin-account-panel,
 :root[data-theme="light"] .admin-section-card,
+:root[data-theme="light"] .admin-table-wrap,
 :root[data-theme="light"] .admin-image-card,
 :root[data-theme="light"] .ranking-item,
 :root[data-theme="light"] .ranking-empty,
@@ -2342,6 +2379,11 @@ a[href]:focus-visible {
   border-color: #ccd5ea;
   background: rgba(255, 255, 255, 0.86);
   color: var(--text);
+}
+
+:root[data-theme="light"] .admin-table th,
+:root[data-theme="light"] .admin-table td {
+  border-bottom-color: #dce3f2;
 }
 
 :root[data-theme="light"] .auth-button.ghost,

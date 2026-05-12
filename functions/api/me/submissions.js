@@ -22,6 +22,8 @@ export async function onRequestGet(context) {
          FROM submissions
          LEFT JOIN likes ON likes.submission_id = submissions.id
          WHERE submissions.author_user_id = ?
+           AND submissions.hidden_at IS NULL
+           AND submissions.deleted_at IS NULL
          GROUP BY submissions.id
          ORDER BY submissions.created_at DESC`
       )
@@ -37,6 +39,8 @@ export async function onRequestGet(context) {
              FROM comments
              LEFT JOIN users ON users.id = comments.author_user_id
              WHERE comments.submission_id = ?
+               AND comments.hidden_at IS NULL
+               AND comments.deleted_at IS NULL
              ORDER BY comments.created_at ASC`
           )
           .bind(row.id)

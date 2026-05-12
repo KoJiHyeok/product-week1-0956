@@ -46,6 +46,9 @@ export async function onRequestGet(context) {
          LEFT JOIN users ON users.id = submissions.author_user_id
          LEFT JOIN likes ON likes.submission_id = submissions.id
          WHERE COALESCE(submissions.image_key, CAST(submissions.image_index AS TEXT)) = ?
+           AND submissions.hidden_at IS NULL
+           AND submissions.deleted_at IS NULL
+           AND submissions.excluded_from_ranking = 0
          GROUP BY submissions.id
          ORDER BY like_count DESC, submissions.created_at DESC`
       )
@@ -140,6 +143,8 @@ async function findRecentDuplicateSubmission(db, { imageKey, title, user, guestN
        WHERE COALESCE(submissions.image_key, CAST(submissions.image_index AS TEXT)) = ?
          AND submissions.title = ?
          AND ${authorCondition}
+         AND submissions.hidden_at IS NULL
+         AND submissions.deleted_at IS NULL
          AND submissions.created_at >= datetime('now', '-10 seconds')
        ORDER BY submissions.created_at DESC, submissions.id DESC
        LIMIT 1`
@@ -156,6 +161,8 @@ async function withComments(db, row, user) {
        FROM comments
        LEFT JOIN users ON users.id = comments.author_user_id
        WHERE comments.submission_id = ?
+         AND comments.hidden_at IS NULL
+         AND comments.deleted_at IS NULL
        ORDER BY comments.created_at ASC`
     )
     .bind(row.id)

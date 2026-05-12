@@ -383,10 +383,11 @@ let selectedImageIndex = null;
 let pendingTitle = "";
 let isTitleSubmitting = false;
 let activeReportImage = null;
-let activeAdminSection = "images";
+let activeAdminSection = "dashboard";
 let currentAdminRole = "user";
 const adminFilters = {
   images: "pending",
+  submissions: "all",
   reports: "new",
   inquiries: "new",
 };
@@ -2817,6 +2818,16 @@ async function loadAdminSection(section) {
   activeAdminSection = section;
   renderAdminTabs();
 
+  if (section === "dashboard") {
+    renderAdminDashboard();
+    return;
+  }
+
+  if (section === "submissions") {
+    await loadAdminSubmissions();
+    return;
+  }
+
   if (section === "images") {
     await loadAdminImageSuggestions();
     return;
@@ -2846,6 +2857,104 @@ function renderAdminTabs() {
     tab.classList.toggle("is-active", isActive);
     tab.setAttribute("aria-selected", String(isActive));
   });
+}
+
+function renderAdminDashboard() {
+  const sections = [
+    ["submissions", "제목/댓글 관리", "제출된 제목과 댓글을 숨김, 삭제, 랭킹 제외 처리합니다."],
+    ["users", "회원 관리", "회원 정지 상태와 admin 권한을 관리합니다."],
+    ["reports", "신고 관리", "제목, 댓글, 사진 신고의 처리 상태를 변경합니다."],
+    ["inquiries", "문의 관리", "문의 접수 상태를 검토하고 저장합니다."],
+    ["images", "이미지 제안", "사용자 이미지 제안과 신고된 이미지를 검수합니다."],
+    ["logs", "활동 로그", "관리자 작업 이력을 확인합니다."],
+  ];
+  const grid = document.createElement("div");
+  grid.className = "admin-section-grid";
+
+  sections.forEach(([section, titleText, descriptionText]) => {
+    const card = document.createElement("button");
+    card.className = "admin-section-card";
+    card.type = "button";
+    card.dataset.action = "admin-dashboard-section";
+    card.dataset.section = section;
+
+    const title = document.createElement("h2");
+    title.textContent = titleText;
+
+    const description = document.createElement("p");
+    description.textContent = descriptionText;
+
+    card.append(title, description);
+    grid.append(card);
+  });
+
+  adminImageList.replaceChildren(grid);
+}
+
+async function loadAdminSubmissions() {
+  adminImageList.replaceChildren(createAdminMessage("제목/댓글 목록을 불러오는 중입니다."));
+
+  try {
+    const data = await requestJson(`/api/admin/submissions?type=${encodeURIComponent(adminFilters.submissions)}`, { method: "GET", headers: {} });
+    renderAdminSubmissions(data.items || []);
+  } catch (error) {
+    adminImageList.replaceChildren(createAdminMessage(error.message));
+  }
+}
+
+function renderAdminSubmissions(items) {
+  const fragment = document.createDocumentFragment();
+  fragment.append(
+    createAdminStatusFilter("submissions", [
+      ["all", "전체"],
+      ["submission", "제목"],
+      ["comment", "댓글"],
+    ])
+  );
+
+  if (items.length === 0) {
+    fragment.append(createAdminMessage("표시할 제목/댓글이 없습니다."));
+    adminImageList.replaceChildren(fragment);
+    return;
+  }
+
+  const tableWrap = createAdminTable([
+    "유형/ID",
+    "이미지/부모",
+    "내용",
+    "작성자",
+    "작성일",
+    "상태",
+    "수치",
+    "관리",
+  ]);
+  const tbody = tableWrap.querySelector("tbody");
+
+  items.forEach((item) => {
+    const row = document.createElement("tr");
+    row.dataset.adminRow = "content";
+    row.dataset.itemId = item.id;
+    row.dataset.itemType = item.type;
+
+    row.append(
+      createAdminCell(`${item.type === "comment" ? "댓글" : "제목"} #${item.id}`),
+      createAdminCell(`이미지 ${item.imageId || "-"}${item.parentSubmissionId ? ` · 제목 #${item.parentSubmissionId}` : ""}`),
+      createAdminCell(item.type === "comment" && item.parentTitle ? `${item.parentTitle} / ${item.content}` : item.content),
+      createAdminCell(`${item.author}${item.authorEmail ? ` (${item.authorEmail})` : item.authorLoginId ? ` (${item.authorLoginId})` : ""}`),
+      createAdminCell(formatDate(item.createdAt)),
+      createAdminCell(getAdminContentStatusLabel(item)),
+      createAdminCell(item.type === "submission" ? `좋아요 ${item.likes || 0} · 댓글 ${item.comments || 0}` : "-"),
+      createAdminActionsCell([
+        [item.hiddenAt ? "content-unhide" : "content-hide", item.hiddenAt ? "숨김 해제" : "숨김 처리", item.hiddenAt ? "ghost" : "ghost"],
+        ["content-delete", "삭제 처리", "danger"],
+        [item.excludedFromRanking ? "content-include-ranking" : "content-exclude-ranking", item.excludedFromRanking ? "랭킹 제외 해제" : "랭킹 제외", "ghost"],
+      ])
+    );
+    tbody.append(row);
+  });
+
+  fragment.append(tableWrap);
+  adminImageList.replaceChildren(fragment);
 }
 
 async function loadAdminImageSuggestions() {
@@ -3064,60 +3173,46 @@ function renderAdminUsers(users) {
     return;
   }
 
-  const fragment = document.createDocumentFragment();
+  const tableWrap = createAdminTable(["ID", "이메일", "로그인 ID", "닉네임", "role", "status", "가입/최근", "관리"]);
+  const tbody = tableWrap.querySelector("tbody");
 
   users.forEach((user) => {
-    const card = document.createElement("article");
-    card.className = "admin-image-card admin-report-card";
-    card.dataset.userId = user.id;
+    const row = document.createElement("tr");
+    row.dataset.adminRow = "user";
+    row.dataset.userId = user.id;
+    row.dataset.userRole = user.role;
+    row.dataset.userStatus = user.status;
 
-    const body = document.createElement("div");
-    body.className = "admin-image-body";
-
-    const title = document.createElement("h2");
-    title.textContent = user.username || "회원";
-
-    const meta = document.createElement("p");
-    meta.className = "admin-image-meta";
-    meta.textContent = `이메일 ${user.email || "-"} · role ${user.role} · 상태 ${user.status} · 가입일 ${formatDate(user.createdAt)}`;
-
-    const actions = document.createElement("div");
-    actions.className = "admin-image-actions";
+    const actions = [];
 
     if (user.role !== "owner") {
-      const statusButton = document.createElement("button");
-      statusButton.className = user.status === "suspended" ? "auth-button solid" : "auth-button danger";
-      statusButton.type = "button";
-      statusButton.dataset.action = "user-status";
-      statusButton.dataset.status = user.status === "suspended" ? "active" : "suspended";
-      statusButton.textContent = user.status === "suspended" ? "정지 해제" : "정지";
-      actions.append(statusButton);
+      actions.push([
+        "user-status",
+        user.status === "suspended" ? "정지 해제" : "정지",
+        user.status === "suspended" ? "solid" : "danger",
+      ]);
     }
 
     if (currentAdminRole === "owner" && user.role !== "owner") {
-      const roleButton = document.createElement("button");
-      roleButton.className = "auth-button ghost";
-      roleButton.type = "button";
-      roleButton.dataset.action = "user-role";
-      roleButton.dataset.role = user.role === "admin" ? "user" : "admin";
-      roleButton.textContent = user.role === "admin" ? "admin 해제" : "admin 지정";
-      actions.append(roleButton);
+      actions.push(["user-role", user.role === "admin" ? "admin 해제" : "admin 지정", "ghost"]);
     }
 
-    if (user.role === "owner") {
-      const note = document.createElement("p");
-      note.className = "admin-image-source";
-      note.textContent = "owner 계정은 admin이 수정하거나 정지할 수 없습니다.";
-      body.append(title, meta, note);
-    } else {
-      body.append(title, meta, actions);
-    }
-
-    card.append(body);
-    fragment.append(card);
+    row.append(
+      createAdminCell(`#${user.id}`),
+      createAdminCell(user.email || "-"),
+      createAdminCell(user.loginId || "-"),
+      createAdminCell(user.username || "-"),
+      createAdminCell(user.role || "user"),
+      createAdminCell(`${user.status || "active"}${user.blockedReason ? ` · ${user.blockedReason}` : ""}`),
+      createAdminCell(`가입 ${formatDate(user.createdAt)}${user.lastSessionAt ? ` · 최근 ${formatDate(user.lastSessionAt)}` : ""}`),
+      user.role === "owner"
+        ? createAdminCell("owner 보호")
+        : createAdminActionsCell(actions)
+    );
+    tbody.append(row);
   });
 
-  adminImageList.replaceChildren(fragment);
+  adminImageList.replaceChildren(tableWrap);
 }
 
 async function loadAdminInquiries() {
@@ -3254,6 +3349,71 @@ function createAdminStatusFilter(section, options) {
   return toolbar;
 }
 
+function createAdminTable(headers) {
+  const wrap = document.createElement("div");
+  wrap.className = "admin-table-wrap";
+
+  const table = document.createElement("table");
+  table.className = "admin-table";
+
+  const thead = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  headers.forEach((header) => {
+    const th = document.createElement("th");
+    th.scope = "col";
+    th.textContent = header;
+    headRow.append(th);
+  });
+  thead.append(headRow);
+
+  const tbody = document.createElement("tbody");
+  table.append(thead, tbody);
+  wrap.append(table);
+  return wrap;
+}
+
+function createAdminCell(text) {
+  const cell = document.createElement("td");
+  cell.textContent = text || "-";
+  return cell;
+}
+
+function createAdminActionsCell(actions) {
+  const cell = document.createElement("td");
+  const group = document.createElement("div");
+  group.className = "admin-image-actions";
+
+  actions.forEach(([action, label, style]) => {
+    const button = document.createElement("button");
+    button.className = `auth-button ${style || "ghost"}`;
+    button.type = "button";
+    button.dataset.action = action;
+    button.textContent = label;
+    group.append(button);
+  });
+
+  cell.append(group);
+  return cell;
+}
+
+function getAdminContentStatusLabel(item) {
+  const statuses = [];
+
+  if (item.deletedAt) {
+    statuses.push(`삭제됨${item.deletedReason ? `: ${item.deletedReason}` : ""}`);
+  }
+
+  if (item.hiddenAt) {
+    statuses.push(`숨김${item.hiddenReason ? `: ${item.hiddenReason}` : ""}`);
+  }
+
+  if (item.excludedFromRanking) {
+    statuses.push("랭킹 제외");
+  }
+
+  return statuses.join(" · ") || "공개";
+}
+
 function getImageSourceLabel(type) {
   return { self: "직접 촬영", free_site: "무료 이미지 사이트", other: "기타" }[type] || type || "-";
 }
@@ -3268,6 +3428,11 @@ function createAdminMessage(message) {
 async function moderateImage(card, action) {
   const imageId = card.dataset.imageId;
   const reason = card.querySelector(".admin-reason-input")?.value.trim() || "";
+
+  if (!window.confirm("이미지 검수 상태를 변경할까요?")) {
+    return;
+  }
+
   const options =
     action === "delete"
       ? { method: "DELETE", headers: {} }
@@ -3292,8 +3457,13 @@ async function moderateImage(card, action) {
 }
 
 async function updateAdminUser(card, body) {
+  const userId = card.dataset.userId;
+  const endpoint = body.role
+    ? `/api/admin/users/${encodeURIComponent(userId)}/role`
+    : `/api/admin/users/${encodeURIComponent(userId)}/status`;
+
   try {
-    await requestJson(`/api/admin/users/${encodeURIComponent(card.dataset.userId)}`, {
+    await requestJson(endpoint, {
       method: "PATCH",
       body: JSON.stringify(body),
     });
@@ -3312,6 +3482,36 @@ async function updateAdminInquiry(card, status) {
     });
     showToast("문의 상태를 저장했습니다.");
     await loadAdminInquiries();
+  } catch (error) {
+    adminImageMessage.textContent = error.message;
+  }
+}
+
+async function updateAdminContent(row, action, reason = "") {
+  const actionMap = {
+    "content-hide": "hide",
+    "content-unhide": "unhide",
+    "content-delete": "delete",
+    "content-exclude-ranking": "exclude_ranking",
+    "content-include-ranking": "include_ranking",
+  };
+  const apiAction = actionMap[action];
+
+  if (!apiAction) {
+    return;
+  }
+
+  try {
+    await requestJson(`/api/admin/submissions/${encodeURIComponent(row.dataset.itemId)}/moderation`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        targetType: row.dataset.itemType,
+        action: apiAction,
+        reason,
+      }),
+    });
+    showToast("콘텐츠 관리 상태를 저장했습니다.");
+    await loadAdminSubmissions();
   } catch (error) {
     adminImageMessage.textContent = error.message;
   }
@@ -3778,6 +3978,62 @@ adminImageList.addEventListener("click", async (event) => {
     return;
   }
 
+  if (button.dataset.action === "admin-dashboard-section") {
+    await loadAdminSection(button.dataset.section || "dashboard");
+    return;
+  }
+
+  const row = event.target.closest("[data-admin-row]");
+
+  if (row?.dataset.adminRow === "content") {
+    const action = button.dataset.action;
+    let reason = "";
+
+    if (action === "content-hide" || action === "content-delete") {
+      reason = window.prompt(action === "content-hide" ? "숨김 처리 사유를 입력하세요." : "삭제 처리 사유를 입력하세요.", "") || "";
+
+      if (!reason.trim()) {
+        return;
+      }
+    } else if (!window.confirm("해당 관리 작업을 적용할까요?")) {
+      return;
+    }
+
+    await updateAdminContent(row, action, reason.trim());
+    return;
+  }
+
+  if (row?.dataset.adminRow === "user") {
+    if (button.dataset.action === "user-status") {
+      const nextStatus = row.dataset.userStatus === "suspended" ? "active" : "suspended";
+
+      if (nextStatus === "suspended") {
+        const reason = window.prompt("회원 정지 사유를 입력하세요.", "") || "";
+
+        if (!reason.trim()) {
+          return;
+        }
+
+        await updateAdminUser(row, { status: nextStatus, reason: reason.trim() });
+        return;
+      }
+
+      if (window.confirm("회원 정지를 해제할까요?")) {
+        await updateAdminUser(row, { status: nextStatus });
+      }
+      return;
+    }
+
+    if (button.dataset.action === "user-role") {
+      const nextRole = row.dataset.userRole === "admin" ? "user" : "admin";
+
+      if (window.confirm(`회원 role을 ${nextRole}(으)로 변경할까요?`)) {
+        await updateAdminUser(row, { role: nextRole });
+      }
+      return;
+    }
+  }
+
   const card = event.target.closest(".admin-image-card");
 
   if (!card) {
@@ -3785,8 +4041,12 @@ adminImageList.addEventListener("click", async (event) => {
   }
 
   if (button.dataset.action === "report-status") {
+    if (!window.confirm("신고 처리 상태를 변경할까요?")) {
+      return;
+    }
+
     try {
-      await requestJson(`/api/admin/reports/${encodeURIComponent(card.dataset.reportId)}`, {
+      await requestJson(`/api/admin/reports/${encodeURIComponent(card.dataset.reportId)}/status`, {
         method: "PATCH",
         body: JSON.stringify({ status: button.dataset.status }),
       });
@@ -3805,6 +4065,10 @@ adminImageList.addEventListener("click", async (event) => {
       return;
     }
 
+    if (!window.confirm("신고된 이미지를 숨김 처리할까요?")) {
+      return;
+    }
+
     try {
       await requestJson(`/api/admin/images/${encodeURIComponent(uploadedImageId)}/hide`, {
         method: "POST",
@@ -3819,17 +4083,11 @@ adminImageList.addEventListener("click", async (event) => {
     return;
   }
 
-  if (button.dataset.action === "user-status") {
-    await updateAdminUser(card, { status: button.dataset.status });
-    return;
-  }
-
-  if (button.dataset.action === "user-role") {
-    await updateAdminUser(card, { role: button.dataset.role });
-    return;
-  }
-
   if (button.dataset.action === "inquiry-status") {
+    if (!window.confirm("문의 처리 상태를 변경할까요?")) {
+      return;
+    }
+
     await updateAdminInquiry(card, button.dataset.status);
     return;
   }

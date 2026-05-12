@@ -1,4 +1,4 @@
-import { getCurrentUser, getDb, json } from "../../auth/_shared.js";
+import { ensureUserCanWrite, getCurrentUser, getDb, json } from "../../auth/_shared.js";
 import { getOrCreateGuestVoteIdentifier, getVoteDate } from "../_vote.js";
 
 export async function onRequestPost(context) {
@@ -13,7 +13,24 @@ export async function onRequestPost(context) {
       return json({ message: "제목 정보가 올바르지 않습니다." }, 400);
     }
 
-    const submission = await db.prepare("SELECT id FROM submissions WHERE id = ? LIMIT 1").bind(submissionId).first();
+    const restrictionResponse = await ensureUserCanWrite(context, user, "write");
+
+    if (restrictionResponse) {
+      return restrictionResponse;
+    }
+
+    const submission = await db
+      .prepare(
+        `SELECT id
+         FROM submissions
+         WHERE id = ?
+           AND hidden_at IS NULL
+           AND deleted_at IS NULL
+           AND excluded_from_ranking = 0
+         LIMIT 1`
+      )
+      .bind(submissionId)
+      .first();
 
     if (!submission) {
       return json({ message: "제목을 찾을 수 없습니다." }, 404);
@@ -79,7 +96,15 @@ export async function onRequestPost(context) {
 
 async function countLikes(db, submissionId) {
   const count = await db
-    .prepare("SELECT COUNT(*) AS like_count FROM likes WHERE submission_id = ?")
+    .prepare(
+      `SELECT COUNT(*) AS like_count
+       FROM likes
+       JOIN submissions ON submissions.id = likes.submission_id
+       WHERE likes.submission_id = ?
+         AND submissions.hidden_at IS NULL
+         AND submissions.deleted_at IS NULL
+         AND submissions.excluded_from_ranking = 0`
+    )
     .bind(submissionId)
     .first();
 

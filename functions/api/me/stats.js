@@ -12,12 +12,15 @@ export async function onRequestGet(context) {
     const stats = await db
       .prepare(
         `SELECT
-           (SELECT COUNT(*) FROM submissions WHERE author_user_id = ?) AS title_count,
-           (SELECT COUNT(*) FROM comments WHERE author_user_id = ?) AS comment_count,
+           (SELECT COUNT(*) FROM submissions WHERE author_user_id = ? AND hidden_at IS NULL AND deleted_at IS NULL) AS title_count,
+           (SELECT COUNT(*) FROM comments WHERE author_user_id = ? AND hidden_at IS NULL AND deleted_at IS NULL) AS comment_count,
            (SELECT COUNT(*)
             FROM likes
             JOIN submissions ON submissions.id = likes.submission_id
-            WHERE submissions.author_user_id = ?) AS received_likes`
+            WHERE submissions.author_user_id = ?
+              AND submissions.hidden_at IS NULL
+              AND submissions.deleted_at IS NULL
+              AND submissions.excluded_from_ranking = 0) AS received_likes`
       )
       .bind(user.id, user.id, user.id)
       .first();
@@ -27,6 +30,9 @@ export async function onRequestGet(context) {
          FROM submissions
          LEFT JOIN likes ON likes.submission_id = submissions.id
          WHERE submissions.author_user_id = ?
+           AND submissions.hidden_at IS NULL
+           AND submissions.deleted_at IS NULL
+           AND submissions.excluded_from_ranking = 0
          GROUP BY submissions.id
          ORDER BY like_count DESC, submissions.created_at ASC
          LIMIT 1`

@@ -1,4 +1,4 @@
-import { getCurrentUser, json, readJson, validateEmail } from "./auth/_shared.js";
+import { ensureUserCanWrite, getCurrentUser, json, readJson, validateEmail } from "./auth/_shared.js";
 
 const ALLOWED_TYPES = new Set(["버그/악용 신고", "개선 방안 제안", "이미지 제안"]);
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
@@ -29,6 +29,14 @@ async function handleContact(context) {
   const message = normalizeText(payload.body);
   const replyEmail = normalizeText(payload.replyEmail).toLowerCase();
   const user = await getCurrentUser(context);
+
+  if (user) {
+    const restrictionResponse = await ensureUserCanWrite(context, user, type === "이미지 제안" ? "upload" : "write");
+
+    if (restrictionResponse) {
+      return restrictionResponse;
+    }
+  }
 
   if (!ALLOWED_TYPES.has(type)) {
     return json({ message: "문의 유형을 선택하세요." }, 400);

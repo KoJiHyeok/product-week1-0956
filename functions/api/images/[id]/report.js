@@ -1,4 +1,4 @@
-import { getCurrentUser, getDb, json, readJson } from "../../auth/_shared.js";
+import { ensureUserCanWrite, getCurrentUser, getDb, json, readJson } from "../../auth/_shared.js";
 import { sanitizeLongText, validateReportReason } from "../_shared.js";
 
 const reportCookieName = "title_school_reporter";
@@ -14,6 +14,12 @@ export async function onRequestPost(context) {
 
     if (!reason) {
       return json({ message: "신고 사유를 선택하세요." }, 400);
+    }
+
+    const restrictionResponse = await ensureUserCanWrite(context, user, "write");
+
+    if (restrictionResponse) {
+      return restrictionResponse;
     }
 
     const image = await db

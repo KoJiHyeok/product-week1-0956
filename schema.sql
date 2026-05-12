@@ -51,6 +51,11 @@ CREATE TABLE IF NOT EXISTS submissions (
   title TEXT NOT NULL,
   author_user_id INTEGER,
   guest_name TEXT,
+  hidden_at TEXT,
+  hidden_reason TEXT,
+  deleted_at TEXT,
+  deleted_reason TEXT,
+  excluded_from_ranking INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (author_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
@@ -61,6 +66,11 @@ CREATE TABLE IF NOT EXISTS comments (
   author_user_id INTEGER,
   guest_name TEXT,
   text TEXT NOT NULL,
+  hidden_at TEXT,
+  hidden_reason TEXT,
+  deleted_at TEXT,
+  deleted_reason TEXT,
+  excluded_from_ranking INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (submission_id) REFERENCES submissions(id) ON DELETE CASCADE,
   FOREIGN KEY (author_user_id) REFERENCES users(id) ON DELETE SET NULL
@@ -83,7 +93,9 @@ CREATE INDEX IF NOT EXISTS idx_submissions_image_key ON submissions(image_key);
 CREATE INDEX IF NOT EXISTS idx_submissions_author_user_id ON submissions(author_user_id);
 CREATE INDEX IF NOT EXISTS idx_submissions_user_duplicate_guard ON submissions(author_user_id, image_key, title, created_at) WHERE author_user_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_submissions_guest_duplicate_guard ON submissions(guest_name, image_key, title, created_at) WHERE author_user_id IS NULL;
+CREATE INDEX IF NOT EXISTS idx_submissions_visibility ON submissions(hidden_at, deleted_at, excluded_from_ranking);
 CREATE INDEX IF NOT EXISTS idx_comments_submission_id ON comments(submission_id);
+CREATE INDEX IF NOT EXISTS idx_comments_visibility ON comments(hidden_at, deleted_at);
 CREATE INDEX IF NOT EXISTS idx_likes_submission_id ON likes(submission_id);
 CREATE INDEX IF NOT EXISTS idx_likes_vote_date ON likes(vote_date);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_likes_user_vote_date ON likes(user_id, vote_date) WHERE user_id IS NOT NULL;

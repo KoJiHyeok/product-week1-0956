@@ -1,4 +1,4 @@
-import { getCurrentUser, getDb, json } from "../auth/_shared.js";
+import { OWNER_EMAIL, getCurrentUser, getDb, json } from "../auth/_shared.js";
 
 export const ADMIN_ROLES = new Set(["admin", "owner"]);
 export const OWNER_ROLE = "owner";
@@ -15,6 +15,26 @@ export function isAdminRole(role) {
 
 export function isOwnerRole(role) {
   return role === OWNER_ROLE;
+}
+
+export function isProtectedOwnerUser(user) {
+  return isOwnerRole(user?.role) || String(user?.email || "").toLowerCase() === OWNER_EMAIL;
+}
+
+export function requireOwnerUser(adminUser) {
+  if (!isOwnerRole(adminUser?.role)) {
+    return json({ message: "owner 권한이 필요합니다." }, 403);
+  }
+
+  return null;
+}
+
+export function normalizeUserStatus(status) {
+  return status === "blocked" || status === "suspended" ? "suspended" : "active";
+}
+
+export function normalizeReason(value, maxLength = 500) {
+  return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
 }
 
 export async function requireAdmin(context) {

@@ -18,7 +18,7 @@ export async function onRequestPatch(context) {
     }
 
     const submission = await db
-      .prepare("SELECT author_user_id FROM submissions WHERE id = ? LIMIT 1")
+      .prepare("SELECT author_user_id FROM submissions WHERE id = ? AND hidden_at IS NULL AND deleted_at IS NULL LIMIT 1")
       .bind(submissionId)
       .first();
 
@@ -53,7 +53,7 @@ export async function onRequestDelete(context) {
     }
 
     const submission = await db
-      .prepare("SELECT author_user_id FROM submissions WHERE id = ? LIMIT 1")
+      .prepare("SELECT author_user_id FROM submissions WHERE id = ? AND deleted_at IS NULL LIMIT 1")
       .bind(submissionId)
       .first();
 
@@ -65,7 +65,10 @@ export async function onRequestDelete(context) {
       return json({ message: "본인이 작성한 제목만 삭제할 수 있습니다." }, 403);
     }
 
-    await db.prepare("DELETE FROM submissions WHERE id = ?").bind(submissionId).run();
+    await db
+      .prepare("UPDATE submissions SET deleted_at = CURRENT_TIMESTAMP, deleted_reason = 'author_deleted' WHERE id = ?")
+      .bind(submissionId)
+      .run();
     return json({ deleted: true });
   } catch {
     return json({ message: "제목을 삭제하지 못했습니다." }, 500);
