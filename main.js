@@ -2986,7 +2986,7 @@ contactLink.addEventListener("click", (event) => {
   goContact();
 });
 
-uploadNavButton.addEventListener("click", goUpload);
+uploadNavButton.addEventListener("click", goImageSuggestionContact);
 adminNavButton.addEventListener("click", goAdmin);
 
 galleryGrid.addEventListener("click", (event) => {
