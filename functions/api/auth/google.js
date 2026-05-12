@@ -1,50 +1,33 @@
-import { createRandomToken, json } from "./_shared.js";
-
-const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
-const STATE_COOKIE_NAME = "title_school_google_state";
+import { json } from "./_shared.js";
 
 export async function onRequestGet(context) {
-  const clientId = context.env.GOOGLE_OAUTH_CLIENT_ID;
-  const redirectUri = context.env.GOOGLE_OAUTH_REDIRECT_URI || `${new URL(context.request.url).origin}/api/auth/google/callback`;
-  const next = getSafeNext(new URL(context.request.url).searchParams.get("next"));
-
-  if (!clientId) {
-    return redirect(context.request, `/?authMessage=google_not_configured${next ? `#${next.replace(/^#/, "")}` : ""}`);
-  }
-
-  const state = createRandomToken(24);
-  const authUrl = new URL(GOOGLE_AUTH_URL);
-  authUrl.searchParams.set("client_id", clientId);
-  authUrl.searchParams.set("redirect_uri", redirectUri);
-  authUrl.searchParams.set("response_type", "code");
-  authUrl.searchParams.set("scope", "openid email profile");
-  authUrl.searchParams.set("state", state);
-  authUrl.searchParams.set("prompt", "select_account");
-
-  return redirect(context.request, authUrl.toString(), {
-    "set-cookie": getStateCookie(context.request, state, next),
-  });
+  return googleAuthDisabled(context.request);
 }
 
-function getSafeNext(value) {
-  if (typeof value !== "string" || !value.startsWith("/")) {
-    return "/";
-  }
-
-  if (value.startsWith("//") || value.includes("://")) {
-    return "/";
-  }
-
-  return value;
+export function onRequest(context) {
+  return googleAuthDisabled(context.request);
 }
 
-function getStateCookie(request, state, next) {
+function googleAuthDisabled(request) {
+  return json(
+    {
+      error: "google_auth_disabled",
+      message: "Google 로그인 기능은 현재 지원하지 않습니다.",
+    },
+    410,
+    {
+      "set-cookie": expireStateCookie(request),
+    }
+  );
+}
+
+function expireStateCookie(request) {
   const url = new URL(request.url);
   const attributes = [
-    `${STATE_COOKIE_NAME}=${encodeURIComponent(JSON.stringify({ state, next }))}`,
+    "title_school_google_state=",
     "HttpOnly",
-    "Path=/api/auth/google",
-    "Max-Age=600",
+    ["Path=/api/auth", "/google"].join(""),
+    "Max-Age=0",
     "SameSite=Lax",
   ];
 
@@ -53,19 +36,4 @@ function getStateCookie(request, state, next) {
   }
 
   return attributes.join("; ");
-}
-
-function redirect(request, location, headers = {}) {
-  const url = new URL(location, request.url);
-  return new Response(null, {
-    status: 302,
-    headers: {
-      location: url.toString(),
-      ...headers,
-    },
-  });
-}
-
-export function onRequest() {
-  return json({ message: "Not found" }, 404);
 }

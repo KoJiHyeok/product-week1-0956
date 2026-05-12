@@ -25,11 +25,6 @@
 - `APP_ORIGIN`: 이메일 인증 링크에 사용할 서비스 origin입니다. 예: `https://jemokhakwon.com`
 - `AUTH_FROM_EMAIL`: 인증 메일 발신자입니다. 생략 시 `CONTACT_FROM_EMAIL`, 그다음 `Title Academy <onboarding@resend.dev>`를 사용합니다.
 - `RESEND_API_KEY`: 인증 메일 발송에도 사용합니다.
-- `GOOGLE_OAUTH_CLIENT_ID`: Google OAuth Client ID입니다.
-- `GOOGLE_OAUTH_CLIENT_SECRET`: Google OAuth Client Secret입니다.
-- `GOOGLE_OAUTH_REDIRECT_URI`: Google OAuth Redirect URI입니다. 생략 시 현재 origin의 `/api/auth/google/callback`을 사용합니다.
-
-Google OAuth 콘솔에는 Redirect URI를 `https://도메인/api/auth/google/callback` 형태로 등록해야 합니다. 값이 설정되지 않은 상태에서 Google 버튼을 누르면 로그인 기능을 시작하지 않고 설정 필요 안내로 돌아옵니다.
 
 ## 이미지 제안과 정적 갤러리 운영
 

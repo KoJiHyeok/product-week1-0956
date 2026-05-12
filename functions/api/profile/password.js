@@ -25,7 +25,7 @@ async function changePassword(context) {
   }
 
   if (user.auth_provider === "google") {
-    return json({ message: "Google 계정은 비밀번호를 변경할 수 없습니다." }, 400);
+    return json({ message: "외부 로그인 계정은 비밀번호를 변경할 수 없습니다." }, 400);
   }
 
   const body = await readJson(context.request);

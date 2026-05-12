@@ -102,8 +102,6 @@ const signupPasswordConfirmInput = document.querySelector("#signupPasswordConfir
 const privacyAgreeInput = document.querySelector("#privacyAgreeInput");
 const termsAgreeInput = document.querySelector("#termsAgreeInput");
 const passwordResetLink = document.querySelector("#passwordResetLink");
-const loginGoogleButton = document.querySelector("#loginGoogleButton");
-const signupGoogleButton = document.querySelector("#signupGoogleButton");
 const loginMessage = document.querySelector("#loginMessage");
 const signupMessage = document.querySelector("#signupMessage");
 const contactForm = document.querySelector("#contactForm");
@@ -164,7 +162,6 @@ const adsenseClientId = "ca-pub-2571483149742375";
 const trackingConsentStorageKey = "title-academy-tracking-consent";
 const cookieSettingsStorageKey = "title-academy-cookie-settings";
 const themeStorageKey = "title-academy-theme";
-const legacyUserStorageKey = "title-making-google-user";
 const guestStorageKey = "title-academy-guest-name";
 const submissionsStorageKey = "title-academy-submissions";
 const photoSourcePresets = Object.freeze({
@@ -375,8 +372,6 @@ const allowedContactImageTypes = new Set(["image/jpeg", "image/png", "image/webp
 const allowedContactImageExtensions = new Set(["jpg", "jpeg", "png", "webp"]);
 const galleryInitialCount = defaultGalleryImages.length;
 const galleryPageSize = 0;
-
-localStorage.removeItem(legacyUserStorageKey);
 
 let currentUser = null;
 let galleryImages = defaultGalleryImages.map((image, index) => ({ ...image, imageKey: String(index), isUserUpload: false }));
@@ -2204,15 +2199,14 @@ function closeAuthModal() {
 async function verifyEmailFromUrl() {
   const url = new URL(window.location.href);
   const token = url.searchParams.get("verifyEmailToken");
-  const authMessage = url.searchParams.get("authMessage");
-
-  if (authMessage === "google_not_configured") {
-    showToast("Google 로그인 설정이 필요합니다.");
-  } else if (authMessage === "google_failed") {
-    showToast("Google 로그인에 실패했습니다.");
-  }
+  const hasAuthMessage = url.searchParams.has("authMessage");
 
   if (!token) {
+    if (hasAuthMessage) {
+      url.searchParams.delete("authMessage");
+      history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+
     return;
   }
 
@@ -2227,14 +2221,11 @@ async function verifyEmailFromUrl() {
     showToast(error.message);
   } finally {
     url.searchParams.delete("verifyEmailToken");
-    url.searchParams.delete("authMessage");
+    if (hasAuthMessage) {
+      url.searchParams.delete("authMessage");
+    }
     history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
   }
-}
-
-function startGoogleLogin() {
-  const next = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-  window.location.href = `/api/auth/google?next=${encodeURIComponent(next)}`;
 }
 
 function syncGuestChipState(isOpen) {
@@ -3495,9 +3486,6 @@ loginForm.addEventListener("submit", async (event) => {
 passwordResetLink.addEventListener("click", () => {
   loginMessage.textContent = "비밀번호 재설정 기능은 준비 중입니다.";
 });
-
-loginGoogleButton.addEventListener("click", startGoogleLogin);
-signupGoogleButton.addEventListener("click", startGoogleLogin);
 
 signupForm.addEventListener("submit", async (event) => {
   event.preventDefault();
