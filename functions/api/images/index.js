@@ -1,4 +1,5 @@
-import { json } from "../auth/_shared.js";
+import { getDb, json } from "../auth/_shared.js";
+import { serializeUploadedImage } from "./_shared.js";
 
 const defaultImages = [
   // 관리자가 승인한 정적 이미지는 assets/gallery에 파일을 넣고 이 목록에 추가하면 공개됩니다.
@@ -28,5 +29,31 @@ const defaultImages = [
 ];
 
 export async function onRequestGet(context) {
-  return json({ images: defaultImages });
+  const uploadedImages = await getApprovedUploadedImages(context);
+  return json({ images: [...defaultImages, ...uploadedImages] });
+}
+
+async function getApprovedUploadedImages(context) {
+  try {
+    const db = getDb(context);
+    const { results } = await db
+      .prepare(
+        `SELECT uploaded_images.id, uploaded_images.uploader_user_id, uploaded_images.storage_key,
+                uploaded_images.thumbnail_key, uploaded_images.alt_text, uploaded_images.source_type,
+                uploaded_images.source_url, uploaded_images.author_name, uploaded_images.license_name,
+                uploaded_images.attribution_required, uploaded_images.status, uploaded_images.moderation_reason,
+                uploaded_images.report_count, uploaded_images.created_at, uploaded_images.reviewed_at,
+                uploaded_images.reviewed_by, users.username
+         FROM uploaded_images
+         LEFT JOIN users ON users.id = uploaded_images.uploader_user_id
+         WHERE uploaded_images.status = 'approved'
+         ORDER BY uploaded_images.created_at DESC
+         LIMIT 100`
+      )
+      .all();
+
+    return (results || []).map(serializeUploadedImage);
+  } catch {
+    return [];
+  }
 }

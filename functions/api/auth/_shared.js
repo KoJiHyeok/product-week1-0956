@@ -183,7 +183,7 @@ export async function getWriteRestriction(context, user, restrictionType = "writ
 
   const now = new Date().toISOString();
 
-  if (user.status === "blocked" && (!user.blocked_until || user.blocked_until > now)) {
+  if ((user.status === "blocked" || user.status === "suspended") && (!user.blocked_until || user.blocked_until > now)) {
     return {
       type: restrictionType,
       reason: user.blocked_reason || "관리자에 의해 작성 기능이 제한되었습니다.",

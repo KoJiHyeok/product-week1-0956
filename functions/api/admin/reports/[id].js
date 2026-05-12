@@ -1,5 +1,5 @@
 import { getDb, json, readJson } from "../../auth/_shared.js";
-import { requireAdmin, REPORT_STATUSES } from "../_shared.js";
+import { logAdminAction, requireAdmin, REPORT_STATUSES } from "../_shared.js";
 
 export async function onRequestPatch(context) {
   try {
@@ -17,10 +17,17 @@ export async function onRequestPatch(context) {
     }
 
     const db = getDb(context);
-    await db
+    const reportId = String(context.params.id || "");
+    const result = await db
       .prepare("UPDATE reports SET status = ?, reviewed_at = CURRENT_TIMESTAMP, reviewed_by = ? WHERE id = ?")
-      .bind(status, admin.user.id, String(context.params.id || ""))
+      .bind(status, admin.user.id, reportId)
       .run();
+
+    if (!result.meta.changes) {
+      return json({ message: "신고를 찾을 수 없습니다." }, 404);
+    }
+
+    await logAdminAction(context, admin.user, "update_status", "report", reportId, `신고 상태를 ${status}(으)로 변경했습니다.`);
 
     return json({ updated: true });
   } catch {

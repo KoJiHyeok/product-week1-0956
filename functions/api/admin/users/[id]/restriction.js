@@ -1,5 +1,5 @@
 import { getDb, json, readJson } from "../../../auth/_shared.js";
-import { requireAdmin } from "../../_shared.js";
+import { isOwnerRole, logAdminAction, requireAdmin } from "../../_shared.js";
 
 const validTypes = new Set(["write", "upload", "message"]);
 
@@ -22,6 +22,16 @@ export async function onRequestPatch(context) {
     }
 
     const db = getDb(context);
+    const target = await db.prepare("SELECT id, role FROM users WHERE id = ? LIMIT 1").bind(userId).first();
+
+    if (!target) {
+      return json({ message: "회원을 찾을 수 없습니다." }, 404);
+    }
+
+    if (isOwnerRole(target.role) && !isOwnerRole(admin.user.role)) {
+      return json({ message: "owner 계정은 admin이 정지할 수 없습니다." }, 403);
+    }
+
     const id = crypto.randomUUID();
     await db
       .prepare(
@@ -32,9 +42,11 @@ export async function onRequestPatch(context) {
       .run();
 
     await db
-      .prepare("UPDATE users SET status = 'blocked', blocked_reason = ?, blocked_until = ? WHERE id = ?")
+      .prepare("UPDATE users SET status = 'suspended', blocked_reason = ?, blocked_until = ? WHERE id = ?")
       .bind(reason || null, expiresAt, userId)
       .run();
+
+    await logAdminAction(context, admin.user, "restrict", "user", userId, reason || "회원 작성 제한을 설정했습니다.");
 
     return json({ restricted: true, id });
   } catch {
@@ -57,11 +69,23 @@ export async function onRequestDelete(context) {
     }
 
     const db = getDb(context);
+    const target = await db.prepare("SELECT id, role FROM users WHERE id = ? LIMIT 1").bind(userId).first();
+
+    if (!target) {
+      return json({ message: "회원을 찾을 수 없습니다." }, 404);
+    }
+
+    if (isOwnerRole(target.role) && !isOwnerRole(admin.user.role)) {
+      return json({ message: "owner 계정은 admin이 정지 해제할 수 없습니다." }, 403);
+    }
+
     await db.prepare("DELETE FROM user_restrictions WHERE user_id = ?").bind(userId).run();
     await db
       .prepare("UPDATE users SET status = 'active', blocked_reason = NULL, blocked_until = NULL WHERE id = ?")
       .bind(userId)
       .run();
+
+    await logAdminAction(context, admin.user, "unrestrict", "user", userId, "회원 제한을 해제했습니다.");
 
     return json({ restricted: false });
   } catch {

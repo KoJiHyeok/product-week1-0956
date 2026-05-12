@@ -1,5 +1,5 @@
 import { getDb, json, readJson } from "../../../auth/_shared.js";
-import { requireAdmin } from "../../_shared.js";
+import { logAdminAction, requireAdmin } from "../../_shared.js";
 import { sanitizeLongText } from "../../../images/_shared.js";
 
 export async function onRequestPost(context) {
@@ -27,6 +27,8 @@ export async function onRequestPost(context) {
     if (!result.meta.changes) {
       return json({ message: "거절 처리할 이미지를 찾을 수 없습니다." }, 404);
     }
+
+    await logAdminAction(context, admin.user, "hide", "image", id, reason || "신고된 이미지를 숨김 처리했습니다.");
 
     return json({ rejected: true });
   } catch {

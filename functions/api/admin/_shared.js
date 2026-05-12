@@ -7,6 +7,7 @@ export const USER_ROLE = "user";
 export const IMAGE_STATUSES = new Set(["pending", "approved", "rejected", "deleted"]);
 export const REPORT_STATUSES = new Set(["new", "reviewing", "resolved", "rejected"]);
 export const INQUIRY_STATUSES = new Set(["new", "reviewing", "resolved", "ignored"]);
+export const USER_STATUSES = new Set(["active", "suspended"]);
 
 export function isAdminRole(role) {
   return ADMIN_ROLES.has(role);
@@ -45,5 +46,28 @@ export async function isAdminUser(context, user) {
     return isAdminRole(row?.role);
   } catch {
     return false;
+  }
+}
+
+export async function logAdminAction(context, adminUser, actionType, targetType, targetId, description = "") {
+  try {
+    const db = getDb(context);
+    await db
+      .prepare(
+        `INSERT INTO admin_logs (id, admin_user_id, admin_email, action_type, target_type, target_id, description)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      )
+      .bind(
+        crypto.randomUUID(),
+        adminUser?.id || null,
+        adminUser?.email || "",
+        String(actionType || "").slice(0, 80),
+        String(targetType || "").slice(0, 80),
+        String(targetId || "").slice(0, 160),
+        String(description || "").slice(0, 1000)
+      )
+      .run();
+  } catch {
+    // Admin actions must not fail when the log migration has not been applied yet.
   }
 }

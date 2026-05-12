@@ -21,9 +21,25 @@ export async function onRequestGet(context) {
       .prepare(
         `SELECT reports.id, reports.target_type, reports.target_id, reports.reason, reports.detail,
                 reports.status, reports.created_at, reports.reviewed_at,
-                users.username AS reporter_username
+                users.username AS reporter_username, users.email AS reporter_email,
+                uploaded_images.id AS uploaded_image_id, uploaded_images.alt_text AS uploaded_image_alt,
+                submissions.title AS submission_title, comments.text AS comment_text,
+                comment_submissions.title AS comment_submission_title
          FROM reports
          LEFT JOIN users ON users.id = reports.reporter_user_id
+         LEFT JOIN uploaded_images
+           ON reports.target_type = 'photo'
+          AND uploaded_images.id = CASE
+            WHEN reports.target_id LIKE 'uploaded:%' THEN substr(reports.target_id, 10)
+            ELSE reports.target_id
+          END
+         LEFT JOIN submissions
+           ON reports.target_type = 'title'
+          AND submissions.id = CAST(reports.target_id AS INTEGER)
+         LEFT JOIN comments
+           ON reports.target_type = 'comment'
+          AND comments.id = CAST(reports.target_id AS INTEGER)
+         LEFT JOIN submissions AS comment_submissions ON comment_submissions.id = comments.submission_id
          WHERE reports.status = ?
          ORDER BY reports.created_at DESC
          LIMIT 100`
@@ -42,6 +58,15 @@ export async function onRequestGet(context) {
         createdAt: report.created_at,
         reviewedAt: report.reviewed_at || "",
         reporter: report.reporter_username || "비회원",
+        reporterEmail: report.reporter_email || "",
+        targetTitle:
+          report.uploaded_image_alt ||
+          report.submission_title ||
+          report.comment_submission_title ||
+          (report.target_type === "photo" ? "정적 갤러리 사진" : "신고 대상"),
+        targetSummary: report.comment_text || report.submission_title || report.uploaded_image_alt || "",
+        targetImageSrc: report.uploaded_image_id ? `/api/images/file/${encodeURIComponent(report.uploaded_image_id)}` : "",
+        targetUploadedImageId: report.uploaded_image_id || "",
       })),
     });
   } catch {

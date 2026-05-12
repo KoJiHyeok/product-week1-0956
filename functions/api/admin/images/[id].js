@@ -1,5 +1,5 @@
 import { getDb, json } from "../../auth/_shared.js";
-import { requireAdmin } from "../_shared.js";
+import { logAdminAction, requireAdmin } from "../_shared.js";
 import { getImageBucket } from "../../images/_shared.js";
 
 export async function onRequestDelete(context) {
@@ -35,6 +35,8 @@ export async function onRequestDelete(context) {
       )
       .bind(admin.user.id, id)
       .run();
+
+    await logAdminAction(context, admin.user, "delete", "image", id, "이미지를 삭제 상태로 변경했습니다.");
 
     return json({ deleted: true });
   } catch {

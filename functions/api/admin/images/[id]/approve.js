@@ -1,5 +1,5 @@
 import { getDb, json } from "../../../auth/_shared.js";
-import { requireAdmin } from "../../_shared.js";
+import { logAdminAction, requireAdmin } from "../../_shared.js";
 
 export async function onRequestPost(context) {
   try {
@@ -23,6 +23,8 @@ export async function onRequestPost(context) {
     if (!result.meta.changes) {
       return json({ message: "승인할 이미지를 찾을 수 없습니다." }, 404);
     }
+
+    await logAdminAction(context, admin.user, "approve", "image", id, "이미지 제안을 승인했습니다.");
 
     return json({ approved: true });
   } catch {
