@@ -1068,7 +1068,7 @@ function applyRoute(state) {
     selectedImageIndex = null;
     pendingTitle = "";
     showView(uploadView);
-    imageUploadMessage.textContent = "현재 직접 업로드는 준비 중이며, 이미지는 문의를 통해 제안할 수 있습니다.";
+    imageUploadMessage.textContent = "이미지는 문의를 통해 제안할 수 있습니다. 관리자가 확인한 뒤 갤러리 게시 여부를 검토합니다.";
     imageSuggestionButton.focus();
     return;
   }
@@ -1485,7 +1485,7 @@ function renderGallery() {
 
       const placeholder = document.createElement("span");
       placeholder.className = "photo-card-placeholder";
-      placeholder.textContent = "이미지 준비 중";
+      placeholder.textContent = "이미지를 불러올 수 없습니다";
 
       const actions = document.createElement("div");
       actions.className = "photo-card-actions";
@@ -2344,7 +2344,7 @@ function showImageRequestHistory() {
   myTitlesView.classList.add("is-active");
   myCommentsView.classList.remove("is-active");
   myTitlesView.querySelector("h3").textContent = "내 이미지 제안 내역";
-  myTitleList.replaceChildren(createMyTitleMessage("현재 이미지 제안 내역은 준비 중입니다."));
+  myTitleList.replaceChildren(createMyTitleMessage("아직 표시할 이미지 제안 내역이 없습니다."));
 }
 
 async function showMyComments() {
@@ -4161,7 +4161,7 @@ loginForm.addEventListener("submit", async (event) => {
 });
 
 passwordResetLink.addEventListener("click", () => {
-  loginMessage.textContent = "비밀번호 재설정 기능은 준비 중입니다.";
+  loginMessage.textContent = "비밀번호 재설정이 필요하면 문의 페이지로 계정 이메일과 함께 요청해주세요.";
 });
 
 signupForm.addEventListener("submit", async (event) => {
