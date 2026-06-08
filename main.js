@@ -1685,23 +1685,8 @@ function renderImageBrief(container, image) {
     return;
   }
 
-  const title = document.createElement("h2");
-  title.textContent = image.title || image.alt || "사진 제목 연습";
-
-  const description = document.createElement("p");
-  description.textContent = image.description || getImagePrompt(image);
-
-  const prompt = document.createElement("p");
-  prompt.className = "image-brief-prompt";
-  prompt.textContent = getImagePrompt(image);
-
-  const groups = [
-    createImageBriefGroup("관찰 포인트", getTextList(image.observationPoints)),
-    createImageBriefGroup("예시 제목", getTextList(image.exampleTitles)),
-  ].filter(Boolean);
-
-  container.replaceChildren(title, description, prompt, ...groups);
-  container.hidden = false;
+  container.replaceChildren();
+  container.hidden = true;
 }
 
 function renderGallery() {
