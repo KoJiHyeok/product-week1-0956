@@ -32,7 +32,8 @@ export async function onRequestPatch(context) {
 
     await db.prepare("UPDATE submissions SET title = ? WHERE id = ?").bind(title, submissionId).run();
     return json({ updated: true, title });
-  } catch {
+  } catch (error) {
+    console.error("submissions/update error", error);
     return json({ message: "제목을 수정하지 못했습니다." }, 500);
   }
 }
@@ -70,7 +71,8 @@ export async function onRequestDelete(context) {
       .bind(submissionId)
       .run();
     return json({ deleted: true });
-  } catch {
+  } catch (error) {
+    console.error("submissions/delete error", error);
     return json({ message: "제목을 삭제하지 못했습니다." }, 500);
   }
 }

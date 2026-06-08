@@ -63,7 +63,8 @@ export async function onRequestPost(context) {
       },
       201
     );
-  } catch {
+  } catch (error) {
+    console.error("submissions/comments/create error", error);
     return json({ message: "댓글을 저장하지 못했습니다." }, 500);
   }
 }

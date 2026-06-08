@@ -89,7 +89,8 @@ export async function onRequestPost(context) {
       200,
       guestVote.cookie ? { "set-cookie": guestVote.cookie } : {}
     );
-  } catch {
+  } catch (error) {
+    console.error("submissions/like error", error);
     return json({ message: "하트를 처리하지 못했습니다." }, 500);
   }
 }

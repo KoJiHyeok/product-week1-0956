@@ -57,7 +57,8 @@ export async function onRequestGet(context) {
 
     const submissions = await Promise.all((results || []).map((row) => withComments(db, row, user)));
     return json({ submissions }, 200, guestVote.cookie ? { "set-cookie": guestVote.cookie } : {});
-  } catch {
+  } catch (error) {
+    console.error("submissions/list error", error);
     return json({ message: "제목 목록을 불러오지 못했습니다." }, 500);
   }
 }
@@ -120,7 +121,8 @@ export async function onRequestPost(context) {
       .first();
 
     return json({ submission: await withComments(db, row, user) }, 201);
-  } catch {
+  } catch (error) {
+    console.error("submissions/create error", error);
     return json({ message: "제목을 저장하지 못했습니다." }, 500);
   }
 }

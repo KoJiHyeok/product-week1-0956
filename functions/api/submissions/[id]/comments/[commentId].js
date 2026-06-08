@@ -34,7 +34,8 @@ export async function onRequestDelete(context) {
       .bind(commentId)
       .run();
     return json({ deleted: true });
-  } catch {
+  } catch (error) {
+    console.error("submissions/comments/delete error", error);
     return json({ message: "댓글을 삭제하지 못했습니다." }, 500);
   }
 }
