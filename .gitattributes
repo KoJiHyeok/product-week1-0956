@@ -1,0 +1,14 @@
+# Normalize line endings: store as LF in git, convert on checkout.
+# Prevents the whole working tree from showing as "modified" when a
+# Windows editor / OneDrive rewrites files with CRLF.
+* text=auto eol=lf
+
+# Treat binary assets as binary (never line-ending-converted).
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.woff binary
+*.woff2 binary
