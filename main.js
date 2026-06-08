@@ -3763,7 +3763,11 @@ async function updateAdminContent(row, action, reason = "") {
       }),
     });
     showToast("콘텐츠 관리 상태를 저장했습니다.");
-    await loadAdminSubmissions();
+    if (action === "content-delete") {
+      row.remove();
+    } else {
+      await loadAdminSubmissions();
+    }
   } catch (error) {
     adminImageMessage.textContent = error.message;
   }
