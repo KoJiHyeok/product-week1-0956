@@ -1770,22 +1770,11 @@ function renderGallery() {
       reportButton.setAttribute("aria-label", "사진 신고");
       actions.append(reportButton);
 
-      const copy = document.createElement("div");
-      copy.className = "photo-card-copy";
-
-      const cardTitle = document.createElement("h2");
-      cardTitle.textContent = image.title || image.alt || "사진 제목 연습";
-
-      const cardPrompt = document.createElement("p");
-      cardPrompt.textContent = getImagePrompt(image);
-
-      copy.append(cardTitle, cardPrompt);
-
       card.classList.add("has-image");
       card.tabIndex = 0;
       card.setAttribute("role", "button");
-      card.setAttribute("aria-label", `${image.alt}. ${getImagePrompt(image)} 제목 입력`);
-      card.append(picture, placeholder, actions, copy);
+      card.setAttribute("aria-label", `${image.alt}. 제목 입력`);
+      card.append(picture, placeholder, actions);
     } else {
       card.classList.add("is-empty");
       card.tabIndex = 0;
