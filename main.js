@@ -1892,6 +1892,15 @@ function renderRanking() {
       deleteButton.textContent = "삭제";
       deleteButton.setAttribute("aria-label", "제목 삭제");
       actions.append(deleteButton);
+    } else if (isCurrentAdmin()) {
+      const adminDeleteButton = document.createElement("button");
+      adminDeleteButton.className = "delete-button";
+      adminDeleteButton.type = "button";
+      adminDeleteButton.dataset.action = "admin-delete-submission";
+      adminDeleteButton.dataset.entryId = entry.id;
+      adminDeleteButton.textContent = "삭제";
+      adminDeleteButton.setAttribute("aria-label", "제목 관리자 삭제");
+      actions.append(adminDeleteButton);
     }
 
     const reportButton = document.createElement("button");
@@ -3983,6 +3992,30 @@ rankingList.addEventListener("click", async (event) => {
     return;
   }
 
+  if (button.dataset.action === "admin-delete-submission") {
+    if (!isCurrentAdmin()) return;
+    if (!window.confirm("이 제목을 삭제할까요?")) return;
+
+    const imageKey = getSelectedImageKey();
+    const serverEntries = serverSubmissionsByImage[imageKey];
+
+    try {
+      await requestJson(`/api/admin/submissions/${encodeURIComponent(entryId)}/moderation`, {
+        method: "PATCH",
+        body: JSON.stringify({ targetType: "submission", action: "delete", reason: "" }),
+      });
+      if (Array.isArray(serverEntries)) {
+        serverSubmissionsByImage[imageKey] = serverEntries.filter((item) => item.id !== entryId);
+      }
+      expandedCommentIds.delete(entryId);
+      renderRanking();
+      showToast("제목을 삭제했습니다.");
+    } catch (error) {
+      showToast(error.message);
+    }
+    return;
+  }
+
   if (button.dataset.action === "edit-submission") {
     const imageKey = getSelectedImageKey();
     const serverEntries = serverSubmissionsByImage[imageKey];
@@ -4230,19 +4263,12 @@ adminImageList.addEventListener("click", async (event) => {
 
   if (row?.dataset.adminRow === "content") {
     const action = button.dataset.action;
-    let reason = "";
 
-    if (action === "content-hide" || action === "content-delete") {
-      reason = window.prompt(action === "content-hide" ? "숨김 처리 사유를 입력하세요." : "삭제 처리 사유를 입력하세요.", "") || "";
-
-      if (!reason.trim()) {
-        return;
-      }
-    } else if (!window.confirm("해당 관리 작업을 적용할까요?")) {
+    if (!window.confirm("해당 관리 작업을 적용할까요?")) {
       return;
     }
 
-    await updateAdminContent(row, action, reason.trim());
+    await updateAdminContent(row, action);
     return;
   }
 
