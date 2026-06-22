@@ -2,6 +2,7 @@ import { getDb, json } from "../../auth/_shared.js";
 import { requireAdmin } from "../_shared.js";
 
 const validTypes = new Set(["all", "submission", "comment"]);
+const validStatuses = new Set(["active", "deleted"]);
 
 export async function onRequestGet(context) {
   try {
@@ -13,10 +14,20 @@ export async function onRequestGet(context) {
 
     const url = new URL(context.request.url);
     const type = String(url.searchParams.get("type") || "all");
+    const status = String(url.searchParams.get("status") || "active");
 
     if (!validTypes.has(type)) {
       return json({ message: "콘텐츠 유형이 올바르지 않습니다." }, 400);
     }
+
+    if (!validStatuses.has(status)) {
+      return json({ message: "콘텐츠 상태가 올바르지 않습니다." }, 400);
+    }
+
+    const submissionDeletedClause =
+      status === "deleted" ? "submissions.deleted_at IS NOT NULL" : "submissions.deleted_at IS NULL";
+    const commentDeletedClause =
+      status === "deleted" ? "comments.deleted_at IS NOT NULL" : "comments.deleted_at IS NULL";
 
     const db = getDb(context);
     const items = [];
@@ -34,7 +45,8 @@ export async function onRequestGet(context) {
            FROM submissions
            LEFT JOIN users ON users.id = submissions.author_user_id
            LEFT JOIN likes ON likes.submission_id = submissions.id
-           LEFT JOIN comments ON comments.submission_id = submissions.id
+           LEFT JOIN comments ON comments.submission_id = submissions.id AND comments.deleted_at IS NULL
+           WHERE ${submissionDeletedClause}
            GROUP BY submissions.id
            ORDER BY submissions.created_at DESC
            LIMIT 100`
@@ -55,6 +67,7 @@ export async function onRequestGet(context) {
            FROM comments
            LEFT JOIN users ON users.id = comments.author_user_id
            LEFT JOIN submissions ON submissions.id = comments.submission_id
+           WHERE ${commentDeletedClause}
            ORDER BY comments.created_at DESC
            LIMIT 100`
         )

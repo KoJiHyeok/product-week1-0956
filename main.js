@@ -578,6 +578,7 @@ let currentAdminRole = "user";
 const adminFilters = {
   images: "pending",
   submissions: "all",
+  submissionsStatus: "active",
   reports: "new",
   inquiries: "new",
 };
@@ -3147,7 +3148,7 @@ async function loadAdminSubmissions() {
   adminImageList.replaceChildren(createAdminMessage("제목/댓글 목록을 불러오는 중입니다."));
 
   try {
-    const data = await requestJson(`/api/admin/submissions?type=${encodeURIComponent(adminFilters.submissions)}`, { method: "GET", headers: {} });
+    const data = await requestJson(`/api/admin/submissions?type=${encodeURIComponent(adminFilters.submissions)}&status=${encodeURIComponent(adminFilters.submissionsStatus)}`, { method: "GET", headers: {} });
     renderAdminSubmissions(data.items || []);
   } catch (error) {
     adminImageList.replaceChildren(createAdminMessage(error.message));
@@ -3163,9 +3164,25 @@ function renderAdminSubmissions(items) {
       ["comment", "댓글"],
     ])
   );
+  fragment.append(
+    createAdminStatusFilter(
+      "submissionsStatus",
+      [
+        ["active", "활성"],
+        ["deleted", "삭제됨"],
+      ],
+      "submissions"
+    )
+  );
 
   if (items.length === 0) {
-    fragment.append(createAdminMessage("표시할 제목/댓글이 없습니다."));
+    fragment.append(
+      createAdminMessage(
+        adminFilters.submissionsStatus === "deleted"
+          ? "삭제된 제목/댓글이 없습니다."
+          : "표시할 제목/댓글이 없습니다."
+      )
+    );
     adminImageList.replaceChildren(fragment);
     return;
   }
@@ -3187,6 +3204,22 @@ function renderAdminSubmissions(items) {
     row.dataset.adminRow = "content";
     row.dataset.itemId = item.id;
     row.dataset.itemType = item.type;
+    row.dataset.imageId = item.imageId || "";
+    row.dataset.parentId = item.parentSubmissionId || "";
+
+    const actions = [["content-open", "이동", "ghost"]];
+
+    if (item.deletedAt) {
+      actions.push(["content-undelete", "삭제 복구", "solid"]);
+    } else {
+      actions.push([item.hiddenAt ? "content-unhide" : "content-hide", item.hiddenAt ? "숨김 해제" : "숨김 처리", "ghost"]);
+      actions.push(["content-delete", "삭제 처리", "danger"]);
+      actions.push([
+        item.excludedFromRanking ? "content-include-ranking" : "content-exclude-ranking",
+        item.excludedFromRanking ? "랭킹 제외 해제" : "랭킹 제외",
+        "ghost",
+      ]);
+    }
 
     row.append(
       createAdminCell(`${item.type === "comment" ? "댓글" : "제목"} #${item.id}`),
@@ -3196,11 +3229,7 @@ function renderAdminSubmissions(items) {
       createAdminCell(formatDate(item.createdAt)),
       createAdminCell(getAdminContentStatusLabel(item)),
       createAdminCell(item.type === "submission" ? `좋아요 ${item.likes || 0} · 댓글 ${item.comments || 0}` : "-"),
-      createAdminActionsCell([
-        [item.hiddenAt ? "content-unhide" : "content-hide", item.hiddenAt ? "숨김 해제" : "숨김 처리", item.hiddenAt ? "ghost" : "ghost"],
-        ["content-delete", "삭제 처리", "danger"],
-        [item.excludedFromRanking ? "content-include-ranking" : "content-exclude-ranking", item.excludedFromRanking ? "랭킹 제외 해제" : "랭킹 제외", "ghost"],
-      ])
+      createAdminActionsCell(actions)
     );
     tbody.append(row);
   });
@@ -3583,7 +3612,7 @@ function renderAdminLogs(logs) {
   adminImageList.replaceChildren(fragment);
 }
 
-function createAdminStatusFilter(section, options) {
+function createAdminStatusFilter(section, options, reloadSection = section) {
   const toolbar = document.createElement("div");
   toolbar.className = "admin-filter-row";
 
@@ -3593,6 +3622,7 @@ function createAdminStatusFilter(section, options) {
     button.type = "button";
     button.dataset.action = "admin-filter";
     button.dataset.section = section;
+    button.dataset.reloadSection = reloadSection;
     button.dataset.status = status;
     button.textContent = label;
     toolbar.append(button);
@@ -3744,6 +3774,7 @@ async function updateAdminContent(row, action, reason = "") {
     "content-hide": "hide",
     "content-unhide": "unhide",
     "content-delete": "delete",
+    "content-undelete": "undelete",
     "content-exclude-ranking": "exclude_ranking",
     "content-include-ranking": "include_ranking",
   };
@@ -3770,6 +3801,21 @@ async function updateAdminContent(row, action, reason = "") {
     }
   } catch (error) {
     adminImageMessage.textContent = error.message;
+  }
+}
+
+function openAdminContentLocation(row) {
+  const imageId = row.dataset.imageId || "";
+
+  if (!imageId) {
+    showToast("이동할 사진 정보를 찾을 수 없습니다.");
+    return;
+  }
+
+  if (row.dataset.itemType === "comment") {
+    openRankingLocation(imageId, row.dataset.parentId || "", row.dataset.itemId || "");
+  } else {
+    openRankingLocation(imageId, row.dataset.itemId || "");
   }
 }
 
@@ -4254,7 +4300,7 @@ adminImageList.addEventListener("click", async (event) => {
 
   if (button.dataset.action === "admin-filter") {
     adminFilters[button.dataset.section] = button.dataset.status;
-    await loadAdminSection(button.dataset.section || activeAdminSection);
+    await loadAdminSection(button.dataset.reloadSection || button.dataset.section || activeAdminSection);
     return;
   }
 
@@ -4267,6 +4313,11 @@ adminImageList.addEventListener("click", async (event) => {
 
   if (row?.dataset.adminRow === "content") {
     const action = button.dataset.action;
+
+    if (action === "content-open") {
+      openAdminContentLocation(row);
+      return;
+    }
 
     if (!window.confirm("해당 관리 작업을 적용할까요?")) {
       return;

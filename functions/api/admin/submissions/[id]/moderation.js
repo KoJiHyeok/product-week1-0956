@@ -2,7 +2,7 @@ import { getDb, json, readJson } from "../../../auth/_shared.js";
 import { logAdminAction, normalizeReason, requireAdmin } from "../../_shared.js";
 
 const targetTypes = new Set(["submission", "comment"]);
-const actions = new Set(["hide", "unhide", "delete", "exclude_ranking", "include_ranking"]);
+const actions = new Set(["hide", "unhide", "delete", "undelete", "exclude_ranking", "include_ranking"]);
 
 export async function onRequestPatch(context) {
   try {
@@ -55,6 +55,11 @@ async function updateModeration(db, table, id, action, reason) {
     return;
   }
 
+  if (action === "undelete") {
+    await db.prepare(`UPDATE ${table} SET deleted_at = NULL, deleted_reason = NULL WHERE id = ?`).bind(id).run();
+    return;
+  }
+
   if (action === "exclude_ranking") {
     await db.prepare(`UPDATE ${table} SET excluded_from_ranking = 1 WHERE id = ?`).bind(id).run();
     return;
@@ -69,6 +74,7 @@ function getLogDescription(targetType, action, reason) {
     hide: "숨김 처리",
     unhide: "숨김 해제",
     delete: "삭제 처리",
+    undelete: "삭제 복구",
     exclude_ranking: "랭킹 제외",
     include_ranking: "랭킹 제외 해제",
   }[action];
