@@ -607,7 +607,7 @@ function createId(prefix) {
 
 function initializeTheme() {
   const storedTheme = localStorage.getItem(themeStorageKey);
-  activeTheme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : "dark";
+  activeTheme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : "light";
   document.documentElement.dataset.theme = activeTheme;
   updateThemeToggle();
 }
