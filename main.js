@@ -3378,6 +3378,9 @@ function renderAdminImages(images) {
     return;
   }
 
+  const grid = document.createElement("div");
+  grid.className = "admin-card-grid";
+
   images.forEach((image) => {
     const card = document.createElement("article");
     card.className = "admin-image-card";
@@ -3430,9 +3433,10 @@ function renderAdminImages(images) {
 
     body.append(title, meta, source, reasonInput, actions);
     card.append(preview, body);
-    fragment.append(card);
+    grid.append(card);
   });
 
+  fragment.append(grid);
   adminImageList.replaceChildren(fragment);
 }
 
