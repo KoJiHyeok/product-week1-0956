@@ -7,14 +7,21 @@ const uploadView = document.querySelector("#uploadView");
 const titleView = document.querySelector("#titleView");
 const guestView = document.querySelector("#guestView");
 const rankingView = document.querySelector("#rankingView");
+const randomView = document.querySelector("#randomView");
 const contactView = document.querySelector("#contactView");
 const profileView = document.querySelector("#profileView");
 const adminView = document.querySelector("#adminView");
 const galleryGrid = document.querySelector("#galleryGrid");
 const selectedPhoto = document.querySelector("#selectedPhoto");
 const rankingPhoto = document.querySelector("#rankingPhoto");
+const randomPhoto = document.querySelector("#randomPhoto");
 const selectedImageBrief = document.querySelector("#selectedImageBrief");
 const rankingImageBrief = document.querySelector("#rankingImageBrief");
+const randomImageBrief = document.querySelector("#randomImageBrief");
+const randomEntryButton = document.querySelector("#randomEntryButton");
+const randomShuffleButton = document.querySelector("#randomShuffleButton");
+const randomTitleButton = document.querySelector("#randomTitleButton");
+const randomRankingButton = document.querySelector("#randomRankingButton");
 const titleForm = document.querySelector("#titleForm");
 const titleInput = document.querySelector("#titleInput");
 const titleSubmitButton = titleForm.querySelector('button[type="submit"]');
@@ -196,18 +203,6 @@ const defaultGalleryImages = [
     ...photoSourcePresets.curated,
   },
   {
-    id: "photo-002",
-    src: "assets/gallery/02-memorial.png",
-    webpSrc: "assets/gallery/webp/02-memorial.webp",
-    title: "가게 앞에 놓인 꽃다발과 노란 테이프",
-    description: "건물 앞에 놓인 꽃과 통제선이 조용한 추모 분위기를 만드는 사진입니다. 실제 사건을 단정하기보다 거리감, 침묵, 남겨진 흔적을 중심으로 제목을 붙이는 연습에 어울립니다.",
-    alt: "파란 건물 앞 통제선 너머에서 사람들이 꽃다발을 정리하는 장면",
-    prompt: "조심스러운 장면에서는 웃음보다 장소의 침묵과 남겨진 흔적을 존중하는 제목이 자연스럽습니다.",
-    observationPoints: ["노란 통제선이 만드는 거리감", "기둥 앞에 쌓인 꽃다발", "넓게 비어 있는 주차 공간"],
-    exampleTitles: ["조용히 놓인 마음들", "닫힌 문 앞의 꽃", "말 대신 남긴 자리"],
-    ...photoSourcePresets.curated,
-  },
-  {
     id: "photo-003",
     src: "assets/gallery/03-alligators.jpeg",
     webpSrc: "assets/gallery/webp/03-alligators.webp",
@@ -229,30 +224,6 @@ const defaultGalleryImages = [
     prompt: "넓은 빈 하늘과 작은 인물 사이의 거리감을 제목의 핵심 감정으로 잡아보세요.",
     observationPoints: ["화면 대부분을 차지하는 흐린 하늘", "검은 옷과 들판의 색 대비", "정면으로 걸어오는 느린 움직임"],
     exampleTitles: ["하늘이 먼저 도착한 날", "말수가 적은 들판", "혼자 걷는 오후"],
-    ...photoSourcePresets.curated,
-  },
-  {
-    id: "photo-005",
-    src: "assets/gallery/05-screaming-man.png",
-    webpSrc: "assets/gallery/webp/05-screaming-man.webp",
-    title: "양팔을 벌리고 외치는 정장 차림의 인물",
-    description: "고급스러운 실내 배경과 과장된 표정이 대비되는 장면입니다. 인물의 감정을 실제 사실처럼 단정하지 말고, 순간의 에너지와 공간의 분위기를 활용해 제목을 붙이는 연습에 좋습니다.",
-    alt: "정장을 입은 남성이 고급스러운 실내에서 양팔을 벌리고 외치는 장면",
-    prompt: "크게 벌린 팔, 열린 입, 뒤쪽 장식의 분위기를 묶어 과장된 선언처럼 표현해보세요.",
-    observationPoints: ["양쪽으로 크게 펼친 팔", "진한 색 벽과 장식적인 실내", "화면 중앙에 고정된 강한 표정"],
-    exampleTitles: ["회의는 여기서 끝났다", "내 안의 발표 자료", "조용한 방의 가장 큰 목소리"],
-    ...photoSourcePresets.curated,
-  },
-  {
-    id: "photo-006",
-    src: "assets/gallery/06-husky-bowl.jpg",
-    webpSrc: "assets/gallery/webp/06-husky-bowl.webp",
-    title: "밥그릇 앞에서 얼어붙은 허스키",
-    description: "두 손이 그릇을 건네는 순간, 허스키의 둥근 눈과 낮은 자세가 장면의 긴장을 만듭니다. 동물의 표정을 사람의 대사처럼 바꾸면 짧고 재미있는 제목을 만들 수 있습니다.",
-    alt: "사람들이 내민 밥그릇 앞에서 눈을 크게 뜬 허스키",
-    prompt: "밥그릇이 가까워지는 순간의 표정을 한 문장 대사처럼 바꿔보세요.",
-    observationPoints: ["정면을 보는 허스키의 큰 눈", "양쪽에서 들어온 사람의 손", "바닥에 낮게 엎드린 몸의 자세"],
-    exampleTitles: ["계약서부터 확인하겠습니다", "간식인지 심문인지", "그릇이 너무 진지하다"],
     ...photoSourcePresets.curated,
   },
   {
@@ -902,11 +873,93 @@ async function loadGalleryImages() {
       visibleGalleryCount = galleryImages.length;
       renderGallery();
     }
+    renderTodayPopular(Array.isArray(data.todayPopular) ? data.todayPopular : []);
   } catch {
     galleryImages = defaultGalleryImages.map((image, index) => ({ ...image, imageKey: String(index), isUserUpload: false }));
     visibleGalleryCount = galleryImages.length;
     renderGallery();
+    renderTodayPopular([]);
   }
+}
+
+function renderTodayPopular(items) {
+  const list = document.querySelector("#todayPopularList");
+  const empty = document.querySelector("#todayPopularEmpty");
+  if (!list) {
+    return;
+  }
+
+  list.replaceChildren();
+
+  if (!items.length) {
+    if (empty) {
+      empty.hidden = false;
+    }
+    list.hidden = true;
+    return;
+  }
+
+  if (empty) {
+    empty.hidden = true;
+  }
+  list.hidden = false;
+
+  const fragment = document.createDocumentFragment();
+  items.forEach((item, rank) => {
+    const li = document.createElement("li");
+    li.className = "today-popular-item";
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "today-popular-link";
+    button.dataset.imageKey = item.imageKey;
+    button.setAttribute("aria-label", `${item.title} 사진으로 이동 (오늘 하트 ${item.todayLikes}개)`);
+
+    const rankBadge = document.createElement("span");
+    rankBadge.className = "today-popular-rank";
+    rankBadge.textContent = String(rank + 1);
+
+    const thumb = document.createElement("img");
+    thumb.className = "today-popular-thumb";
+    thumb.src = item.webpSrc || item.src;
+    thumb.alt = "";
+    thumb.loading = "lazy";
+    thumb.decoding = "async";
+
+    const body = document.createElement("span");
+    body.className = "today-popular-body";
+
+    const title = document.createElement("span");
+    title.className = "today-popular-name";
+    title.textContent = item.title;
+
+    const likes = document.createElement("span");
+    likes.className = "today-popular-likes";
+    likes.innerHTML = `<span class="heart-icon" aria-hidden="true"></span><span>${item.todayLikes}</span>`;
+
+    body.append(title, likes);
+    button.append(rankBadge, thumb, body);
+    li.append(button);
+    fragment.append(li);
+  });
+
+  list.append(fragment);
+}
+
+const todayPopularListEl = document.querySelector("#todayPopularList");
+if (todayPopularListEl) {
+  todayPopularListEl.addEventListener("click", (event) => {
+    const link = event.target.closest(".today-popular-link");
+    if (!link) {
+      return;
+    }
+    const index = findImageIndexByKey(link.dataset.imageKey);
+    if (index < 0) {
+      showToast("해당 사진을 찾지 못했습니다.");
+      return;
+    }
+    startTitleEntry(index);
+  });
 }
 
 async function login(loginId, password) {
@@ -1104,6 +1157,10 @@ function routeToHash(state) {
     return `#ranking/${state.imageIndex}`;
   }
 
+  if (state.view === "random") {
+    return `#random/${state.imageIndex}`;
+  }
+
   if (state.view === "contact") {
     return "#contact";
   }
@@ -1167,7 +1224,7 @@ function parseRouteFromHash(hash) {
   const [view, rawIndex] = cleanHash.split("/");
   const imageIndex = Number(rawIndex);
 
-  if (!["title", "guest", "ranking"].includes(view) || !Number.isInteger(imageIndex)) {
+  if (!["title", "guest", "ranking", "random"].includes(view) || !Number.isInteger(imageIndex)) {
     return null;
   }
 
@@ -1199,7 +1256,7 @@ function getValidRoute(state) {
     return { view: "admin" };
   }
 
-  if (!["title", "guest", "ranking"].includes(state.view) || !Number.isInteger(state.imageIndex)) {
+  if (!["title", "guest", "ranking", "random"].includes(state.view) || !Number.isInteger(state.imageIndex)) {
     return null;
   }
 
@@ -1220,7 +1277,7 @@ function getValidRoute(state) {
 }
 
 function showView(viewToShow) {
-  [homeView, uploadView, titleView, guestView, rankingView, contactView, profileView, adminView].forEach((view) => {
+  [homeView, uploadView, titleView, guestView, rankingView, randomView, contactView, profileView, adminView].forEach((view) => {
     view.hidden = view !== viewToShow;
   });
   window.scrollTo({ top: 0, behavior: "auto" });
@@ -1296,6 +1353,14 @@ function applyRoute(state) {
     titleInput.value = pendingTitle;
     showView(titleView);
     titleInput.focus();
+    return;
+  }
+
+  if (route.view === "random") {
+    pendingTitle = "";
+    setPreviewImage(randomPhoto, image);
+    renderImageBrief(randomImageBrief, image);
+    showView(randomView);
     return;
   }
 
@@ -1450,6 +1515,32 @@ function showRanking(index) {
   }
 
   navigateTo({ view: "ranking", imageIndex: index });
+}
+
+function pickRandomImageIndex(excludeIndex) {
+  const candidates = galleryImages
+    .map((image, index) => (image ? index : null))
+    .filter((index) => index !== null);
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const pool = candidates.length > 1 ? candidates.filter((index) => index !== excludeIndex) : candidates;
+  const chooseFrom = pool.length > 0 ? pool : candidates;
+
+  return chooseFrom[Math.floor(Math.random() * chooseFrom.length)];
+}
+
+function goRandom(excludeIndex) {
+  const index = pickRandomImageIndex(excludeIndex);
+
+  if (index === null) {
+    showToast("표시할 사진이 없습니다");
+    return;
+  }
+
+  navigateTo({ view: "random", imageIndex: index }, { replace: Number.isInteger(excludeIndex) });
 }
 
 async function fetchServerSubmissions(imageIndex) {
@@ -4282,6 +4373,19 @@ function updatePreviousLikedEntry(entries, data) {
 
 backToGalleryButton.addEventListener("click", goHome);
 rankingSelfLink.addEventListener("click", scrollToMyRanking);
+
+randomEntryButton?.addEventListener("click", () => goRandom());
+randomShuffleButton?.addEventListener("click", () => goRandom(selectedImageIndex));
+randomTitleButton?.addEventListener("click", () => {
+  if (Number.isInteger(selectedImageIndex)) {
+    startTitleEntry(selectedImageIndex);
+  }
+});
+randomRankingButton?.addEventListener("click", () => {
+  if (Number.isInteger(selectedImageIndex)) {
+    showRanking(selectedImageIndex);
+  }
+});
 rankingTabs.forEach((tab) => {
   tab.addEventListener("click", () => {
     activeRankingTab = tab.dataset.rankingTab || "popular";

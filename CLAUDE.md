@@ -51,6 +51,23 @@ git diff --check
 
 순수 JS ES modules, 의존성 최소. `const`/`let`, async/await, early return, 작은 헬퍼 함수. 2-space 들여쓰기, 세미콜론, 기존 camelCase 유지. API 파일은 `onRequestGet`/`onRequestPost`/`onRequestPatch` 핸들러를 export. migration 파일은 zero-padded 숫자 prefix (예: `0014_admin_daily_summaries.sql`).
 
+## 프런트엔드 (no-build 정적 UI) 함정
+
+프런트는 프레임워크·번들러 없이 `index.html` + `main.js`(약 5천 줄, 모든 뷰·상태·API 호출) + `style.css`(단일 파일, 디자인 토큰 인라인) 셋으로만 돈다. 백엔드만큼 데인 지점이 있다:
+
+1. **캐시 버스팅 필수.** `style.css`·`main.js`를 고치면 `index.html`의 `?v=N` 쿼리를 **함께 올려야** 배포에 반영된다(CDN·브라우저 캐시). 예: `style.css?v=3`, `main.js?v=4`. 안 올리면 옛 파일이 서빙돼 "고쳤는데 그대로"가 된다.
+2. **`[hidden]` 속성이 항상 이기게 둔다.** main.js는 `element.hidden` 토글로 로그인/비회원 UI를 바꾼다(`authActions`·`guestChip`·`memberActions` 등). 그런데 `.auth-actions`/`.member-actions`에 명시적 `display:flex`가 있으면 브라우저 기본 `[hidden]{display:none}`을 덮어써 토글이 안 먹는다(예: 로그인했는데 로그인·회원가입 버튼이 안 사라짐). `style.css` 상단의 전역 `[hidden]{display:none !important;}`를 유지할 것.
+3. **클래스 어휘는 계약이다.** `style.css`는 `index.html`과 `main.js`가 생성하는 마크업의 **기존 클래스명/ID**(`.photo-card`, `.ranking-item`, `.auth-button`, `#authActions` 등)를 타깃한다. 클래스·ID를 바꾸면 JS 셀렉터나 스타일이 조용히 깨진다. 리스타일은 새 클래스 도입이 아니라 기존 클래스 재스킨으로 한다.
+4. **테마: light 기본.** `:root[data-theme="light"|"dark"]`로 토큰을 스위치하고, main.js가 `document.documentElement.dataset.theme`를 항상 설정하며 `localStorage` 키 `title-academy-theme`에 저장한다.
+
+### 로컬 미리보기
+
+```bash
+npx wrangler pages dev . --port 9000   # Functions + 로컬 D1 포함. 첫 실행 시 wrangler 설치
+```
+
+로컬 D1은 prod와 **분리**돼 있어 기존 계정·제목이 없다. 로그인 흐름을 보려면 로컬에서 새로 가입해야 한다(이메일 인증 메일은 로컬에 `RESEND_API_KEY`가 없으면 발송이 안 될 수 있음).
+
 ## 갤러리에 새 사진 추가 (워크플로)
 
 **사용자는 사진 파일만 올린다.** 캡션 텍스트는 에이전트가 이미지를 보고 기존 톤으로 자동 작성한다 — 사용자에게 제목·설명 등 추가 입력을 요구하지 않는다.
@@ -59,14 +76,13 @@ git diff --check
 
 절차:
 
-1. 업로드 이미지를 `assets/gallery/`에 저장 (예: `24-<slug>.png`). 가능하면 `assets/gallery/webp/`에 webp도.
+1. 업로드 이미지를 `assets/gallery/`에 저장 (예: `offended-cat.jpg`). 가능하면 `assets/gallery/webp/`에 webp도(선택).
 2. **두 리스트에 동일 항목 추가** (하나만 넣으면 서버↔프런트 불일치):
-   - `functions/api/images/index.js`의 `defaultImages`
-   - `main.js`의 `defaultGalleryImages`
-   - `imageKey`는 마지막 순번 +1 (현재 마지막 `"23"` → 다음 `"24"`), `id`는 `imm-00x` 형식, `isUserUpload: false`.
-3. `title`/`description`/`alt`/`prompt`/`observationPoints`/`exampleTitles`를 이미지 기반으로 기존 항목 톤에 맞춰 작성.
+   - `main.js`의 `defaultGalleryImages` — 이 항목엔 **`imageKey` 필드가 없다.** main.js가 배열 인덱스로 자동 부여한다(`imageKey: String(index)`). 항목엔 `...photoSourcePresets.curated` 스프레드를 포함하고 `description`도 여기에 둔다. webp가 있으면 `webpSrc`(없으면 생략).
+   - `functions/api/images/index.js`의 `defaultImages` — 여기엔 **명시적 `imageKey` 필드가 있고, 그 값이 main.js 배열의 0-based 인덱스와 정확히 일치해야 한다.** 현재 마지막 `imm-011` = `imageKey: "32"` → 다음 항목은 `imageKey: "33"`. `id`는 `imm-0NN` 형식(현재 마지막 `imm-011`), `isUserUpload: false`. (API 항목엔 `description`·`webpSrc`·presets 생략)
+3. `title`/`description`/`alt`/`prompt`/`observationPoints`/`exampleTitles`를 이미지 기반으로 기존 항목 톤에 맞춰 작성. (동물·인물 표정은 사람 대사처럼 바꾼 짧은 예시 제목이 톤에 맞음)
 4. **랭킹·하트·댓글·신고 버튼은 카드 UI가 모든 항목에 자동 렌더** → 별도 작업 없음.
-5. `node --check` → 1건만 추가해 사용자에게 보여주고 확인 → 커밋·푸시(자동 배포). (함정: 두 리스트의 `imageKey` 순번이 겹치지 않게)
+5. `node --check`(두 파일) → 1건만 추가해 사용자에게 보여주고 확인 → `index.html`의 `main.js?v=N` 올림 → 커밋·푸시(자동 배포). (함정: API `imageKey`가 main.js 인덱스와 어긋나면 제출이 엉뚱한 사진에 붙는다)
 
 ## 배포
 

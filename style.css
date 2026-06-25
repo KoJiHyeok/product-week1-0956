@@ -290,6 +290,46 @@ img { max-width:100%; }
 .gallery-subguide { color:var(--text-muted); max-width:54em; margin:0 0 var(--space-8); line-height:var(--lh-normal); }
 .gallery-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:var(--space-5); }
 
+/* ---------- Home layout: 오늘의 인기 사이드바(좌) + 갤러리(우) ---------- */
+.gallery-layout { display:grid; grid-template-columns:minmax(220px,248px) 1fr; gap:var(--space-6); align-items:start; }
+.gallery-main { min-width:0; }
+
+.today-popular {
+  position:sticky; top:var(--space-4);
+  background:var(--surface-card); border:1px solid var(--border-soft);
+  border-radius:var(--radius-lg); box-shadow:var(--shadow-1);
+  padding:var(--space-4); display:flex; flex-direction:column; gap:var(--space-3);
+}
+.today-popular-title {
+  margin:0; font-family:var(--font-display); font-size:var(--fs-lg); line-height:1;
+  color:var(--text-strong); display:flex; align-items:center; gap:8px;
+}
+.today-popular-title::before { content:"🔥"; font-size:1.05em; }
+.today-popular-empty { margin:0; color:var(--text-faint); font-size:var(--fs-xs); line-height:var(--lh-normal); }
+.today-popular-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--space-2); }
+
+.today-popular-link {
+  width:100%; display:grid; grid-template-columns:auto 44px 1fr; align-items:center; gap:10px;
+  border:0; background:transparent; border-radius:var(--radius-sm); padding:6px; cursor:pointer;
+  text-align:left; transition:background var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out);
+}
+.today-popular-link:hover { background:var(--surface-muted); transform:translateX(2px); }
+.today-popular-link:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
+.today-popular-rank {
+  width:22px; height:22px; flex:0 0 22px; border-radius:var(--radius-pill);
+  background:var(--secondary); color:var(--text-onsun);
+  font-weight:var(--fw-bold); font-size:var(--fs-2xs);
+  display:inline-flex; align-items:center; justify-content:center;
+}
+.today-popular-link:nth-child(1) .today-popular-rank { background:var(--primary); color:var(--text-onpop); }
+.today-popular-thumb { width:44px; height:44px; border-radius:var(--radius-sm); object-fit:cover; background:var(--surface-inset); }
+.today-popular-body { min-width:0; display:flex; flex-direction:column; gap:2px; }
+.today-popular-name {
+  color:var(--text-strong); font-size:var(--fs-xs); font-weight:var(--fw-semibold); line-height:var(--lh-tight);
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+.today-popular-likes { display:inline-flex; align-items:center; gap:4px; color:var(--text-muted); font-size:var(--fs-2xs); font-weight:var(--fw-bold); }
+
 .photo-card {
   position:relative; background:var(--surface-card); border-radius:var(--radius-xl); overflow:hidden;
   box-shadow:var(--shadow-1); cursor:pointer; border:0;
@@ -334,6 +374,38 @@ img { max-width:100%; }
   margin-left:auto; background:var(--surface-muted); color:var(--text-muted); box-shadow:none; padding:8px 13px;
 }
 .photo-action.photo-report-action:hover { background:var(--danger-soft); color:var(--danger); }
+
+/* ===================== RANDOM PHOTO ===================== */
+.random-cta { margin:0 0 var(--space-6); }
+.random-cta-button {
+  display:flex; align-items:center; gap:var(--space-4); width:100%; text-align:left; cursor:pointer;
+  border:0; padding:var(--space-5) var(--space-6); border-radius:var(--radius-xl);
+  background:linear-gradient(115deg,var(--tangerine-400) 0%,var(--tangerine-500) 45%,var(--sunbeam-400) 100%);
+  color:var(--text-onpop);
+  box-shadow:0 6px 0 var(--primary-press),var(--shadow-2);
+  transition:transform var(--dur-2) var(--ease-out),box-shadow var(--dur-2) var(--ease-out);
+}
+.random-cta-button:hover { transform:translateY(-2px); box-shadow:0 8px 0 var(--primary-press),var(--shadow-3); }
+.random-cta-button:active { transform:translateY(4px); box-shadow:0 2px 0 var(--primary-press); }
+.random-cta-button:focus-visible { outline:3px solid var(--sky-300); outline-offset:3px; }
+.random-cta-dice {
+  font-size:2rem; line-height:1; flex:0 0 auto;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,0.18));
+  animation:jh-dice-bob 2.6s var(--ease-standard) infinite;
+}
+.random-cta-copy { display:flex; flex-direction:column; gap:3px; flex:1; min-width:0; }
+.random-cta-copy strong { font-family:var(--font-display); font-size:var(--fs-h4); font-weight:var(--fw-bold); }
+.random-cta-copy span { font-size:var(--fs-sm); color:color-mix(in srgb,var(--text-onpop) 86%,transparent); }
+.random-cta-arrow { font-size:1.5rem; font-weight:var(--fw-bold); flex:0 0 auto; transition:transform var(--dur-2) var(--ease-out); }
+.random-cta-button:hover .random-cta-arrow { transform:translateX(5px); }
+@keyframes jh-dice-bob { 0%,100%{ transform:translateY(0) rotate(-7deg);} 50%{ transform:translateY(-5px) rotate(7deg);} }
+
+.random-view-head { text-align:center; margin-bottom:var(--space-4); }
+.random-view-head h1 { font-size:var(--fs-h2); line-height:var(--lh-tight); margin:4px 0 0; }
+.random-view-sub { color:var(--text-muted); margin:8px 0 0; }
+.random-actions { display:flex; flex-wrap:wrap; gap:var(--space-3); justify-content:center; margin-top:var(--space-5); }
+.random-actions .auth-button { flex:0 1 auto; }
+.random-shuffle-button { font-weight:var(--fw-bold); }
 
 /* ===================== HOME CONTENT ===================== */
 .home-content { margin-top:var(--space-16); }
@@ -697,6 +769,11 @@ select { appearance:none; background-image:linear-gradient(45deg,transparent 50%
 /* ===================== RESPONSIVE ===================== */
 @media (max-width:980px) {
   .gallery-grid,.home-content-grid,.info-grid,.info-card-grid,.info-steps,.gallery-index-grid { grid-template-columns:repeat(2,1fr); }
+  /* 사이드바를 갤러리 위 가로 스크롤 줄로 전환 */
+  .gallery-layout { grid-template-columns:1fr; gap:var(--space-5); }
+  .today-popular { position:static; }
+  .today-popular-list { flex-direction:row; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch; }
+  .today-popular-item { flex:0 0 200px; }
   .ranking-layout { grid-template-columns:1fr; }
   .ranking-photo-stack { position:static; }
   .contact-layout { grid-template-columns:1fr; }

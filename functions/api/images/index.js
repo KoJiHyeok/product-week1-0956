@@ -18,19 +18,6 @@ const defaultImages = [
     isUserUpload: false,
   },
   {
-    id: "photo-002",
-    imageKey: "1",
-    src: "assets/gallery/02-memorial.png",
-    webpSrc: "assets/gallery/webp/02-memorial.webp",
-    title: "가게 앞에 놓인 꽃다발과 노란 테이프",
-    description: "건물 앞에 놓인 꽃과 통제선이 조용한 추모 분위기를 만드는 사진입니다. 실제 사건을 단정하기보다 거리감, 침묵, 남겨진 흔적을 중심으로 제목을 붙이는 연습에 어울립니다.",
-    alt: "파란 건물 앞 통제선 너머에서 사람들이 꽃다발을 정리하는 장면",
-    prompt: "조심스러운 장면에서는 웃음보다 장소의 침묵과 남겨진 흔적을 존중하는 제목이 자연스럽습니다.",
-    observationPoints: ["노란 통제선이 만드는 거리감", "기둥 앞에 쌓인 꽃다발", "넓게 비어 있는 주차 공간"],
-    exampleTitles: ["조용히 놓인 마음들", "닫힌 문 앞의 꽃", "말 대신 남긴 자리"],
-    isUserUpload: false,
-  },
-  {
     id: "photo-003",
     imageKey: "2",
     src: "assets/gallery/03-alligators.jpeg",
@@ -54,32 +41,6 @@ const defaultImages = [
     prompt: "넓은 빈 하늘과 작은 인물 사이의 거리감을 제목의 핵심 감정으로 잡아보세요.",
     observationPoints: ["화면 대부분을 차지하는 흐린 하늘", "검은 옷과 들판의 색 대비", "정면으로 걸어오는 느린 움직임"],
     exampleTitles: ["하늘이 먼저 도착한 날", "말수가 적은 들판", "혼자 걷는 오후"],
-    isUserUpload: false,
-  },
-  {
-    id: "photo-005",
-    imageKey: "4",
-    src: "assets/gallery/05-screaming-man.png",
-    webpSrc: "assets/gallery/webp/05-screaming-man.webp",
-    title: "양팔을 벌리고 외치는 정장 차림의 인물",
-    description: "고급스러운 실내 배경과 과장된 표정이 대비되는 장면입니다. 인물의 감정을 실제 사실처럼 단정하지 말고, 순간의 에너지와 공간의 분위기를 활용해 제목을 붙이는 연습에 좋습니다.",
-    alt: "정장을 입은 남성이 고급스러운 실내에서 양팔을 벌리고 외치는 장면",
-    prompt: "크게 벌린 팔, 열린 입, 뒤쪽 장식의 분위기를 묶어 과장된 선언처럼 표현해보세요.",
-    observationPoints: ["양쪽으로 크게 펼친 팔", "진한 색 벽과 장식적인 실내", "화면 중앙에 고정된 강한 표정"],
-    exampleTitles: ["회의는 여기서 끝났다", "내 안의 발표 자료", "조용한 방의 가장 큰 목소리"],
-    isUserUpload: false,
-  },
-  {
-    id: "photo-006",
-    imageKey: "5",
-    src: "assets/gallery/06-husky-bowl.jpg",
-    webpSrc: "assets/gallery/webp/06-husky-bowl.webp",
-    title: "밥그릇 앞에서 얼어붙은 허스키",
-    description: "두 손이 그릇을 건네는 순간, 허스키의 둥근 눈과 낮은 자세가 장면의 긴장을 만듭니다. 동물의 표정을 사람의 대사처럼 바꾸면 짧고 재미있는 제목을 만들 수 있습니다.",
-    alt: "사람들이 내민 밥그릇 앞에서 눈을 크게 뜬 허스키",
-    prompt: "밥그릇이 가까워지는 순간의 표정을 한 문장 대사처럼 바꿔보세요.",
-    observationPoints: ["정면을 보는 허스키의 큰 눈", "양쪽에서 들어온 사람의 손", "바닥에 낮게 엎드린 몸의 자세"],
-    exampleTitles: ["계약서부터 확인하겠습니다", "간식인지 심문인지", "그릇이 너무 진지하다"],
     isUserUpload: false,
   },
   {
@@ -390,9 +351,107 @@ const defaultImages = [
   },
 ];
 
+// 인기 정렬 가중치: 하트(좋아요)를 가장 크게, 그다음 제목 수, 댓글 수.
+const SCORE_WEIGHTS = Object.freeze({ likes: 3, submissions: 2, comments: 1 });
+// "최근 가산점": 배열 뒤쪽(최근 추가)일수록 0~RECENCY_BOOST 만큼 가산. 새 사진이
+// 활동이 없어도 묻히지 않게 하고, 더 새 사진이 들어오면 자연히 내려간다(콜드스타트 완화).
+const RECENCY_BOOST = 10;
+const TODAY_POPULAR_LIMIT = 5;
+const EMPTY_STAT = Object.freeze({ submissions: 0, likes: 0, todayLikes: 0, comments: 0 });
+
+function imageKeyOf(image, index) {
+  return image?.imageKey != null ? String(image.imageKey) : String(index);
+}
+
+function popularityScore(stat) {
+  return (
+    stat.likes * SCORE_WEIGHTS.likes +
+    stat.submissions * SCORE_WEIGHTS.submissions +
+    stat.comments * SCORE_WEIGHTS.comments
+  );
+}
+
+function rankImages(images, stats) {
+  const lastIndex = Math.max(images.length - 1, 1);
+  return images
+    .map((image, index) => {
+      const stat = stats.get(imageKeyOf(image, index)) || EMPTY_STAT;
+      const recency = (index / lastIndex) * RECENCY_BOOST; // 뒤(최근)일수록 큰 값
+      return { image, index, score: popularityScore(stat) + recency };
+    })
+    .sort((a, b) => b.score - a.score || a.index - b.index) // 동점은 원래 순서 유지
+    .map((entry) => entry.image);
+}
+
+function buildTodayPopular(images, stats) {
+  return images
+    .map((image, index) => {
+      const key = imageKeyOf(image, index);
+      const stat = stats.get(key) || EMPTY_STAT;
+      return { key, image, todayLikes: stat.todayLikes };
+    })
+    .filter((entry) => entry.todayLikes > 0)
+    .sort((a, b) => b.todayLikes - a.todayLikes)
+    .slice(0, TODAY_POPULAR_LIMIT)
+    .map((entry) => ({
+      imageKey: entry.key,
+      title: entry.image.title || entry.image.alt || "제목 없는 사진",
+      src: entry.image.src,
+      webpSrc: entry.image.webpSrc || "",
+      todayLikes: entry.todayLikes,
+    }));
+}
+
+async function getImageStats(context, voteDate) {
+  const db = getDb(context);
+  const { results } = await db
+    .prepare(
+      `SELECT
+         COALESCE(submissions.image_key, CAST(submissions.image_index AS TEXT)) AS image_key,
+         COUNT(DISTINCT submissions.id) AS submission_count,
+         COUNT(DISTINCT likes.id) AS like_count,
+         COUNT(DISTINCT CASE WHEN likes.vote_date = ? THEN likes.id END) AS today_like_count,
+         COUNT(DISTINCT comments.id) AS comment_count
+       FROM submissions
+       LEFT JOIN likes ON likes.submission_id = submissions.id
+       LEFT JOIN comments ON comments.submission_id = submissions.id
+         AND comments.hidden_at IS NULL AND comments.deleted_at IS NULL
+       WHERE submissions.hidden_at IS NULL
+         AND submissions.deleted_at IS NULL
+         AND submissions.excluded_from_ranking = 0
+       GROUP BY COALESCE(submissions.image_key, CAST(submissions.image_index AS TEXT))`
+    )
+    .bind(voteDate)
+    .all();
+
+  const map = new Map();
+  for (const row of results || []) {
+    map.set(String(row.image_key), {
+      submissions: Number(row.submission_count) || 0,
+      likes: Number(row.like_count) || 0,
+      todayLikes: Number(row.today_like_count) || 0,
+      comments: Number(row.comment_count) || 0,
+    });
+  }
+  return map;
+}
+
 export async function onRequestGet(context) {
   const uploadedImages = await getApprovedUploadedImages(context);
-  return json({ images: [...defaultImages, ...uploadedImages] });
+  const baseImages = [...defaultImages, ...uploadedImages];
+
+  try {
+    const voteDate = new Date().toISOString().slice(0, 10);
+    const stats = await getImageStats(context, voteDate);
+    return json({
+      images: rankImages(baseImages, stats),
+      todayPopular: buildTodayPopular(baseImages, stats),
+    });
+  } catch (error) {
+    // 집계 실패(테이블 부재 등) 시 기존 정적 순서로 안전하게 폴백.
+    console.error("images ranking error", error);
+    return json({ images: baseImages, todayPopular: [] });
+  }
 }
 
 async function getApprovedUploadedImages(context) {

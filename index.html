@@ -43,7 +43,7 @@
   <meta name="twitter:image:alt" content="제목 학원 로고" />
 
   <title>제목 학원 - 사진 제목 만들기와 예시 가이드</title>
-  <link href="style.css?v=4" rel="stylesheet" />
+  <link href="style.css?v=6" rel="stylesheet" />
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -127,11 +127,33 @@
     </header>
 
     <section class="view gallery-view" id="homeView" aria-label="사진 선택">
+      <div class="gallery-layout">
+        <aside class="today-popular" id="todayPopular" aria-label="오늘의 인기 사진">
+          <h2 class="today-popular-title">오늘의 인기</h2>
+          <ol class="today-popular-list" id="todayPopularList" hidden></ol>
+          <p class="today-popular-empty" id="todayPopularEmpty">오늘 하트를 받은 사진이 모이면 여기에 표시됩니다.</p>
+        </aside>
+
+        <div class="gallery-main">
       <p class="gallery-guide">사진에 어울리는 제목을 만들어보세요!!</p>
       <p class="gallery-subguide">
         각 사진에는 운영자가 정리한 관찰 포인트와 예시 제목이 함께 제공됩니다. 사진을 고른 뒤 장면의 단서, 감정, 반전을 살려 나만의 제목을 작성해보세요.
       </p>
+
+      <div class="random-cta">
+        <button class="random-cta-button" id="randomEntryButton" type="button" aria-label="랜덤 사진 한 장 뽑아서 제목 짓기">
+          <span class="random-cta-dice" aria-hidden="true">🎲</span>
+          <span class="random-cta-copy">
+            <strong>랜덤 사진으로 시작하기</strong>
+            <span>무엇을 고를지 고민될 땐, 무작위 사진 한 장으로!</span>
+          </span>
+          <span class="random-cta-arrow" aria-hidden="true">→</span>
+        </button>
+      </div>
+
       <div class="gallery-grid" id="galleryGrid"></div>
+        </div>
+      </div>
 
       <section class="home-content" aria-label="제목 학원 이용 안내">
         <article class="home-content-hero" id="what-is-title-academy">
@@ -255,6 +277,25 @@
           <button class="auth-button solid" type="submit">입력 및 랭킹확인</button>
         </div>
       </form>
+    </section>
+
+    <section class="view play-view random-view" id="randomView" hidden aria-label="랜덤 사진">
+      <div class="random-view-head">
+        <p class="view-kicker">랜덤 사진</p>
+        <h1>무작위로 뽑은 한 장</h1>
+        <p class="random-view-sub">마음에 들면 제목을 짓고, 아니면 다른 사진을 뽑아보세요.</p>
+      </div>
+
+      <div class="selected-photo-frame">
+        <img class="selected-photo" id="randomPhoto" alt="" decoding="async" />
+      </div>
+      <section class="image-brief" id="randomImageBrief" hidden aria-label="랜덤 사진 해설"></section>
+
+      <div class="random-actions">
+        <button class="auth-button ghost random-shuffle-button" id="randomShuffleButton" type="button">🎲 다른 사진</button>
+        <button class="auth-button solid" id="randomTitleButton" type="button">이 사진으로 제목 짓기</button>
+        <button class="auth-button ghost" id="randomRankingButton" type="button">랭킹 보기</button>
+      </div>
     </section>
 
     <section class="view guest-view" id="guestView" hidden aria-label="비회원 이름 입력">
@@ -690,6 +731,6 @@
     </div>
   </section>
 
-  <script defer src="main.js?v=6"></script>
+  <script defer src="main.js?v=9"></script>
 </body>
 </html>
