@@ -1,4 +1,5 @@
 import { ensureUserCanWrite, getCurrentUser, getDb, json, readJson } from "../../auth/_shared.js";
+import { validateDisplayName, validatePublicText } from "../_moderation.js";
 
 export async function onRequestPost(context) {
   try {
@@ -15,6 +16,16 @@ export async function onRequestPost(context) {
 
     if (!user && !guestName) {
       return json({ message: "비회원 이름을 입력하세요." }, 400);
+    }
+
+    const commentValidation = validatePublicText(text, "댓글");
+    if (!commentValidation.ok) {
+      return json({ message: commentValidation.message }, 400);
+    }
+
+    const guestNameValidation = validateDisplayName(guestName);
+    if (!guestNameValidation.ok) {
+      return json({ message: guestNameValidation.message }, 400);
     }
 
     const restrictionResponse = await ensureUserCanWrite(context, user, "write");
