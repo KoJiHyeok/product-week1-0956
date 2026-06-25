@@ -16,6 +16,9 @@ firebase-debug.*.log*
 # Local database dumps
 backup-*.sql
 
+# Orphan-content purge backups (user content snapshots, keep local only)
+scripts/backups/
+
 # Runtime data
 pids
 *.pid
