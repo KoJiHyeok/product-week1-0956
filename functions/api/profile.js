@@ -7,6 +7,7 @@ import {
   publicUser,
   readJson,
 } from "./auth/_shared.js";
+import { validateDisplayName } from "./submissions/_moderation.js";
 
 export async function onRequestPatch(context) {
   try {
@@ -45,6 +46,11 @@ async function updateProfile(context) {
 
   if (!username) {
     return json({ message: "프로필 이름을 입력하세요." }, 400);
+  }
+
+  const usernameValidation = validateDisplayName(username, "프로필 이름");
+  if (!usernameValidation.ok) {
+    return json({ message: usernameValidation.message }, 400);
   }
 
   const db = getDb(context);

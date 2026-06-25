@@ -14,6 +14,7 @@ import {
   validateLoginId,
   validatePassword,
 } from "./_shared.js";
+import { validateDisplayName } from "../submissions/_moderation.js";
 
 export async function onRequestPost(context) {
   try {
@@ -50,6 +51,11 @@ async function handleRegister(context) {
 
   if (!username) {
     return json({ message: "사용자 이름을 입력하세요." }, 400);
+  }
+
+  const usernameValidation = validateDisplayName(username, "사용자 이름");
+  if (!usernameValidation.ok) {
+    return json({ message: usernameValidation.message }, 400);
   }
 
   if (passwordError) {
