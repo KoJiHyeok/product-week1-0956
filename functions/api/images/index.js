@@ -427,36 +427,43 @@ async function getImageStats(context, voteDate) {
 }
 
 // 이달의 랭킹: 이번 달(monthPrefix = "YYYY-MM") 동안 자신의 제목이 받은 하트 합계로
-// 가입 사용자(author_user_id)를 순위 매김. 비회원(guest) 제목은 제외.
-async function getMonthlyUserRanking(context, monthPrefix) {
+// 참여자를 순위 매김. 가입 사용자는 author_user_id로, 비회원은 guest_name으로 묶는다.
+// (사이트 활동이 대부분 비회원이라, 회원만 집계하면 랭킹이 거의 항상 비어 비회원도 포함한다.)
+async function getMonthlyRanking(context, monthPrefix) {
   const db = getDb(context);
   const { results } = await db
     .prepare(
-      `SELECT submissions.author_user_id AS user_id,
-              users.username AS username,
-              users.is_profile_public AS is_profile_public,
-              users.profile_image_url AS profile_image_url,
-              COUNT(likes.id) AS month_likes
+      `SELECT
+         CASE WHEN submissions.author_user_id IS NOT NULL
+              THEN 'u:' || submissions.author_user_id
+              ELSE 'g:' || submissions.guest_name END AS rank_key,
+         submissions.author_user_id AS user_id,
+         COALESCE(users.username, submissions.guest_name) AS display_name,
+         users.is_profile_public AS is_profile_public,
+         users.profile_image_url AS profile_image_url,
+         COUNT(likes.id) AS month_likes
        FROM submissions
        JOIN likes ON likes.submission_id = submissions.id
-       JOIN users ON users.id = submissions.author_user_id
-       WHERE submissions.author_user_id IS NOT NULL
-         AND submissions.hidden_at IS NULL
+       LEFT JOIN users ON users.id = submissions.author_user_id
+       WHERE submissions.hidden_at IS NULL
          AND submissions.deleted_at IS NULL
          AND submissions.excluded_from_ranking = 0
+         AND (submissions.author_user_id IS NOT NULL
+              OR (submissions.guest_name IS NOT NULL AND submissions.guest_name <> ''))
          AND likes.vote_date LIKE ?
-       GROUP BY submissions.author_user_id
-       ORDER BY month_likes DESC, users.username ASC
+       GROUP BY rank_key
+       ORDER BY month_likes DESC, display_name ASC
        LIMIT ${MONTHLY_RANKING_LIMIT}`
     )
     .bind(`${monthPrefix}-%`)
     .all();
 
   return (results || []).map((row) => ({
-    userId: String(row.user_id),
-    username: row.username || "사용자",
-    // 비공개 프로필은 아바타 이미지를 노출하지 않는다(이름은 제목에 이미 공개됨).
-    avatarUrl: row.is_profile_public !== 0 ? row.profile_image_url || "" : "",
+    userId: row.user_id ? String(row.user_id) : "",
+    username: row.display_name || "비회원",
+    isGuest: !row.user_id,
+    // 회원 비공개 프로필/비회원은 아바타 이미지를 노출하지 않는다(이름은 제목에 이미 공개됨).
+    avatarUrl: row.user_id && row.is_profile_public !== 0 ? row.profile_image_url || "" : "",
     monthLikes: Number(row.month_likes) || 0,
   }));
 }
@@ -469,7 +476,7 @@ export async function onRequestGet(context) {
     const voteDate = new Date().toISOString().slice(0, 10);
     const monthPrefix = voteDate.slice(0, 7); // YYYY-MM
     const stats = await getImageStats(context, voteDate);
-    const monthlyRanking = await getMonthlyUserRanking(context, monthPrefix);
+    const monthlyRanking = await getMonthlyRanking(context, monthPrefix);
     return json({
       images: rankImages(baseImages, stats),
       todayPopular: buildTodayPopular(baseImages, stats),
