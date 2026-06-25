@@ -43,7 +43,7 @@
   <meta name="twitter:image:alt" content="제목 학원 로고" />
 
   <title>제목 학원 - 사진 제목 만들기와 예시 가이드</title>
-  <link href="style.css?v=6" rel="stylesheet" />
+  <link href="style.css?v=10" rel="stylesheet" />
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -127,11 +127,16 @@
     </header>
 
     <section class="view gallery-view" id="homeView" aria-label="사진 선택">
-      <div class="gallery-layout">
-        <aside class="today-popular" id="todayPopular" aria-label="오늘의 인기 사진">
-          <h2 class="today-popular-title">오늘의 인기</h2>
-          <ol class="today-popular-list" id="todayPopularList" hidden></ol>
-          <p class="today-popular-empty" id="todayPopularEmpty">오늘 하트를 받은 사진이 모이면 여기에 표시됩니다.</p>
+      <div class="gallery-layout" id="galleryLayout">
+        <aside class="gallery-sidebar" id="gallerySidebar" aria-label="랭킹">
+          <section class="rank-block" id="monthlyRankBlock" hidden aria-label="이달의 랭킹">
+            <h2 class="rank-block-title">이달의 랭킹</h2>
+            <ol class="rank-list monthly-rank-list" id="monthlyRankList"></ol>
+          </section>
+          <section class="rank-block" id="todayPopularBlock" hidden aria-label="오늘의 인기 사진">
+            <h2 class="rank-block-title">오늘의 인기</h2>
+            <ol class="rank-list today-popular-list" id="todayPopularList"></ol>
+          </section>
         </aside>
 
         <div class="gallery-main">
@@ -280,6 +285,9 @@
     </section>
 
     <section class="view play-view random-view" id="randomView" hidden aria-label="랜덤 사진">
+      <button class="random-back" id="randomBackButton" type="button">
+        <span class="random-back-arrow" aria-hidden="true">←</span> 갤러리로 돌아가기
+      </button>
       <div class="random-view-head">
         <p class="view-kicker">랜덤 사진</p>
         <h1>무작위로 뽑은 한 장</h1>
@@ -731,6 +739,6 @@
     </div>
   </section>
 
-  <script defer src="main.js?v=10"></script>
+  <script defer src="main.js?v=13"></script>
 </body>
 </html>

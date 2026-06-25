@@ -290,45 +290,61 @@ img { max-width:100%; }
 .gallery-subguide { color:var(--text-muted); max-width:54em; margin:0 0 var(--space-8); line-height:var(--lh-normal); }
 .gallery-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:var(--space-5); }
 
-/* ---------- Home layout: 오늘의 인기 사이드바(좌) + 갤러리(우) ---------- */
+/* ---------- Home layout: 랭킹 사이드바(좌) + 갤러리(우) ---------- */
 .gallery-layout { display:grid; grid-template-columns:minmax(220px,248px) 1fr; gap:var(--space-6); align-items:start; }
+.gallery-layout.is-sidebar-empty { grid-template-columns:1fr; }
 .gallery-main { min-width:0; }
 
-.today-popular {
-  position:sticky; top:var(--space-4);
+/* 사이드바: 이달의 랭킹 + 오늘의 인기 카드를 담는 sticky 컬럼 */
+.gallery-sidebar { position:sticky; top:var(--space-4); display:flex; flex-direction:column; gap:var(--space-4); }
+.rank-block {
   background:var(--surface-card); border:1px solid var(--border-soft);
   border-radius:var(--radius-lg); box-shadow:var(--shadow-1);
   padding:var(--space-4); display:flex; flex-direction:column; gap:var(--space-3);
 }
-.today-popular-title {
+.rank-block-title {
   margin:0; font-family:var(--font-display); font-size:var(--fs-lg); line-height:1;
   color:var(--text-strong); display:flex; align-items:center; gap:8px;
 }
-.today-popular-title::before { content:"🔥"; font-size:1.05em; }
-.today-popular-empty { margin:0; color:var(--text-faint); font-size:var(--fs-xs); line-height:var(--lh-normal); }
-.today-popular-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--space-2); }
+#monthlyRankBlock .rank-block-title::before { content:"🏆"; font-size:1.05em; }
+#todayPopularBlock .rank-block-title::before { content:"🔥"; font-size:1.05em; }
+.rank-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--space-1); }
 
-.today-popular-link {
-  width:100%; display:grid; grid-template-columns:auto 44px 1fr; align-items:center; gap:10px;
-  border:0; background:transparent; border-radius:var(--radius-sm); padding:6px; cursor:pointer;
-  text-align:left; transition:background var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out);
+/* 공통 리더보드 행: [순위][콘텐츠][하트수] */
+.rank-row { width:100%; display:flex; align-items:center; gap:10px; }
+button.rank-row {
+  border:0; background:transparent; border-radius:var(--radius-sm); padding:6px; cursor:pointer; text-align:left;
+  transition:background var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out);
 }
-.today-popular-link:hover { background:var(--surface-muted); transform:translateX(2px); }
-.today-popular-link:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
-.today-popular-rank {
+button.rank-row:hover { background:var(--surface-muted); transform:translateX(2px); }
+button.rank-row:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
+.monthly-rank-item { padding:6px; }
+
+.rank-badge {
   width:22px; height:22px; flex:0 0 22px; border-radius:var(--radius-pill);
-  background:var(--secondary); color:var(--text-onsun);
+  background:var(--surface-inset); color:var(--text-muted);
   font-weight:var(--fw-bold); font-size:var(--fs-2xs);
   display:inline-flex; align-items:center; justify-content:center;
 }
-.today-popular-link:nth-child(1) .today-popular-rank { background:var(--primary); color:var(--text-onpop); }
-.today-popular-thumb { width:44px; height:44px; border-radius:var(--radius-sm); object-fit:cover; background:var(--surface-inset); }
-.today-popular-body { min-width:0; display:flex; flex-direction:column; gap:2px; }
-.today-popular-name {
-  color:var(--text-strong); font-size:var(--fs-xs); font-weight:var(--fw-semibold); line-height:var(--lh-tight);
-  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+.rank-list > li:first-child .rank-badge { background:var(--primary); color:var(--text-onpop); }
+.rank-list > li:nth-child(2) .rank-badge,
+.rank-list > li:nth-child(3) .rank-badge { background:var(--secondary); color:var(--text-onsun); }
+.rank-likes { margin-left:auto; display:inline-flex; align-items:center; gap:4px; color:var(--text-muted); font-size:var(--fs-xs); font-weight:var(--fw-bold); }
+
+/* 오늘의 인기 썸네일 */
+.today-popular-thumb { width:54px; height:54px; flex:0 0 54px; border-radius:var(--radius-sm); object-fit:cover; background:var(--surface-inset); }
+
+/* 이달의 랭킹 사용자 아바타 + 이름 */
+.rank-avatar {
+  width:32px; height:32px; flex:0 0 32px; border-radius:var(--radius-pill); overflow:hidden;
+  background:var(--surface-inset); color:var(--text-muted);
+  display:inline-flex; align-items:center; justify-content:center; font-weight:var(--fw-bold); font-size:var(--fs-sm);
 }
-.today-popular-likes { display:inline-flex; align-items:center; gap:4px; color:var(--text-muted); font-size:var(--fs-2xs); font-weight:var(--fw-bold); }
+.rank-avatar img { width:100%; height:100%; object-fit:cover; }
+.rank-name {
+  flex:1; min-width:0; color:var(--text-strong); font-size:var(--fs-xs); font-weight:var(--fw-semibold);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
 
 .photo-card {
   position:relative; background:var(--surface-card); border-radius:var(--radius-xl); overflow:hidden;
@@ -376,6 +392,18 @@ img { max-width:100%; }
 .photo-action.photo-report-action:hover { background:var(--danger-soft); color:var(--danger); }
 
 /* ===================== RANDOM PHOTO ===================== */
+.random-back {
+  display:inline-flex; align-items:center; gap:5px; margin:0 0 var(--space-3); cursor:pointer; border:0;
+  background:transparent; color:var(--text-muted);
+  font-weight:var(--fw-semibold); font-size:var(--fs-sm); padding:6px 2px; border-radius:var(--radius-sm);
+  transition:color var(--dur-1) var(--ease-out);
+}
+.random-back:hover { color:var(--text-strong); }
+.random-back:hover .random-back-arrow { transform:translateX(-3px); }
+.random-back:active { color:var(--text-strong); }
+.random-back:focus-visible { outline:3px solid var(--sky-300); outline-offset:3px; }
+.random-back-arrow { font-size:1.05rem; line-height:1; transition:transform var(--dur-1) var(--ease-out); }
+
 .random-cta { margin:0 0 var(--space-6); }
 .random-cta-button {
   display:flex; align-items:center; gap:var(--space-4); width:100%; text-align:left; cursor:pointer;
@@ -429,6 +457,8 @@ img { max-width:100%; }
 
 /* ===================== TITLE / PLAY VIEW ===================== */
 .play-view,.guest-view { max-width:var(--container-narrow); margin:0 auto; }
+/* 사진 클릭 → 제목 화면: 상단 메뉴를 숨겨 생긴 윗공간만큼 사진을 내려주고 살짝 키운다 */
+#titleView { padding-top:var(--space-10); max-width:780px; }
 .selected-photo-frame {
   border-radius:var(--radius-2xl); overflow:hidden; box-shadow:var(--shadow-2);
   margin:var(--space-4) 0 var(--space-6); background:var(--surface-inset); aspect-ratio:4/3;
@@ -771,9 +801,10 @@ select { appearance:none; background-image:linear-gradient(45deg,transparent 50%
   .gallery-grid,.home-content-grid,.info-grid,.info-card-grid,.info-steps,.gallery-index-grid { grid-template-columns:repeat(2,1fr); }
   /* 사이드바를 갤러리 위 가로 스크롤 줄로 전환 */
   .gallery-layout { grid-template-columns:1fr; gap:var(--space-5); }
-  .today-popular { position:static; }
-  .today-popular-list { flex-direction:row; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch; }
-  .today-popular-item { flex:0 0 200px; }
+  .gallery-sidebar { position:static; }
+  .rank-list { flex-direction:row; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch; }
+  .rank-list > li { flex:0 0 auto; }
+  .monthly-rank-item { min-width:168px; }
   .ranking-layout { grid-template-columns:1fr; }
   .ranking-photo-stack { position:static; }
   .contact-layout { grid-template-columns:1fr; }

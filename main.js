@@ -11,6 +11,7 @@ const randomView = document.querySelector("#randomView");
 const contactView = document.querySelector("#contactView");
 const profileView = document.querySelector("#profileView");
 const adminView = document.querySelector("#adminView");
+const topSiteNav = document.querySelector(".top-site-nav");
 const galleryGrid = document.querySelector("#galleryGrid");
 const selectedPhoto = document.querySelector("#selectedPhoto");
 const rankingPhoto = document.querySelector("#rankingPhoto");
@@ -19,6 +20,7 @@ const selectedImageBrief = document.querySelector("#selectedImageBrief");
 const rankingImageBrief = document.querySelector("#rankingImageBrief");
 const randomImageBrief = document.querySelector("#randomImageBrief");
 const randomEntryButton = document.querySelector("#randomEntryButton");
+const randomBackButton = document.querySelector("#randomBackButton");
 const randomShuffleButton = document.querySelector("#randomShuffleButton");
 const randomTitleButton = document.querySelector("#randomTitleButton");
 const randomRankingButton = document.querySelector("#randomRankingButton");
@@ -862,36 +864,87 @@ async function loadGalleryImages() {
       visibleGalleryCount = galleryImages.length;
       renderGallery();
     }
+    renderMonthlyRanking(Array.isArray(data.monthlyRanking) ? data.monthlyRanking : []);
     renderTodayPopular(Array.isArray(data.todayPopular) ? data.todayPopular : []);
+    updateSidebarLayout();
   } catch {
     galleryImages = defaultGalleryImages.map((image, index) => ({ ...image, imageKey: String(index), isUserUpload: false }));
     visibleGalleryCount = galleryImages.length;
     renderGallery();
+    renderMonthlyRanking([]);
     renderTodayPopular([]);
+    updateSidebarLayout();
   }
 }
 
-function renderTodayPopular(items) {
-  const list = document.querySelector("#todayPopularList");
-  const empty = document.querySelector("#todayPopularEmpty");
-  if (!list) {
+// 이달의 랭킹: 이번 달 하트를 가장 많이 받은 사용자. 데이터 없으면 블록을 숨긴다.
+function renderMonthlyRanking(items) {
+  const list = document.querySelector("#monthlyRankList");
+  const block = document.querySelector("#monthlyRankBlock");
+  if (!list || !block) {
     return;
   }
 
   list.replaceChildren();
 
   if (!items.length) {
-    if (empty) {
-      empty.hidden = false;
+    block.hidden = true;
+    return;
+  }
+  block.hidden = false;
+
+  const fragment = document.createDocumentFragment();
+  items.forEach((item, rank) => {
+    const li = document.createElement("li");
+    li.className = "rank-row monthly-rank-item";
+
+    const rankBadge = document.createElement("span");
+    rankBadge.className = "rank-badge";
+    rankBadge.textContent = String(rank + 1);
+
+    const avatar = document.createElement("span");
+    avatar.className = "rank-avatar";
+    if (item.avatarUrl) {
+      const img = document.createElement("img");
+      img.src = item.avatarUrl;
+      img.alt = "";
+      img.loading = "lazy";
+      img.decoding = "async";
+      avatar.append(img);
+    } else {
+      avatar.textContent = (item.username || "?").slice(0, 1);
     }
-    list.hidden = true;
+
+    const name = document.createElement("span");
+    name.className = "rank-name";
+    name.textContent = item.username || "사용자";
+
+    const likes = document.createElement("span");
+    likes.className = "rank-likes";
+    likes.innerHTML = `<span class="heart-icon" aria-hidden="true"></span><span>${item.monthLikes}</span>`;
+
+    li.append(rankBadge, avatar, name, likes);
+    fragment.append(li);
+  });
+
+  list.append(fragment);
+}
+
+// 오늘의 인기 사진. 오늘 데이터가 없으면 블록 자체를 숨긴다(사진 제목/설명은 노출 안 함).
+function renderTodayPopular(items) {
+  const list = document.querySelector("#todayPopularList");
+  const block = document.querySelector("#todayPopularBlock");
+  if (!list || !block) {
     return;
   }
 
-  if (empty) {
-    empty.hidden = true;
+  list.replaceChildren();
+
+  if (!items.length) {
+    block.hidden = true;
+    return;
   }
-  list.hidden = false;
+  block.hidden = false;
 
   const fragment = document.createDocumentFragment();
   items.forEach((item, rank) => {
@@ -900,12 +953,13 @@ function renderTodayPopular(items) {
 
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "today-popular-link";
+    button.className = "today-popular-link rank-row";
     button.dataset.imageKey = item.imageKey;
-    button.setAttribute("aria-label", `${item.title} 사진으로 이동 (오늘 하트 ${item.todayLikes}개)`);
+    // 순위·하트수로만 안내 — 사진 제목/설명은 노출하지 않는다(제목짓기 창작성 보호).
+    button.setAttribute("aria-label", `오늘의 인기 ${rank + 1}위 사진으로 이동 (오늘 하트 ${item.todayLikes}개)`);
 
     const rankBadge = document.createElement("span");
-    rankBadge.className = "today-popular-rank";
+    rankBadge.className = "rank-badge";
     rankBadge.textContent = String(rank + 1);
 
     const thumb = document.createElement("img");
@@ -915,24 +969,31 @@ function renderTodayPopular(items) {
     thumb.loading = "lazy";
     thumb.decoding = "async";
 
-    const body = document.createElement("span");
-    body.className = "today-popular-body";
-
-    const title = document.createElement("span");
-    title.className = "today-popular-name";
-    title.textContent = item.title;
-
     const likes = document.createElement("span");
-    likes.className = "today-popular-likes";
+    likes.className = "rank-likes";
     likes.innerHTML = `<span class="heart-icon" aria-hidden="true"></span><span>${item.todayLikes}</span>`;
 
-    body.append(title, likes);
-    button.append(rankBadge, thumb, body);
+    button.append(rankBadge, thumb, likes);
     li.append(button);
     fragment.append(li);
   });
 
   list.append(fragment);
+}
+
+// 두 블록이 모두 숨겨지면 사이드바를 감추고 갤러리를 전체 폭으로.
+function updateSidebarLayout() {
+  const monthly = document.querySelector("#monthlyRankBlock");
+  const today = document.querySelector("#todayPopularBlock");
+  const sidebar = document.querySelector("#gallerySidebar");
+  const layout = document.querySelector("#galleryLayout");
+  const bothHidden = (!monthly || monthly.hidden) && (!today || today.hidden);
+  if (sidebar) {
+    sidebar.hidden = bothHidden;
+  }
+  if (layout) {
+    layout.classList.toggle("is-sidebar-empty", bothHidden);
+  }
 }
 
 const todayPopularListEl = document.querySelector("#todayPopularList");
@@ -1279,6 +1340,11 @@ function applyRoute(state) {
     history.replaceState({ view: "home" }, "", routeToUrl({ view: "home" }));
     applyRoute({ view: "home" });
     return;
+  }
+
+  // 사진 작업 흐름(제목 입력·댓글·랭킹·랜덤)에서는 상단 칼럼 메뉴를 숨겨 집중을 돕는다.
+  if (topSiteNav) {
+    topSiteNav.hidden = ["title", "guest", "ranking", "random"].includes(route.view);
   }
 
   if (route.view === "home") {
@@ -4364,6 +4430,7 @@ backToGalleryButton.addEventListener("click", goHome);
 rankingSelfLink.addEventListener("click", scrollToMyRanking);
 
 randomEntryButton?.addEventListener("click", () => goRandom());
+randomBackButton?.addEventListener("click", goHome);
 randomShuffleButton?.addEventListener("click", () => goRandom(selectedImageIndex));
 randomTitleButton?.addEventListener("click", () => {
   if (Number.isInteger(selectedImageIndex)) {

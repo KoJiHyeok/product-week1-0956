@@ -345,6 +345,7 @@ const SCORE_WEIGHTS = Object.freeze({ likes: 3, submissions: 2, comments: 1 });
 // 활동이 없어도 묻히지 않게 하고, 더 새 사진이 들어오면 자연히 내려간다(콜드스타트 완화).
 const RECENCY_BOOST = 10;
 const TODAY_POPULAR_LIMIT = 5;
+const MONTHLY_RANKING_LIMIT = 5;
 const EMPTY_STAT = Object.freeze({ submissions: 0, likes: 0, todayLikes: 0, comments: 0 });
 
 function imageKeyOf(image, index) {
@@ -381,9 +382,10 @@ function buildTodayPopular(images, stats) {
     .filter((entry) => entry.todayLikes > 0)
     .sort((a, b) => b.todayLikes - a.todayLikes)
     .slice(0, TODAY_POPULAR_LIMIT)
+    // 사진의 제목/설명은 의도적으로 응답에 넣지 않는다(제목짓기 창작성 보호).
+    // 썸네일(src)·순위·하트수만 내려보낸다.
     .map((entry) => ({
       imageKey: entry.key,
-      title: entry.image.title || entry.image.alt || "제목 없는 사진",
       src: entry.image.src,
       webpSrc: entry.image.webpSrc || "",
       todayLikes: entry.todayLikes,
@@ -424,21 +426,59 @@ async function getImageStats(context, voteDate) {
   return map;
 }
 
+// 이달의 랭킹: 이번 달(monthPrefix = "YYYY-MM") 동안 자신의 제목이 받은 하트 합계로
+// 가입 사용자(author_user_id)를 순위 매김. 비회원(guest) 제목은 제외.
+async function getMonthlyUserRanking(context, monthPrefix) {
+  const db = getDb(context);
+  const { results } = await db
+    .prepare(
+      `SELECT submissions.author_user_id AS user_id,
+              users.username AS username,
+              users.is_profile_public AS is_profile_public,
+              users.profile_image_url AS profile_image_url,
+              COUNT(likes.id) AS month_likes
+       FROM submissions
+       JOIN likes ON likes.submission_id = submissions.id
+       JOIN users ON users.id = submissions.author_user_id
+       WHERE submissions.author_user_id IS NOT NULL
+         AND submissions.hidden_at IS NULL
+         AND submissions.deleted_at IS NULL
+         AND submissions.excluded_from_ranking = 0
+         AND likes.vote_date LIKE ?
+       GROUP BY submissions.author_user_id
+       ORDER BY month_likes DESC, users.username ASC
+       LIMIT ${MONTHLY_RANKING_LIMIT}`
+    )
+    .bind(`${monthPrefix}-%`)
+    .all();
+
+  return (results || []).map((row) => ({
+    userId: String(row.user_id),
+    username: row.username || "사용자",
+    // 비공개 프로필은 아바타 이미지를 노출하지 않는다(이름은 제목에 이미 공개됨).
+    avatarUrl: row.is_profile_public !== 0 ? row.profile_image_url || "" : "",
+    monthLikes: Number(row.month_likes) || 0,
+  }));
+}
+
 export async function onRequestGet(context) {
   const uploadedImages = await getApprovedUploadedImages(context);
   const baseImages = [...defaultImages, ...uploadedImages];
 
   try {
     const voteDate = new Date().toISOString().slice(0, 10);
+    const monthPrefix = voteDate.slice(0, 7); // YYYY-MM
     const stats = await getImageStats(context, voteDate);
+    const monthlyRanking = await getMonthlyUserRanking(context, monthPrefix);
     return json({
       images: rankImages(baseImages, stats),
       todayPopular: buildTodayPopular(baseImages, stats),
+      monthlyRanking,
     });
   } catch (error) {
     // 집계 실패(테이블 부재 등) 시 기존 정적 순서로 안전하게 폴백.
     console.error("images ranking error", error);
-    return json({ images: baseImages, todayPopular: [] });
+    return json({ images: baseImages, todayPopular: [], monthlyRanking: [] });
   }
 }
 
