@@ -179,6 +179,7 @@ function footerHtml() {
   return `
     <footer class="info-footer" aria-label="하단 링크">
       ${navHtml()}
+      <p class="info-meta">제목 학원의 이미지는 저작권이 없는 사진과 AI로 생성한 이미지입니다.</p>
     </footer>`;
 }
 
@@ -300,6 +301,7 @@ ${analysisItems(image)}
 
       <article class="info-card info-card-wide">
         <h2>이미지 출처와 검토</h2>
+        <p>제목 학원에서 사용하는 이미지는 저작권이 없는 사진과 AI로 생성한 이미지입니다.</p>
         <p>이 이미지는 ${escapeHtml(image.sourceName || "제목 학원 운영자 검토 갤러리")}에 포함된 자료입니다. 운영자는 제목 연습에 맞는지, 저작권과 초상권 문제가 없는지 확인한 뒤 공개합니다.</p>
         <p>권리 침해가 의심되거나 부적절한 내용이 보이면 <a href="/contact">문의 페이지</a> 또는 사진 신고 기능으로 알려주세요. 검토 중인 이미지는 숨김 처리될 수 있습니다.</p>
       </article>
@@ -364,6 +366,7 @@ ${headerHtml()}
         각 사진에서 먼저 볼 단서, 제목으로 바꾸기 좋은 감정, 예시 제목을 정리했습니다.
         사진을 고르기 전에 해설을 읽으면 더 선명한 제목을 만들 수 있습니다.
       </p>
+      <p class="info-meta">여기 실린 이미지는 모두 저작권이 없는 사진과 AI로 생성한 이미지입니다.</p>
     </section>
 
     <section class="gallery-index-grid" aria-label="사진 해설 목록">
