@@ -437,124 +437,14 @@ const defaultGalleryImages = [
   },
 
   {
-    id: "imm-001",
-    src: "assets/gallery/webp/다운로드.png",
-    title: "배 위 갑판에서 터진 단체 웃음",
-    description: "제복을 입은 사람들이 배 갑판에 둘러앉아 동시에 웃음을 터뜨린 장면입니다. 인물을 특정하기보다 격식 있는 옷차림과 풀어진 웃음의 대비, 바다 배경이 만드는 개방감을 단서로 제목을 만들어보세요.",
-    alt: "제복을 입은 사람들이 배 갑판에 둘러앉아 함께 웃는 장면",
-    prompt: "딱딱한 복장과 갑자기 터진 웃음의 간격을 한 문장으로 좁혀보세요.",
-    observationPoints: ["같은 순간 함께 번진 웃음", "정돈된 제복과 풀어진 표정의 대비", "뒤로 펼쳐진 바다와 하늘"],
-    exampleTitles: ["방금 그 농담의 위력", "갑판 위 단체 웃음 보고", "격식은 잠깐 쉬어갑니다"],
-    ...photoSourcePresets.curated,
-  },
-  {
-    id: "imm-002",
-    src: "assets/gallery/webp/다운로드.jpg",
-    title: "설득하는 어른과 떨떠름한 아이",
-    description: "어른이 몸을 기울여 말을 거는데 아이는 미묘하게 떨떠름한 표정을 짓는 장면입니다. 두 사람의 자세와 표정 차이를 사람의 대사처럼 바꾸면 짧고 재미있는 제목을 만들 수 있습니다.",
-    alt: "선글라스를 머리에 올린 어른이 아이에게 말을 걸고 아이가 떨떠름한 표정을 짓는 장면",
-    prompt: "다가가는 어른과 망설이는 아이의 온도 차이를 한 문장 대사로 표현해보세요.",
-    observationPoints: ["몸을 기울여 다가가는 어른의 자세", "한쪽으로 굳은 아이의 표정", "두 사람 사이의 미묘한 거리감"],
-    exampleTitles: ["설득은 어른 몫, 표정은 아이 몫", "아직 마음을 못 정했습니다", "그 제안 다시 들어볼게요"],
-    ...photoSourcePresets.curated,
-  },
-  {
-    id: "imm-003",
-    src: "assets/gallery/webp/다운로드 (1).jpg",
-    title: "조명 아래 멈춘 무대 위 한 동작",
-    description: "어두운 무대 조명 아래 공연자가 한 손을 들어 올린 극적인 순간입니다. 인물을 특정하기보다 빛이 닿은 손끝, 감긴 눈, 정지한 듯한 자세를 이용해 소리 없는 공연의 한 장면을 제목으로 잡아보세요.",
-    alt: "어두운 무대 조명 아래 한 손을 들어 올린 공연자의 극적인 순간",
-    prompt: "사진에는 들리지 않는 음악을 상상하며, 멈춘 동작에 어울리는 제목을 붙여보세요.",
-    observationPoints: ["빛이 모인 손끝의 방향", "감긴 눈과 집중한 표정", "어둠 속에 떠오른 한 사람"],
-    exampleTitles: ["조명이 멈춘 그 한 동작", "음악이 잠시 숨을 참았다", "박자 위에 선 정지 화면"],
-    ...photoSourcePresets.curated,
-  },
-  {
-    id: "imm-004",
-    src: "assets/gallery/webp/다운로드 (2).jpg",
-    title: "이유는 몰라도 확실한 미소",
-    description: "정장을 입은 인물이 환하게 웃는 클로즈업입니다. 상황을 단정하지 말고, 활짝 열린 표정과 격식 있는 옷차림의 대비만으로 무엇이 그를 웃게 했는지 상상해 제목을 붙여보세요.",
-    alt: "정장을 입은 인물이 환하게 웃는 클로즈업",
-    prompt: "웃음의 이유를 단정하지 말고, 표정의 밝기 자체를 제목의 중심으로 삼아보세요.",
-    observationPoints: ["입꼬리까지 올라간 환한 미소", "단정한 정장과 넥타이", "표정에 집중되는 화면 구성"],
-    exampleTitles: ["이유는 몰라도 표정은 확실하다", "오늘 가장 기분 좋은 사람", "방금 좋은 소식을 들었나봐"],
-    ...photoSourcePresets.curated,
-  },
-  {
-    id: "imm-005",
-    src: "assets/gallery/webp/다운로드 (3).jpg",
-    title: "줄과 각이 맞은 단체 동작",
-    description: "붉은 제복을 입은 사람들이 줄을 맞춰 똑같은 자세로 앉아 있는 장면입니다. 반복되는 색과 형태, 정확히 맞춰진 동작의 질서를 단서로 삼아 절도 있는 분위기를 제목으로 표현해보세요.",
-    alt: "붉은 제복을 입은 사람들이 줄을 맞춰 같은 자세로 앉아 있는 장면",
-    prompt: "여러 사람이 한 동작으로 맞춘 질서감을 짧은 제목으로 잡아보세요.",
-    observationPoints: ["줄지어 반복되는 붉은 제복", "한 치 어긋남 없는 같은 자세", "정돈된 실내가 주는 절도감"],
-    exampleTitles: ["단체로 맞춘 정지 자세", "오와 열의 미학", "동작 하나로 통일된 줄"],
-    ...photoSourcePresets.curated,
-  },
-  {
-    id: "imm-006",
-    src: "assets/gallery/webp/다운로드 (4).jpg",
-    title: "덩치는 침착, 옆 사람은 폭풍",
-    description: "체격이 큰 인물은 담담하게 서 있고, 옆의 작은 인물은 얼굴을 감싸며 감정을 쏟아내는 장면입니다. 두 사람의 크기 차이와 감정의 온도 차이가 강해 짧은 대사형 제목을 만들기 좋습니다.",
-    alt: "체격이 큰 사람 옆에서 분홍 옷을 입은 사람이 얼굴을 감싸는 장면",
-    prompt: "차분한 사람과 무너지는 사람의 대비를 한 장면의 대사로 바꿔보세요.",
-    observationPoints: ["담담하게 서 있는 큰 체격", "얼굴을 감싼 작은 인물의 감정", "뒤쪽 관객들의 놀란 표정"],
-    exampleTitles: ["덩치는 침착, 옆 사람은 폭풍", "감정은 작은 쪽이 다 맡았다", "결과보다 진한 눈물"],
-    ...photoSourcePresets.curated,
-  },
-  {
-    id: "imm-007",
-    src: "assets/gallery/webp/다운로드 (5).jpg",
-    title: "그림 속에 멈춘 마지막 장면",
-    description: "촛불 같은 빛 아래 침대에 누운 인물을 여러 사람이 둘러싸고 지켜보는 고전 회화입니다. 그림 속 인물들의 자세와 무거운 공기를 단서로, 한 장면에 담긴 이야기를 제목으로 풀어보세요.",
-    alt: "고전 회화 속 침대에 누운 인물을 여러 사람이 둘러싸고 지켜보는 장면",
-    prompt: "그림 속 인물들이 무엇을 지켜보는지 상상하며 장면의 분위기를 제목에 담아보세요.",
-    observationPoints: ["침대를 둘러싼 사람들의 시선", "어둠 속을 비추는 낮은 빛", "고요하게 가라앉은 분위기"],
-    exampleTitles: ["그림이 붙잡은 마지막 인사", "둘러선 사람들의 침묵", "촛불 아래 멈춘 시간"],
-    ...photoSourcePresets.curated,
-  },
-  {
-    id: "imm-008",
-    src: "assets/gallery/webp/다운로드 (6).jpg",
-    title: "셔터보다 빨랐던 움직임",
-    description: "오락실 기계 옆에서 몸이 크게 흔들린 채 빠르게 움직이는 순간이 흐릿하게 포착된 사진입니다. 또렷한 배경과 흔들린 인물의 대비, 휘날리는 머리카락이 만드는 속도감을 제목으로 살려보세요.",
-    alt: "오락실 기계 옆에서 몸이 흔들린 채 빠르게 움직이는 사람의 순간",
-    prompt: "흐릿하게 번진 움직임을 보고 바로 직전이나 직후에 무슨 일이 있었을지 상상해보세요.",
-    observationPoints: ["흔들려 번진 인물의 윤곽", "또렷하게 멈춘 주변 배경", "휘날리는 머리카락이 만든 속도감"],
-    exampleTitles: ["셔터보다 빨랐던 한 사람", "방금 무슨 일이 있었나", "흔들림으로 남은 순간"],
-    ...photoSourcePresets.curated,
-  },
-  {
-    id: "imm-009",
-    src: "assets/gallery/webp/다운로드 (7).jpg",
-    title: "여름과 물이 부딪친 순간",
-    description: "분수 물줄기 앞에서 몸을 숙인 아이 주변으로 물이 사방으로 튀는 장면입니다. 멈춘 듯 흩어지는 물방울과 아이의 자세를 단서로, 짧게 타오르는 여름의 한 순간을 제목으로 잡아보세요.",
-    alt: "분수 물줄기 앞에서 몸을 숙인 아이 주변으로 물이 튀는 장면",
-    prompt: "사방으로 튀는 물과 아이의 움직임을 묶어 여름의 한 컷을 제목으로 만들어보세요.",
-    observationPoints: ["공중에 멈춘 듯 흩어진 물방울", "물줄기를 향해 숙인 아이의 자세", "젖은 옷과 바닥이 주는 한여름의 열기"],
-    exampleTitles: ["여름과 물이 부딪친 순간", "물이 먼저 도착한 오후", "오늘 가장 시원한 한 컷"],
-    ...photoSourcePresets.curated,
-  },
-  {
-    id: "imm-010",
-    src: "assets/gallery/webp/다운로드 (8).jpg",
-    title: "박수의 이유가 궁금한 회의",
-    description: "회의 테이블에 앉은 사람들이 웃으며 동시에 박수를 치는 장면입니다. 무엇에 대한 박수인지 단정하지 말고, 맞춰진 손동작과 환한 표정을 단서로 그럴듯한 상황을 제목으로 상상해보세요.",
-    alt: "회의 테이블에 앉은 사람들이 웃으며 박수를 치는 장면",
-    prompt: "박수의 이유를 마음대로 정해, 회의 장면을 작은 사건처럼 바꿔보세요.",
-    observationPoints: ["동시에 맞춰진 박수 동작", "카메라를 향한 환한 표정들", "정돈된 회의실과 노트북"],
-    exampleTitles: ["박수의 이유가 궁금한 회의", "방금 그 발표 통과입니다", "오늘의 안건은 만장일치"],
-    ...photoSourcePresets.curated,
-  },
-  {
-    id: "imm-011",
-    src: "assets/gallery/webp/다운로드 (9).jpg",
-    title: "주방에서 멈춘 결정적 한 컷",
-    description: "도마 위에서 칼로 작은 재료를 손질하는 손이 클로즈업된 장면입니다. 칼의 각도와 손의 힘, 정지된 순간의 긴장감을 단서로 요리 과정의 한 컷을 제목으로 표현해보세요.",
-    alt: "도마 위에서 칼로 작은 재료를 손질하는 손의 클로즈업",
-    prompt: "칼이 닿기 직전의 긴장된 순간을 짧은 제목으로 붙잡아보세요.",
-    observationPoints: ["재료에 닿은 칼의 각도", "손에 들어간 힘과 자세", "정지된 순간의 긴장감"],
-    exampleTitles: ["칼이 멈춘 0.1초", "주방의 결정적 순간", "손질 직전의 정적"],
+    id: "imm-012",
+    src: "assets/gallery/offended-cat.jpg",
+    title: "주방 조리대 위, 서운함이 가득한 고양이",
+    description: "조리대 위에 앉은 고양이가 눈을 가늘게 뜨고 귀를 살짝 젖힌 채 카메라를 바라보는 사진입니다. 표정에서 묘하게 서운함이 읽혀, 사람의 대사처럼 바꾸면 짧고 재미있는 제목을 만들 수 있습니다.",
+    alt: "주방 조리대 위에서 눈을 가늘게 뜨고 서운한 표정을 짓는 주황색 고양이",
+    prompt: "가늘게 뜬 눈과 젖힌 귀를 단서로, 고양이가 방금 무슨 일을 겪었는지 한 문장 대사로 상상해보세요.",
+    observationPoints: ["가늘게 뜬 눈과 살짝 젖힌 귀", "정면을 향한 서운한 듯한 시선", "조리대 위로 들어온 부드러운 자연광"],
+    exampleTitles: ["간식 약속, 안 지켰지", "나 방금 다 봤어", "오늘부터 말 안 해"],
     ...photoSourcePresets.curated,
   },
 ];
@@ -565,6 +455,9 @@ const allowedContactImageTypes = new Set(["image/jpeg", "image/png", "image/webp
 const allowedContactImageExtensions = new Set(["jpg", "jpeg", "png", "webp"]);
 const galleryInitialCount = defaultGalleryImages.length;
 const galleryPageSize = 0;
+const gallerySlugOverrides = Object.freeze({
+  "photo-001": "cat-smoke",
+});
 
 let currentUser = null;
 let galleryImages = defaultGalleryImages.map((image, index) => ({ ...image, imageKey: String(index), isUserUpload: false }));
@@ -603,6 +496,13 @@ function createId(prefix) {
   }
 
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function getGalleryDetailPath(image, index) {
+  const fallbackSlug = `photo-${String(index + 1).padStart(3, "0")}`;
+  const rawSlug = gallerySlugOverrides[image?.id] || image?.slug || image?.id || fallbackSlug;
+  const safeSlug = String(rawSlug).toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") || fallbackSlug;
+  return `/gallery/${safeSlug}`;
 }
 
 function initializeTheme() {
@@ -1747,6 +1647,14 @@ function renderGallery() {
       rankingButton.textContent = "랭킹";
 
       actions.append(rankingButton);
+
+      const guideLink = document.createElement("a");
+      guideLink.className = "photo-action photo-guide-action";
+      guideLink.dataset.action = "guide";
+      guideLink.href = getGalleryDetailPath(image, index);
+      guideLink.textContent = "해설 보기";
+      guideLink.setAttribute("aria-label", `${image.title || image.alt} 사진 해설 보기`);
+      actions.append(guideLink);
 
       const reportButton = document.createElement("button");
       reportButton.className = "photo-action photo-report-action";
@@ -3187,16 +3095,19 @@ function renderAdminSubmissions(items) {
     return;
   }
 
-  const tableWrap = createAdminTable([
-    "유형/ID",
-    "이미지/부모",
-    "내용",
-    "작성자",
-    "작성일",
-    "상태",
-    "수치",
-    "관리",
-  ]);
+  const tableWrap = createAdminTable(
+    [
+      "유형/ID",
+      "이미지/부모",
+      "내용",
+      "작성자",
+      "작성일",
+      "상태",
+      "수치",
+      "관리",
+    ],
+    ["8%", "10%", "22%", "11%", "10%", "11%", "8%", "20%"]
+  );
   const tbody = tableWrap.querySelector("tbody");
 
   items.forEach((item) => {
@@ -3458,7 +3369,10 @@ function renderAdminUsers(users) {
     return;
   }
 
-  const tableWrap = createAdminTable(["ID", "이메일", "로그인 ID", "닉네임", "role", "status", "가입/최근", "관리"]);
+  const tableWrap = createAdminTable(
+    ["ID", "이메일", "로그인 ID", "닉네임", "role", "status", "가입/최근", "관리"],
+    ["5%", "20%", "12%", "12%", "8%", "9%", "14%", "20%"]
+  );
   const tbody = tableWrap.querySelector("tbody");
 
   users.forEach((user) => {
@@ -3635,12 +3549,22 @@ function createAdminStatusFilter(section, options, reloadSection = section) {
   return toolbar;
 }
 
-function createAdminTable(headers) {
+function createAdminTable(headers, widths) {
   const wrap = document.createElement("div");
   wrap.className = "admin-table-wrap";
 
   const table = document.createElement("table");
   table.className = "admin-table";
+
+  if (Array.isArray(widths) && widths.length) {
+    const colgroup = document.createElement("colgroup");
+    widths.forEach((width) => {
+      const col = document.createElement("col");
+      col.style.width = width;
+      colgroup.append(col);
+    });
+    table.append(colgroup);
+  }
 
   const thead = document.createElement("thead");
   const headRow = document.createElement("tr");
@@ -3878,6 +3802,10 @@ galleryGrid.addEventListener("click", (event) => {
 
   if (actionButton?.dataset.action === "ranking") {
     showRanking(imageIndex);
+    return;
+  }
+
+  if (actionButton?.dataset.action === "guide") {
     return;
   }
 

@@ -1,0 +1,427 @@
+const fs = require("fs");
+const path = require("path");
+
+const root = path.resolve(__dirname, "..");
+const siteUrl = "https://jemokhakwon.com";
+const updatedAt = "2026-06-25";
+const mainJsPath = path.join(root, "main.js");
+const galleryRoot = path.join(root, "gallery");
+
+const slugOverrides = Object.freeze({
+  "photo-001": "cat-smoke",
+});
+
+const photoSourcePresets = Object.freeze({
+  curated: Object.freeze({
+    sourceName: "제목 학원 운영자 검토 갤러리",
+    sourceUrl: "https://jemokhakwon.com/about",
+    author: "제목 학원",
+    license: "사이트 내 제목 연습용으로 검토된 이미지",
+    attributionRequired: false,
+    commercialUseAllowed: false,
+    modificationAllowed: false,
+  }),
+});
+
+function extractArrayLiteral(source, marker) {
+  const markerIndex = source.indexOf(marker);
+  if (markerIndex === -1) {
+    throw new Error(`Marker not found: ${marker}`);
+  }
+
+  const start = source.indexOf("[", markerIndex);
+  if (start === -1) {
+    throw new Error("Array start not found");
+  }
+
+  let depth = 0;
+  let quote = "";
+  let escaped = false;
+  let lineComment = false;
+  let blockComment = false;
+
+  for (let index = start; index < source.length; index += 1) {
+    const char = source[index];
+    const next = source[index + 1];
+
+    if (lineComment) {
+      if (char === "\n") {
+        lineComment = false;
+      }
+      continue;
+    }
+
+    if (blockComment) {
+      if (char === "*" && next === "/") {
+        blockComment = false;
+        index += 1;
+      }
+      continue;
+    }
+
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === quote) {
+        quote = "";
+      }
+      continue;
+    }
+
+    if (char === "/" && next === "/") {
+      lineComment = true;
+      index += 1;
+      continue;
+    }
+
+    if (char === "/" && next === "*") {
+      blockComment = true;
+      index += 1;
+      continue;
+    }
+
+    if (char === "\"" || char === "'" || char === "`") {
+      quote = char;
+      continue;
+    }
+
+    if (char === "[") {
+      depth += 1;
+    } else if (char === "]") {
+      depth -= 1;
+      if (depth === 0) {
+        return source.slice(start, index + 1);
+      }
+    }
+  }
+
+  throw new Error("Array end not found");
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;");
+}
+
+function normalizeSlug(value, fallback) {
+  const slug = String(value || fallback)
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return slug || fallback;
+}
+
+function getSlug(image, index, usedSlugs) {
+  const fallback = `photo-${String(index + 1).padStart(3, "0")}`;
+  const base = normalizeSlug(slugOverrides[image.id] || image.slug || image.id, fallback);
+  let slug = base;
+  let suffix = 2;
+
+  while (usedSlugs.has(slug)) {
+    slug = `${base}-${suffix}`;
+    suffix += 1;
+  }
+
+  usedSlugs.add(slug);
+  return slug;
+}
+
+function assetUrl(value) {
+  if (!value) {
+    return "";
+  }
+
+  if (/^https?:\/\//.test(value)) {
+    return value;
+  }
+
+  return `/${String(value).replace(/^\/+/, "")}`;
+}
+
+function encodedAssetUrl(value) {
+  return encodeURI(assetUrl(value));
+}
+
+function navHtml() {
+  return `
+      <nav class="site-nav" aria-label="주요 페이지">
+        <a href="/">홈</a>
+        <a href="/about">제목 학원이란?</a>
+        <a href="/guide">사용 가이드</a>
+        <a href="/examples">제목 예시</a>
+        <a href="/gallery">사진 해설</a>
+        <a href="/blog/photo-title-tips">글쓰기 칼럼</a>
+        <a href="/privacy">개인정보처리방침</a>
+        <a href="/terms">이용약관</a>
+        <a href="/contact">문의</a>
+      </nav>`;
+}
+
+function headerHtml() {
+  return `
+    <header class="info-header">
+      <a class="info-brand" href="/" aria-label="제목 학원 홈">
+        <picture>
+          <img class="brand-logo" src="/assets/gallery/logo.png" alt="제목 학원 로고" width="56" height="56" />
+        </picture>
+        <span>제목 학원</span>
+      </a>${navHtml()}
+    </header>`;
+}
+
+function footerHtml() {
+  return `
+    <footer class="info-footer" aria-label="하단 링크">
+      ${navHtml()}
+    </footer>`;
+}
+
+function listItems(items) {
+  return items.map((item) => `          <li>${escapeHtml(item)}</li>`).join("\n");
+}
+
+function analysisItems(image) {
+  const points = image.observationPoints || [];
+  return (image.exampleTitles || []).map((title, index) => {
+    const point = points[index % Math.max(points.length, 1)] || image.title;
+    return `          <li><strong>${escapeHtml(title)}</strong> - ${escapeHtml(point)}에 시선을 모아 장면의 분위기를 짧게 압축한 예시입니다.</li>`;
+  }).join("\n");
+}
+
+function detailHtml(image, index) {
+  const canonical = `${siteUrl}/gallery/${image.slug}`;
+  const imagePath = assetUrl(image.src);
+  const encodedImagePath = encodedAssetUrl(image.src);
+  const webpPath = image.webpSrc ? encodedAssetUrl(image.webpSrc) : "";
+  const imageFullUrl = `${siteUrl}${encodedImagePath}`;
+  const title = `${image.title} - 사진 해설 | 제목 학원`;
+  const pointText = image.observationPoints?.length
+    ? `첫 단서는 ${image.observationPoints[0]}입니다.${image.observationPoints.length > 1 ? ` 이어서 ${image.observationPoints.slice(1).join(", ")}까지 확인해보세요.` : ""}`
+    : "사진에서 가장 먼저 눈에 들어오는 대상과 배경의 관계를 확인해보세요.";
+
+  return `<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="google-adsense-account" content="ca-pub-2571483149742375" />
+  <link rel="icon" type="image/png" href="/Logo-image.png">
+  <link rel="apple-touch-icon" href="/Logo-image.png">
+  <meta name="description" content="${escapeHtml(image.description)}" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="${canonical}" />
+  <meta property="og:type" content="article" />
+  <meta property="og:locale" content="ko_KR" />
+  <meta property="og:site_name" content="제목 학원" />
+  <meta property="og:title" content="${escapeHtml(title)}" />
+  <meta property="og:description" content="${escapeHtml(image.description)}" />
+  <meta property="og:url" content="${canonical}" />
+  <meta property="og:image" content="${imageFullUrl}" />
+  <meta property="og:image:alt" content="${escapeHtml(image.alt)}" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${escapeHtml(title)}" />
+  <meta name="twitter:description" content="${escapeHtml(image.description)}" />
+  <meta name="twitter:image" content="${imageFullUrl}" />
+  <title>${escapeHtml(title)}</title>
+  <link href="/style.css?v=2" rel="stylesheet" />
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": ${JSON.stringify(image.title)},
+      "description": ${JSON.stringify(image.description)},
+      "inLanguage": "ko-KR",
+      "datePublished": "${updatedAt}",
+      "dateModified": "${updatedAt}",
+      "mainEntityOfPage": "${canonical}",
+      "image": "${imageFullUrl}",
+      "author": { "@type": "Organization", "name": "제목 학원" },
+      "publisher": {
+        "@type": "Organization",
+        "name": "제목 학원",
+        "url": "${siteUrl}/"
+      }
+    }
+  </script>
+</head>
+<body class="info-page">
+  <main class="info-shell">
+${headerHtml()}
+
+    <section class="info-hero">
+      <p class="info-kicker">사진 해설</p>
+      <h1>${escapeHtml(image.title)}</h1>
+      <p>${escapeHtml(image.description)}</p>
+    </section>
+
+    <section class="info-grid">
+      <article class="info-card info-card-wide">
+        <picture>
+${webpPath ? `          <source srcset="${escapeHtml(webpPath)}" type="image/webp" />\n` : ""}          <img src="${escapeHtml(encodedImagePath)}"
+               alt="${escapeHtml(image.alt)}"
+               loading="lazy" decoding="async"
+               style="width:100%;height:auto;border-radius:12px;display:block;" />
+        </picture>
+      </article>
+
+      <article class="info-card">
+        <h2>이 사진의 핵심 장면</h2>
+        <p>${escapeHtml(image.prompt || image.description)}</p>
+        <p>${escapeHtml(pointText)}</p>
+      </article>
+
+      <article class="info-card">
+        <h2>관찰 포인트</h2>
+        <p>제목을 짓기 전에 사진 안의 단서를 세 가지로 나누어 보면 문장이 더 선명해집니다.</p>
+        <ul class="info-link-list">
+${listItems(image.observationPoints || [])}
+        </ul>
+      </article>
+
+      <article class="info-card">
+        <h2>예시 제목과 해석</h2>
+        <p>아래 제목은 정답이 아니라 표현 방향을 보여주는 참고용입니다.</p>
+        <ul class="info-link-list">
+${analysisItems(image)}
+        </ul>
+      </article>
+
+      <article class="info-card">
+        <h2>직접 제목을 만들 때</h2>
+        <p>처음에는 사진을 길게 설명해도 됩니다. 그다음 불필요한 수식어를 줄이고, 가장 강한 단서 하나와 감정 하나만 남겨보세요.</p>
+        <p>인물이나 상황을 사실처럼 단정하기보다 화면에 보이는 표정, 자세, 배경, 거리감에서 출발하는 제목이 안전하고 오래 읽힙니다.</p>
+      </article>
+
+      <article class="info-card info-card-wide">
+        <h2>이미지 출처와 검토</h2>
+        <p>이 이미지는 ${escapeHtml(image.sourceName || "제목 학원 운영자 검토 갤러리")}에 포함된 자료입니다. 운영자는 제목 연습에 맞는지, 저작권과 초상권 문제가 없는지 확인한 뒤 공개합니다.</p>
+        <p>권리 침해가 의심되거나 부적절한 내용이 보이면 <a href="/contact">문의 페이지</a> 또는 사진 신고 기능으로 알려주세요. 검토 중인 이미지는 숨김 처리될 수 있습니다.</p>
+      </article>
+    </section>
+
+    <section class="info-cta">
+      <p class="info-kicker">참여하기</p>
+      <h2>이 사진에 어울리는 제목을 직접 만들어보세요</h2>
+      <p>메인에서 사진을 선택하면 제목을 제출하고 다른 사용자의 제목과 반응을 확인할 수 있습니다.</p>
+      <a class="info-primary-button" href="/#title/${index}">제목 달아보기</a>
+    </section>
+
+${footerHtml()}
+  </main>
+</body>
+</html>
+`;
+}
+
+function galleryIndexHtml(images) {
+  const cards = images.map((image) => {
+    const imagePath = encodedAssetUrl(image.webpSrc || image.src);
+    return `      <article class="info-card gallery-index-card">
+        <a href="/gallery/${escapeHtml(image.slug)}" aria-label="${escapeHtml(image.title)} 해설 보기">
+          <img src="${escapeHtml(imagePath)}" alt="${escapeHtml(image.alt)}" loading="lazy" decoding="async" />
+          <strong>${escapeHtml(image.title)}</strong>
+        </a>
+        <p>${escapeHtml(image.description)}</p>
+      </article>`;
+  }).join("\n");
+
+  return `<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="google-adsense-account" content="ca-pub-2571483149742375" />
+  <link rel="icon" type="image/png" href="/Logo-image.png">
+  <link rel="apple-touch-icon" href="/Logo-image.png">
+  <meta name="description" content="제목 학원 사진 해설 모음입니다. 사진별 관찰 포인트, 예시 제목, 제목 짓는 방향을 확인할 수 있습니다." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="${siteUrl}/gallery" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="ko_KR" />
+  <meta property="og:site_name" content="제목 학원" />
+  <meta property="og:title" content="사진별 제목 해설 모음 - 제목 학원" />
+  <meta property="og:description" content="사진별 관찰 포인트와 예시 제목을 모았습니다." />
+  <meta property="og:url" content="${siteUrl}/gallery" />
+  <meta property="og:image" content="${siteUrl}/assets/gallery/logo.png" />
+  <meta property="og:image:alt" content="제목 학원 로고" />
+  <title>사진별 제목 해설 모음 - 제목 학원</title>
+  <link href="/style.css?v=2" rel="stylesheet" />
+</head>
+<body class="info-page">
+  <main class="info-shell">
+${headerHtml()}
+
+    <section class="info-hero">
+      <p class="info-kicker">사진 해설</p>
+      <h1>사진별 제목 해설 모음</h1>
+      <p>
+        각 사진에서 먼저 볼 단서, 제목으로 바꾸기 좋은 감정, 예시 제목을 정리했습니다.
+        사진을 고르기 전에 해설을 읽으면 더 선명한 제목을 만들 수 있습니다.
+      </p>
+    </section>
+
+    <section class="gallery-index-grid" aria-label="사진 해설 목록">
+${cards}
+    </section>
+
+${footerHtml()}
+  </main>
+</body>
+</html>
+`;
+}
+
+function sitemapXml(images) {
+  const staticUrls = [
+    ["/", "weekly", "1.0"],
+    ["/about", "monthly", "0.8"],
+    ["/guide", "monthly", "0.8"],
+    ["/examples", "monthly", "0.8"],
+    ["/gallery", "weekly", "0.8"],
+    ["/blog/photo-title-tips", "monthly", "0.8"],
+    ["/contact", "monthly", "0.7"],
+    ["/privacy", "monthly", "0.7"],
+    ["/terms", "monthly", "0.7"],
+  ];
+
+  const galleryUrls = images.map((image) => [`/gallery/${image.slug}`, "monthly", "0.6"]);
+  const entries = [...staticUrls, ...galleryUrls].map(([loc, changefreq, priority]) => `  <url>
+    <loc>${siteUrl}${loc}</loc>
+    <lastmod>${updatedAt}</lastmod>
+    <changefreq>${changefreq}</changefreq>
+    <priority>${priority}</priority>
+  </url>`).join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${entries}
+</urlset>
+`;
+}
+
+const mainJs = fs.readFileSync(mainJsPath, "utf8");
+const arrayLiteral = extractArrayLiteral(mainJs, "const defaultGalleryImages =");
+const images = Function("photoSourcePresets", `return ${arrayLiteral};`)(photoSourcePresets);
+const usedSlugs = new Set();
+const normalizedImages = images.map((image, index) => ({
+  ...image,
+  slug: getSlug(image, index, usedSlugs),
+}));
+
+fs.mkdirSync(galleryRoot, { recursive: true });
+for (const image of normalizedImages) {
+  const directory = path.join(galleryRoot, image.slug);
+  fs.mkdirSync(directory, { recursive: true });
+  fs.writeFileSync(path.join(directory, "index.html"), detailHtml(image, normalizedImages.indexOf(image)), "utf8");
+}
+
+fs.writeFileSync(path.join(galleryRoot, "index.html"), galleryIndexHtml(normalizedImages), "utf8");
+fs.writeFileSync(path.join(root, "sitemap.xml"), sitemapXml(normalizedImages), "utf8");
+
+console.log(`Generated ${normalizedImages.length} gallery detail pages and sitemap.xml`);
