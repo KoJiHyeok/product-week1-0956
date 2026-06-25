@@ -352,17 +352,6 @@ const defaultGalleryImages = [
     ...photoSourcePresets.curated,
   },
   {
-    id: "subject-8",
-    src: "assets/gallery/Subject8.png",
-    title: "정장 차림의 두 인물과 무대 위 댄서",
-    description: "정장 차림의 두 인물이 역동적인 자세를 취하고, 뒤쪽에는 무대 의상을 입은 댄서가 있습니다. 움직임의 방향과 표정의 긴장을 이용해 공연 같은 제목을 만들 수 있습니다.",
-    alt: "무대에서 정장을 입은 두 인물이 몸을 움직이고 뒤쪽 댄서가 손짓하는 장면",
-    prompt: "정치나 실명보다 자세, 박자, 무대감에 집중해 장면을 제목화해보세요.",
-    observationPoints: ["앞쪽 인물의 앞으로 뻗는 자세", "뒤에서 붙잡는 듯한 손동작", "무대 조명과 공연 의상의 대비"],
-    exampleTitles: ["의전실의 마지막 박자", "안무가 먼저 결재됐다", "회의장에 들어온 리듬"],
-    ...photoSourcePresets.curated,
-  },
-  {
     id: "subject-9",
     src: "assets/gallery/Subject9.png",
     title: "군복 입은 아기 교관과 의자에 앉은 개구리",
