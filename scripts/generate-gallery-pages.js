@@ -187,11 +187,86 @@ function listItems(items) {
   return items.map((item) => `          <li>${escapeHtml(item)}</li>`).join("\n");
 }
 
-function analysisItems(image) {
+// 받침 유무로 조사를 고른다(을/를, 이/가, 은/는, 으로/로).
+function hasBatchim(word) {
+  const text = String(word ?? "").trim();
+  if (!text) return false;
+  const code = text.charCodeAt(text.length - 1);
+  if (code < 0xac00 || code > 0xd7a3) return false;
+  return (code - 0xac00) % 28 !== 0;
+}
+
+function josa(word, withBatchim, withoutBatchim) {
+  return hasBatchim(word) ? withBatchim : withoutBatchim;
+}
+
+// 으로/로는 받침 규칙이 다르다: 받침이 없거나 ㄹ받침이면 "로", 그 외엔 "으로".
+function ro(word) {
+  const text = String(word ?? "").trim();
+  if (!text) return "로";
+  const code = text.charCodeAt(text.length - 1);
+  if (code < 0xac00 || code > 0xd7a3) return "로";
+  const jong = (code - 0xac00) % 28;
+  return (jong === 0 || jong === 8) ? "로" : "으로";
+}
+
+function pick(pool, seed) {
+  return pool[((seed % pool.length) + pool.length) % pool.length];
+}
+
+// 페이지마다 연결 문장이 똑같이 반복되면 검색엔진이 양산형(저가치) 콘텐츠로 볼 수 있어,
+// 이미지 인덱스를 시드로 어휘를 결정론적으로 분산시킨다(재생성 시 diff가 안정적).
+const analysisPhrases = [
+  (p) => `${p}${josa(p, "을", "를")} 실마리 삼아 장면의 감정을 한 문장으로 좁힌 제목입니다.`,
+  (p) => `${p}에서 출발해 사진의 분위기를 짧게 붙잡은 표현입니다.`,
+  (p) => `${p}에 초점을 두고 군더더기를 덜어낸 제목 방향입니다.`,
+  (p) => `${p}${josa(p, "이", "가")} 주는 인상을 한 호흡에 눌러 담은 예시입니다.`,
+  (p) => `${p}${josa(p, "을", "를")} 앞세워 보는 사람의 시선을 한곳으로 모은 제목입니다.`,
+  (p) => `${p}${josa(p, "은", "는")} 그대로 두고 해석의 여지를 남긴 표현입니다.`,
+  (p) => `${p}에 담긴 기운을 단정하지 않고 가볍게 건드린 제목입니다.`,
+  (p) => `${p}${ro(p)} 시선을 끌고 나머지는 사진에 맡긴 예시입니다.`,
+];
+
+const pointIntroTemplates = [
+  (first, rest) => `첫 단서는 ${first}입니다.${rest ? ` 이어서 ${rest}까지 천천히 따라가 보세요.` : ""}`,
+  (first, rest) => `가장 먼저 눈에 들어오는 건 ${first}입니다.${rest ? ` 그다음 ${rest} 순으로 시선을 옮겨보세요.` : ""}`,
+  (first, rest) => `시선을 먼저 둘 곳은 ${first}입니다.${rest ? ` 이어 ${rest}까지 확인하면 단서가 모입니다.` : ""}`,
+  (first, rest) => `${first}부터 눈여겨보세요.${rest ? ` ${rest}도 함께 살피면 장면이 더 또렷해집니다.` : ""}`,
+  (first, rest) => `${first}에서 시작하면 좋습니다.${rest ? ` ${rest}까지 읽고 나면 제목의 방향이 잡힙니다.` : ""}`,
+];
+
+const observationIntros = [
+  "제목을 짓기 전에 사진 안의 단서를 세 가지로 나누어 보면 문장이 더 선명해집니다.",
+  "아래 세 단서를 따로 떼어 보면 어디서부터 제목을 시작할지 정하기 쉽습니다.",
+  "사진을 한눈에 보지 말고 다음 세 단서로 끊어 읽으면 표현이 또렷해집니다.",
+  "제목이 막막할 때는 이 세 가지 포인트를 하나씩 짚으며 단서를 모아보세요.",
+];
+
+const composeCards = [
+  {
+    a: "처음에는 사진을 길게 설명해도 됩니다. 그다음 불필요한 수식어를 줄이고, 가장 강한 단서 하나와 감정 하나만 남겨보세요.",
+    b: "인물이나 상황을 사실처럼 단정하기보다 화면에 보이는 표정, 자세, 배경, 거리감에서 출발하는 제목이 안전하고 오래 읽힙니다.",
+  },
+  {
+    a: "떠오르는 문장을 먼저 그대로 적은 뒤 한 단어씩 지워보세요. 지워도 장면이 살아 있다면 그 단어는 없어도 됩니다.",
+    b: "보이지 않는 사연을 지어내기보다 사진에 실제로 있는 단서에서 감정을 끌어오면 보는 사람도 제목과 사진을 쉽게 연결합니다.",
+  },
+  {
+    a: "긴 설명에서 시작해 핵심 명사와 동사만 남겨보세요. 짧아질수록 제목은 또렷해지고 기억에 오래 남습니다.",
+    b: "단정 대신 여지를 남기는 편이 좋습니다. 표정이나 상황을 못 박지 않으면 사람마다 다른 해석이 댓글로 이어집니다.",
+  },
+  {
+    a: "감정을 한 단어로 먼저 정하면 문장의 온도가 따라옵니다. 웃김, 조용함, 긴장처럼 방향부터 잡아보세요.",
+    b: "반전이 있는 사진이라면 가장 재미있는 말을 문장 끝으로 미뤄두세요. 마지막 단어 하나가 제목의 인상을 좌우합니다.",
+  },
+];
+
+function analysisItems(image, pageIndex) {
   const points = image.observationPoints || [];
-  return (image.exampleTitles || []).map((title, index) => {
-    const point = points[index % Math.max(points.length, 1)] || image.title;
-    return `          <li><strong>${escapeHtml(title)}</strong> - ${escapeHtml(point)}에 시선을 모아 장면의 분위기를 짧게 압축한 예시입니다.</li>`;
+  return (image.exampleTitles || []).map((title, i) => {
+    const point = points[i % Math.max(points.length, 1)] || image.title;
+    const phrase = pick(analysisPhrases, pageIndex * 3 + i)(point);
+    return `          <li><strong>${escapeHtml(title)}</strong> - ${escapeHtml(phrase)}</li>`;
   }).join("\n");
 }
 
@@ -202,9 +277,13 @@ function detailHtml(image, index) {
   const webpPath = image.webpSrc ? encodedAssetUrl(image.webpSrc) : "";
   const imageFullUrl = `${siteUrl}${encodedImagePath}`;
   const title = `${image.title} - 사진 해설 | 제목 학원`;
-  const pointText = image.observationPoints?.length
-    ? `첫 단서는 ${image.observationPoints[0]}입니다.${image.observationPoints.length > 1 ? ` 이어서 ${image.observationPoints.slice(1).join(", ")}까지 확인해보세요.` : ""}`
+  const firstPoint = image.observationPoints?.[0];
+  const restPoints = image.observationPoints?.slice(1).join(", ");
+  const pointText = firstPoint
+    ? pick(pointIntroTemplates, index)(firstPoint, restPoints || "")
     : "사진에서 가장 먼저 눈에 들어오는 대상과 배경의 관계를 확인해보세요.";
+  const observationIntro = pick(observationIntros, index);
+  const composeCard = pick(composeCards, index);
 
   return `<!doctype html>
 <html lang="ko">
@@ -279,7 +358,7 @@ ${webpPath ? `          <source srcset="${escapeHtml(webpPath)}" type="image/web
 
       <article class="info-card">
         <h2>관찰 포인트</h2>
-        <p>제목을 짓기 전에 사진 안의 단서를 세 가지로 나누어 보면 문장이 더 선명해집니다.</p>
+        <p>${escapeHtml(observationIntro)}</p>
         <ul class="info-link-list">
 ${listItems(image.observationPoints || [])}
         </ul>
@@ -289,14 +368,14 @@ ${listItems(image.observationPoints || [])}
         <h2>예시 제목과 해석</h2>
         <p>아래 제목은 정답이 아니라 표현 방향을 보여주는 참고용입니다.</p>
         <ul class="info-link-list">
-${analysisItems(image)}
+${analysisItems(image, index)}
         </ul>
       </article>
 
       <article class="info-card">
         <h2>직접 제목을 만들 때</h2>
-        <p>처음에는 사진을 길게 설명해도 됩니다. 그다음 불필요한 수식어를 줄이고, 가장 강한 단서 하나와 감정 하나만 남겨보세요.</p>
-        <p>인물이나 상황을 사실처럼 단정하기보다 화면에 보이는 표정, 자세, 배경, 거리감에서 출발하는 제목이 안전하고 오래 읽힙니다.</p>
+        <p>${escapeHtml(composeCard.a)}</p>
+        <p>${escapeHtml(composeCard.b)}</p>
       </article>
 
       <article class="info-card info-card-wide">
