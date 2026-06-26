@@ -467,6 +467,8 @@ function sitemapXml(images) {
     ["/examples", "monthly", "0.8"],
     ["/gallery", "weekly", "0.8"],
     ["/blog/photo-title-tips", "monthly", "0.8"],
+    ["/blog/animal-photo-titles", "monthly", "0.8"],
+    ["/blog/emotion-photo-titles", "monthly", "0.8"],
     ["/contact", "monthly", "0.7"],
     ["/privacy", "monthly", "0.7"],
     ["/terms", "monthly", "0.7"],
