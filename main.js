@@ -3267,6 +3267,26 @@ function renderAdminTabs() {
 }
 
 function renderAdminDashboard() {
+  const fragment = document.createDocumentFragment();
+
+  const statsPanel = document.createElement("section");
+  statsPanel.className = "admin-stats-panel";
+
+  const statsHead = document.createElement("div");
+  statsHead.className = "admin-stats-head";
+  const statsTitle = document.createElement("h2");
+  statsTitle.textContent = "최근 7일 누적 추이";
+  const statsHint = document.createElement("p");
+  statsHint.textContent = "일별 제목/댓글/회원 누적 수 (KST 기준)";
+  statsHead.append(statsTitle, statsHint);
+
+  const statsBody = document.createElement("div");
+  statsBody.className = "admin-stats-body";
+  statsBody.append(createAdminMessage("통계를 불러오는 중입니다."));
+
+  statsPanel.append(statsHead, statsBody);
+  fragment.append(statsPanel);
+
   const sections = [
     ["submissions", "제목/댓글 관리", "제출된 제목과 댓글을 숨김, 삭제, 랭킹 제외 처리합니다."],
     ["users", "회원 관리", "회원 정지 상태와 admin 권한을 관리합니다."],
@@ -3295,7 +3315,156 @@ function renderAdminDashboard() {
     grid.append(card);
   });
 
-  adminImageList.replaceChildren(grid);
+  fragment.append(grid);
+  adminImageList.replaceChildren(fragment);
+
+  loadAdminDashboardStats(statsBody);
+}
+
+async function loadAdminDashboardStats(body) {
+  try {
+    const data = await requestJson("/api/admin/stats", { method: "GET", headers: {} });
+    renderAdminStatsChart(body, data);
+  } catch (error) {
+    body.replaceChildren(createAdminMessage(error.message));
+  }
+}
+
+const ADMIN_CHART_SVG_NS = "http://www.w3.org/2000/svg";
+const ADMIN_CHART_COLORS = {
+  titles: "var(--primary)",
+  comments: "var(--link)",
+  members: "var(--success)",
+};
+
+function svgEl(name, attrs) {
+  const el = document.createElementNS(ADMIN_CHART_SVG_NS, name);
+  for (const [key, value] of Object.entries(attrs || {})) {
+    el.setAttribute(key, value);
+  }
+  return el;
+}
+
+function niceAxisMax(maxValue, steps) {
+  if (maxValue <= steps) {
+    return steps;
+  }
+  const rawStep = maxValue / steps;
+  const pow = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const normalized = rawStep / pow;
+  let niceStep;
+  if (normalized <= 1) niceStep = 1;
+  else if (normalized <= 2) niceStep = 2;
+  else if (normalized <= 5) niceStep = 5;
+  else niceStep = 10;
+  return niceStep * pow * steps;
+}
+
+function formatChartDay(iso) {
+  const parts = String(iso).split("-");
+  if (parts.length < 3) return iso;
+  return `${Number(parts[1])}/${Number(parts[2])}`;
+}
+
+function renderAdminStatsChart(container, data) {
+  const days = (data && data.days) || [];
+  const series = (data && data.series) || [];
+
+  if (!days.length || !series.length) {
+    container.replaceChildren(createAdminMessage("표시할 통계가 없습니다."));
+    return;
+  }
+
+  const wrap = document.createElement("div");
+  wrap.className = "admin-chart";
+
+  const legend = document.createElement("div");
+  legend.className = "admin-chart-legend";
+  series.forEach((entry) => {
+    const item = document.createElement("span");
+    item.className = "admin-chart-legend-item";
+
+    const dot = document.createElement("span");
+    dot.className = "admin-chart-dot";
+    dot.style.background = ADMIN_CHART_COLORS[entry.key] || "var(--text-muted)";
+
+    const label = document.createElement("span");
+    const latest = entry.cumulative[entry.cumulative.length - 1] || 0;
+    label.textContent = `${entry.label} ${latest.toLocaleString()}`;
+
+    item.append(dot, label);
+    legend.append(item);
+  });
+
+  const W = 720;
+  const H = 320;
+  const padL = 48;
+  const padR = 16;
+  const padT = 20;
+  const padB = 40;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  const n = days.length;
+  const steps = 4;
+
+  let maxVal = 0;
+  series.forEach((entry) => {
+    entry.cumulative.forEach((value) => {
+      if (value > maxVal) maxVal = value;
+    });
+  });
+  const axisMax = niceAxisMax(maxVal, steps);
+
+  const xAt = (i) => padL + (n === 1 ? plotW / 2 : (i / (n - 1)) * plotW);
+  const yAt = (value) => padT + plotH - (value / axisMax) * plotH;
+
+  const svg = svgEl("svg", {
+    viewBox: `0 0 ${W} ${H}`,
+    class: "admin-chart-svg",
+    role: "img",
+    "aria-label": "최근 7일 누적 추이 그래프",
+    preserveAspectRatio: "xMidYMid meet",
+  });
+
+  for (let i = 0; i <= steps; i++) {
+    const value = (axisMax / steps) * i;
+    const y = yAt(value);
+    svg.append(svgEl("line", { x1: padL, y1: y, x2: W - padR, y2: y, class: "admin-chart-grid" }));
+    const text = svgEl("text", { x: padL - 8, y: y + 4, class: "admin-chart-axis", "text-anchor": "end" });
+    text.textContent = Math.round(value).toLocaleString();
+    svg.append(text);
+  }
+
+  days.forEach((day, i) => {
+    const text = svgEl("text", { x: xAt(i), y: H - padB + 22, class: "admin-chart-axis", "text-anchor": "middle" });
+    text.textContent = formatChartDay(day);
+    svg.append(text);
+  });
+
+  series.forEach((entry) => {
+    const color = ADMIN_CHART_COLORS[entry.key] || "var(--text-muted)";
+    const points = entry.cumulative.map((value, i) => `${xAt(i)},${yAt(value)}`).join(" ");
+    svg.append(
+      svgEl("polyline", {
+        points,
+        fill: "none",
+        stroke: color,
+        "stroke-width": 2.5,
+        "stroke-linejoin": "round",
+        "stroke-linecap": "round",
+      })
+    );
+    entry.cumulative.forEach((value, i) => {
+      const circle = svgEl("circle", { cx: xAt(i), cy: yAt(value), r: 3.5, fill: color });
+      const title = svgEl("title", {});
+      title.textContent = `${formatChartDay(days[i])} · ${entry.label} 누적 ${value.toLocaleString()} (당일 +${entry.daily[i] || 0})`;
+      circle.append(title);
+      svg.append(circle);
+    });
+  });
+
+  wrap.append(legend, svg);
+  container.replaceChildren(wrap);
 }
 
 async function loadAdminSubmissions() {
