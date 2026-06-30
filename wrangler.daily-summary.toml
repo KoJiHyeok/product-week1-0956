@@ -2,8 +2,13 @@ name = "titleacademy-daily-summary"
 main = "workers/daily-summary.js"
 compatibility_date = "2026-05-05"
 
+# Cron 전용 워커(scheduled 핸들러만 있음) — 공개 HTTP 엔드포인트 불필요.
+workers_dev = false
+preview_urls = false
+
+# 매일 07:00 KST 발송. cron은 UTC 기준이라 22:00 UTC = 다음날 07:00 KST.
 [triggers]
-crons = ["0 12 * * *"]
+crons = ["0 22 * * *"]
 
 [[d1_databases]]
 binding = "DB"

@@ -1,6 +1,6 @@
 import { json, readJson } from "../../auth/_shared.js";
 import { requireOwnerUser, requireAdmin } from "../_shared.js";
-import { sendDailyAdminSummary } from "./_shared.js";
+import { sendDailyDiscordSummary } from "./discord.js";
 
 export async function onRequestPost(context) {
   try {
@@ -19,7 +19,7 @@ export async function onRequestPost(context) {
     const body = await readJson(context.request);
     const dryRun = body?.dryRun !== false;
     const force = body?.force === true;
-    const result = await sendDailyAdminSummary({
+    const result = await sendDailyDiscordSummary({
       env: context.env,
       scheduledTime: Date.now(),
       dryRun,
@@ -36,19 +36,19 @@ export async function onRequestPost(context) {
     });
   } catch (error) {
     console.error("daily summary test send failed", error);
-    return json({ message: "일일 요약 메일 테스트에 실패했습니다." }, 500);
+    return json({ message: "일일 요약 디스코드 발송 테스트에 실패했습니다." }, 500);
   }
 }
 
 function serializeSummary(summary) {
   return {
     summaryDate: summary.summaryDate,
-    period: summary.period,
-    reportCounts: summary.reportCounts,
-    inquiryCounts: summary.inquiryCounts,
-    reportTotal: summary.reportTotal,
-    inquiryTotal: summary.inquiryTotal,
-    subject: summary.subject,
+    coveredDate: summary.coveredDate,
+    dayBeforeDate: summary.dayBeforeDate,
+    metrics: summary.metrics,
+    reportNew: summary.reportNew,
+    inquiryNew: summary.inquiryNew,
     text: summary.text,
+    discordPayload: summary.discordPayload,
   };
 }

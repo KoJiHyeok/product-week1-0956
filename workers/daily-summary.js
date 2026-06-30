@@ -1,14 +1,14 @@
-import { sendDailyAdminSummary } from "../functions/api/admin/daily-summary/_shared.js";
+import { sendDailyDiscordSummary } from "../functions/api/admin/daily-summary/discord.js";
 
 export default {
   async scheduled(controller, env, ctx) {
     ctx.waitUntil(
-      sendDailyAdminSummary({
+      sendDailyDiscordSummary({
         env,
         scheduledTime: controller.scheduledTime,
         dryRun: false,
       }).catch((error) => {
-        console.error("scheduled daily admin summary failed", error);
+        console.error("scheduled daily discord summary failed", error);
       })
     );
   },
