@@ -22,6 +22,8 @@ const emailPattern = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i;
 const phonePattern = /\b01[016789][-\s]?\d{3,4}[-\s]?\d{4}\b/;
 const residentNumberPattern = /\b\d{6}[-\s]?\d{7}\b/;
 const repeatedCharacterPattern = /([^\s])\1{7,}/u;
+const singleLatinLetterPattern = /^[a-z]$/i;
+const hangulJamoOnlyPattern = /^[\u1100-\u11ff\u3130-\u318f\ua960-\ua97f\ud7b0-\ud7ff]+$/u;
 
 // 한글 음절이 양옆에 붙어 있지 않을 때만 looseTerms를 매칭한다(오탐 방지).
 const looseProfanityPattern = new RegExp(
@@ -55,6 +57,14 @@ export function containsProfanity(value) {
 export function validatePublicText(value, label = "내용") {
   const text = String(value || "").trim();
   const normalized = text.toLowerCase().replace(/\s+/g, "");
+  const meaningfulCharacters = text.normalize("NFC").replace(/[^\p{L}\p{N}]/gu, "");
+
+  if (
+    singleLatinLetterPattern.test(meaningfulCharacters) ||
+    hangulJamoOnlyPattern.test(meaningfulCharacters)
+  ) {
+    return { ok: false, message: `${label}은 의미 있는 단어나 문장으로 입력해 주세요.` };
+  }
 
   if (urlPattern.test(text)) {
     return { ok: false, message: `${label}에는 외부 링크를 넣을 수 없습니다.` };

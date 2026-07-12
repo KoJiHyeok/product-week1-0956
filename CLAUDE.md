@@ -78,11 +78,11 @@ npx wrangler pages dev . --port 9000   # Functions + 로컬 D1 포함. 첫 실�
 
 1. 업로드 이미지를 `assets/gallery/`에 저장 (예: `offended-cat.jpg`). 가능하면 `assets/gallery/webp/`에 webp도(선택).
 2. **두 리스트에 동일 항목 추가** (하나만 넣으면 서버↔프런트 불일치):
-   - `main.js`의 `defaultGalleryImages` — 이 항목엔 **`imageKey` 필드가 없다.** main.js가 배열 인덱스로 자동 부여한다(`imageKey: String(index)`). 항목엔 `...photoSourcePresets.curated` 스프레드를 포함하고 `description`도 여기에 둔다. webp가 있으면 `webpSrc`(없으면 생략).
-   - `functions/api/images/index.js`의 `defaultImages` — 여기엔 **명시적 `imageKey` 필드가 있고, 그 값이 main.js 배열의 0-based 인덱스와 정확히 일치해야 한다.** 현재 마지막 `imm-011` = `imageKey: "32"` → 다음 항목은 `imageKey: "33"`. `id`는 `imm-0NN` 형식(현재 마지막 `imm-011`), `isUserUpload: false`. (API 항목엔 `description`·`webpSrc`·presets 생략)
+   - `main.js`의 `defaultGalleryImages` — 운영 데이터 연결을 보존하도록 새 항목에 **명시적이고 고유한 `imageKey`**를 넣는다. 기존 키는 삭제된 사진의 빈 슬롯 때문에 배열 인덱스와 다를 수 있으며 절대 재번호를 매기지 않는다. 항목엔 `...photoSourcePresets.curated` 스프레드와 `description`을 포함한다. webp가 있으면 `webpSrc`도 넣는다.
+   - `functions/api/images/index.js`의 `defaultImages` — 프런트 항목과 **동일한 `id`·`imageKey`·텍스트·이미지 경로**를 넣는다. 새 `imageKey`는 두 목록 전체의 최대 키보다 1 큰 값을 사용하고, 중복 여부를 확인한다. `id`는 `imm-0NN` 형식, `isUserUpload: false`로 둔다.
 3. `title`/`description`/`alt`/`prompt`/`observationPoints`/`exampleTitles`를 이미지 기반으로 기존 항목 톤에 맞춰 작성. (동물·인물 표정은 사람 대사처럼 바꾼 짧은 예시 제목이 톤에 맞음)
 4. **랭킹·하트·댓글·신고 버튼은 카드 UI가 모든 항목에 자동 렌더** → 별도 작업 없음.
-5. `node --check`(두 파일) → 1건만 추가해 사용자에게 보여주고 확인 → `index.html`의 `main.js?v=N` 올림 → 커밋·푸시(자동 배포). (함정: API `imageKey`가 main.js 인덱스와 어긋나면 제출이 엉뚱한 사진에 붙는다)
+5. `node --check`(두 파일) → 두 목록의 `id`·`imageKey` 일치와 키 중복 확인 → 1건만 추가해 사용자에게 보여주고 확인 → `index.html`의 `main.js?v=N` 올림 → 커밋·푸시(자동 배포). (함정: 기존 `imageKey`를 배열 인덱스에 맞춰 재번호하면 저장된 제출이 엉뚱한 사진에 붙는다)
 
 ## 배포
 

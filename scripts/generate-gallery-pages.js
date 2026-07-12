@@ -3,7 +3,6 @@ const path = require("path");
 
 const root = path.resolve(__dirname, "..");
 const siteUrl = "https://jemokhakwon.com";
-const updatedAt = "2026-06-25";
 const mainJsPath = path.join(root, "main.js");
 const galleryRoot = path.join(root, "gallery");
 
@@ -152,14 +151,14 @@ function navHtml() {
   return `
       <nav class="site-nav" aria-label="주요 페이지">
         <a href="/">홈</a>
-        <a href="/about">제목 학원이란?</a>
-        <a href="/guide">사용 가이드</a>
-        <a href="/examples">제목 예시</a>
-        <a href="/gallery">사진 해설</a>
-        <a href="/blog/photo-title-tips">글쓰기 칼럼</a>
-        <a href="/privacy">개인정보처리방침</a>
-        <a href="/terms">이용약관</a>
-        <a href="/contact">문의</a>
+        <a href="/about/">제목 학원이란?</a>
+        <a href="/guide/">사용 가이드</a>
+        <a href="/examples/">제목 예시</a>
+        <a href="/gallery/">사진 해설</a>
+        <a href="/blog/">글쓰기 칼럼</a>
+        <a href="/privacy/">개인정보처리방침</a>
+        <a href="/terms/">이용약관</a>
+        <a href="/contact/">문의</a>
       </nav>`;
 }
 
@@ -179,7 +178,7 @@ function footerHtml() {
   return `
     <footer class="info-footer" aria-label="하단 링크">
       ${navHtml()}
-      <p class="info-meta">제목 학원의 이미지는 저작권이 없는 사진과 AI로 생성한 이미지입니다.</p>
+      <p class="info-meta">제목 학원은 공개 권한과 제목 연습 적합성을 검토한 이미지만 갤러리에 게시합니다.</p>
     </footer>`;
 }
 
@@ -271,12 +270,19 @@ function analysisItems(image, pageIndex) {
 }
 
 function detailHtml(image, index) {
-  const canonical = `${siteUrl}/gallery/${image.slug}`;
+  const canonical = `${siteUrl}/gallery/${image.slug}/`;
   const imagePath = assetUrl(image.src);
   const encodedImagePath = encodedAssetUrl(image.src);
   const webpPath = image.webpSrc ? encodedAssetUrl(image.webpSrc) : "";
   const imageFullUrl = `${siteUrl}${encodedImagePath}`;
   const title = `${image.title} - 사진 해설 | 제목 학원`;
+  const isUserProvided = image.sourceName === "사용자 제공 이미지";
+  const sourceSummary = isUserProvided
+    ? "이 사진은 사이트 게시를 위해 사용자가 직접 제공한 이미지입니다."
+    : "제목 학원에서 사용하는 이미지는 저작권이 없는 사진과 AI로 생성한 이미지입니다.";
+  const sourceReview = isUserProvided
+    ? "운영자는 제목 연습 적합성과 제공자가 전달한 권리·초상권 정보를 검토한 뒤 공개했습니다."
+    : `이 이미지는 ${image.sourceName || "제목 학원 운영자 검토 갤러리"}에 포함된 자료입니다. 운영자는 제목 연습에 맞는지, 저작권과 초상권 문제가 없는지 확인한 뒤 공개합니다.`;
   const firstPoint = image.observationPoints?.[0];
   const restPoints = image.observationPoints?.slice(1).join(", ");
   const pointText = firstPoint
@@ -294,7 +300,7 @@ function detailHtml(image, index) {
   <link rel="icon" type="image/png" href="/Logo-image.png">
   <link rel="apple-touch-icon" href="/Logo-image.png">
   <meta name="description" content="${escapeHtml(image.description)}" />
-  <meta name="robots" content="index, follow" />
+  <meta name="robots" content="noindex, follow" />
   <link rel="canonical" href="${canonical}" />
   <meta property="og:type" content="article" />
   <meta property="og:locale" content="ko_KR" />
@@ -317,8 +323,6 @@ function detailHtml(image, index) {
       "headline": ${JSON.stringify(image.title)},
       "description": ${JSON.stringify(image.description)},
       "inLanguage": "ko-KR",
-      "datePublished": "${updatedAt}",
-      "dateModified": "${updatedAt}",
       "mainEntityOfPage": "${canonical}",
       "image": "${imageFullUrl}",
       "author": { "@type": "Organization", "name": "제목 학원" },
@@ -380,9 +384,9 @@ ${analysisItems(image, index)}
 
       <article class="info-card info-card-wide">
         <h2>이미지 출처와 검토</h2>
-        <p>제목 학원에서 사용하는 이미지는 저작권이 없는 사진과 AI로 생성한 이미지입니다.</p>
-        <p>이 이미지는 ${escapeHtml(image.sourceName || "제목 학원 운영자 검토 갤러리")}에 포함된 자료입니다. 운영자는 제목 연습에 맞는지, 저작권과 초상권 문제가 없는지 확인한 뒤 공개합니다.</p>
-        <p>권리 침해가 의심되거나 부적절한 내용이 보이면 <a href="/contact">문의 페이지</a> 또는 사진 신고 기능으로 알려주세요. 검토 중인 이미지는 숨김 처리될 수 있습니다.</p>
+        <p>${escapeHtml(sourceSummary)}</p>
+        <p>${escapeHtml(sourceReview)}</p>
+        <p>권리 침해가 의심되거나 부적절한 내용이 보이면 <a href="/contact/">문의 페이지</a> 또는 사진 신고 기능으로 알려주세요. 검토 중인 이미지는 숨김 처리될 수 있습니다.</p>
       </article>
     </section>
 
@@ -401,16 +405,44 @@ ${footerHtml()}
 }
 
 function galleryIndexHtml(images) {
-  const cards = images.map((image) => {
+  const animalTerms = ["고양이", "강아지", "악어", "비둘기", "알파카", "금붕어", "개구리", "두 집게"];
+  const personTerms = ["남자", "여자", "남성", "여성", "사람", "아기", "인물", "청년"];
+  const groups = [
+    { id: "animals", title: "동물이 등장하는 사진", images: [] },
+    { id: "people", title: "사람이 중심인 사진", images: [] },
+    { id: "scenes", title: "사물과 상상 장면", images: [] },
+  ];
+
+  for (const image of images) {
+    const searchable = `${image.title} ${image.alt}`;
+    const group = animalTerms.some((term) => searchable.includes(term))
+      ? groups[0]
+      : personTerms.some((term) => searchable.includes(term))
+        ? groups[1]
+        : groups[2];
+    group.images.push(image);
+  }
+
+  const cardHtml = (image) => {
     const imagePath = encodedAssetUrl(image.webpSrc || image.src);
     return `      <article class="info-card gallery-index-card">
-        <a href="/gallery/${escapeHtml(image.slug)}" aria-label="${escapeHtml(image.title)} 해설 보기">
+        <a href="/gallery/${escapeHtml(image.slug)}/" aria-label="${escapeHtml(image.title)} 해설 보기">
           <img src="${escapeHtml(imagePath)}" alt="${escapeHtml(image.alt)}" loading="lazy" decoding="async" />
           <strong>${escapeHtml(image.title)}</strong>
         </a>
         <p>${escapeHtml(image.description)}</p>
       </article>`;
-  }).join("\n");
+  };
+
+  const groupedCards = groups
+    .filter((group) => group.images.length > 0)
+    .map((group) => `    <section aria-labelledby="gallery-${group.id}">
+      <h2 id="gallery-${group.id}">${group.title} <span class="info-meta">${group.images.length}장</span></h2>
+      <div class="gallery-index-grid">
+${group.images.map(cardHtml).join("\n")}
+      </div>
+    </section>`)
+    .join("\n");
 
   return `<!doctype html>
 <html lang="ko">
@@ -422,13 +454,13 @@ function galleryIndexHtml(images) {
   <link rel="apple-touch-icon" href="/Logo-image.png">
   <meta name="description" content="제목 학원 사진 해설 모음입니다. 사진별 관찰 포인트, 예시 제목, 제목 짓는 방향을 확인할 수 있습니다." />
   <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="${siteUrl}/gallery" />
+  <link rel="canonical" href="${siteUrl}/gallery/" />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="ko_KR" />
   <meta property="og:site_name" content="제목 학원" />
   <meta property="og:title" content="사진별 제목 해설 모음 - 제목 학원" />
   <meta property="og:description" content="사진별 관찰 포인트와 예시 제목을 모았습니다." />
-  <meta property="og:url" content="${siteUrl}/gallery" />
+  <meta property="og:url" content="${siteUrl}/gallery/" />
   <meta property="og:image" content="${siteUrl}/assets/gallery/logo.png" />
   <meta property="og:image:alt" content="제목 학원 로고" />
   <title>사진별 제목 해설 모음 - 제목 학원</title>
@@ -445,12 +477,16 @@ ${headerHtml()}
         각 사진에서 먼저 볼 단서, 제목으로 바꾸기 좋은 감정, 예시 제목을 정리했습니다.
         사진을 고르기 전에 해설을 읽으면 더 선명한 제목을 만들 수 있습니다.
       </p>
-      <p class="info-meta">여기 실린 이미지는 모두 저작권이 없는 사진과 AI로 생성한 이미지입니다.</p>
+      <p class="info-meta">현재 ${images.length}장의 운영자 검토 사진을 제공합니다. 이미지별 제공 방식과 검토 안내는 각 해설 페이지에서 확인할 수 있습니다.</p>
     </section>
 
-    <section class="gallery-index-grid" aria-label="사진 해설 목록">
-${cards}
+    <section class="info-card info-card-wide" aria-labelledby="gallery-how-to">
+      <h2 id="gallery-how-to">사진 고르는 법</h2>
+      <p>동물의 표정과 행동을 대사처럼 바꾸고 싶다면 동물 사진을, 자세와 표정에서 감정을 찾고 싶다면 사람 사진을 골라보세요. 사물과 상상 장면은 서로 어울리지 않는 요소의 대비를 제목으로 옮기는 연습에 좋습니다.</p>
+      <p class="info-meta">아래 분류는 사진 제목과 대체텍스트에 나타난 중심 소재를 기준으로 나눴습니다. 모든 사진 카드를 눌러 해설을 읽거나 메인에서 직접 제목을 달 수 있습니다.</p>
     </section>
+
+${groupedCards}
 
 ${footerHtml()}
   </main>
@@ -459,25 +495,24 @@ ${footerHtml()}
 `;
 }
 
-function sitemapXml(images) {
+function sitemapXml() {
   const staticUrls = [
     ["/", "weekly", "1.0"],
-    ["/about", "monthly", "0.8"],
-    ["/guide", "monthly", "0.8"],
-    ["/examples", "monthly", "0.8"],
-    ["/gallery", "weekly", "0.8"],
-    ["/blog/photo-title-tips", "monthly", "0.8"],
-    ["/blog/animal-photo-titles", "monthly", "0.8"],
-    ["/blog/emotion-photo-titles", "monthly", "0.8"],
-    ["/contact", "monthly", "0.7"],
-    ["/privacy", "monthly", "0.7"],
-    ["/terms", "monthly", "0.7"],
+    ["/about/", "monthly", "0.8"],
+    ["/guide/", "monthly", "0.8"],
+    ["/examples/", "monthly", "0.8"],
+    ["/gallery/", "weekly", "0.8"],
+    ["/blog/", "weekly", "0.8"],
+    ["/blog/photo-title-tips/", "monthly", "0.8"],
+    ["/blog/animal-photo-titles/", "monthly", "0.8"],
+    ["/blog/emotion-photo-titles/", "monthly", "0.8"],
+    ["/contact/", "monthly", "0.7"],
+    ["/privacy/", "monthly", "0.7"],
+    ["/terms/", "monthly", "0.7"],
   ];
 
-  const galleryUrls = images.map((image) => [`/gallery/${image.slug}`, "monthly", "0.6"]);
-  const entries = [...staticUrls, ...galleryUrls].map(([loc, changefreq, priority]) => `  <url>
+  const entries = staticUrls.map(([loc, changefreq, priority]) => `  <url>
     <loc>${siteUrl}${loc}</loc>
-    <lastmod>${updatedAt}</lastmod>
     <changefreq>${changefreq}</changefreq>
     <priority>${priority}</priority>
   </url>`).join("\n");
@@ -506,6 +541,6 @@ for (const image of normalizedImages) {
 }
 
 fs.writeFileSync(path.join(galleryRoot, "index.html"), galleryIndexHtml(normalizedImages), "utf8");
-fs.writeFileSync(path.join(root, "sitemap.xml"), sitemapXml(normalizedImages), "utf8");
+fs.writeFileSync(path.join(root, "sitemap.xml"), sitemapXml(), "utf8");
 
 console.log(`Generated ${normalizedImages.length} gallery detail pages and sitemap.xml`);

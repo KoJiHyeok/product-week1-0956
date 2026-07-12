@@ -172,7 +172,6 @@ const toast = document.querySelector("#toast");
 
 const analyticsMeasurementId = "G-0LLKZ9R1TF";
 const clarityProjectId = "wme6uejz4h";
-const adsenseClientId = "ca-pub-2571483149742375";
 const trackingConsentStorageKey = "title-academy-tracking-consent";
 const cookieSettingsStorageKey = "title-academy-cookie-settings";
 const themeStorageKey = "title-academy-theme";
@@ -194,6 +193,7 @@ const photoSourcePresets = Object.freeze({
 const defaultGalleryImages = [
   {
     id: "photo-001",
+    imageKey: "0",
     src: "assets/gallery/01-cat-smoke.png",
     webpSrc: "assets/gallery/webp/01-cat-smoke.webp",
     title: "빛과 먼지 사이로 손을 뻗은 고양이",
@@ -206,6 +206,7 @@ const defaultGalleryImages = [
   },
   {
     id: "photo-003",
+    imageKey: "2",
     src: "assets/gallery/03-alligators.jpeg",
     webpSrc: "assets/gallery/webp/03-alligators.webp",
     title: "나란히 쉬는 악어들의 낮은 시선",
@@ -218,6 +219,7 @@ const defaultGalleryImages = [
   },
   {
     id: "photo-004",
+    imageKey: "3",
     src: "assets/gallery/04-field-portrait.jpg",
     webpSrc: "assets/gallery/webp/04-field-portrait.webp",
     title: "흐린 들판을 걸어오는 검은 옷의 인물",
@@ -230,6 +232,7 @@ const defaultGalleryImages = [
   },
   {
     id: "photo-007",
+    imageKey: "6",
     src: "assets/gallery/07-puppy-oh-hi.jpg",
     webpSrc: "assets/gallery/webp/07-puppy-oh-hi.webp",
     title: "카메라 가까이 다가온 웃는 강아지",
@@ -242,6 +245,7 @@ const defaultGalleryImages = [
   },
   {
     id: "photo-008",
+    imageKey: "7",
     src: "assets/gallery/08-convenience-store.jpg",
     webpSrc: "assets/gallery/webp/08-convenience-store.webp",
     title: "냉장고 문 사이로 물을 고르는 순간",
@@ -254,6 +258,7 @@ const defaultGalleryImages = [
   },
   {
     id: "photo-009",
+    imageKey: "8",
     src: "assets/gallery/09-reggae-singer.jpg",
     webpSrc: "assets/gallery/webp/09-reggae-singer.webp",
     title: "노란 조명 아래 노래하는 무대 위 가수",
@@ -266,6 +271,7 @@ const defaultGalleryImages = [
   },
   {
     id: "photo-010",
+    imageKey: "9",
     src: "assets/gallery/10-sparkler.jpg",
     webpSrc: "assets/gallery/webp/10-sparkler.webp",
     title: "손끝에서 타오르는 작은 불꽃",
@@ -278,6 +284,7 @@ const defaultGalleryImages = [
   },
   {
     id: "subject-1",
+    imageKey: "10",
     src: "assets/gallery/Subject1.jpg",
     title: "눈가에 눈물이 맺힌 노인의 얼굴",
     description: "가까운 얼굴 사진에서 주름, 눈가의 물기, 아래로 향한 시선이 감정의 밀도를 만듭니다. 직접적인 판단보다 오래 머문 표정의 결을 제목으로 다듬기 좋은 이미지입니다.",
@@ -289,6 +296,7 @@ const defaultGalleryImages = [
   },
   {
     id: "subject-2",
+    imageKey: "11",
     src: "assets/gallery/Subject2.png",
     title: "개구리 조각상 앞에 모인 사람들",
     description: "붉은 제복의 사람들이 개구리 조각상 앞에서 예를 갖추고, 주변 사람들은 놀란 표정으로 바라보는 익살스러운 장면입니다. 중앙 사물과 주변 반응의 차이를 제목으로 살리기 좋습니다.",
@@ -300,6 +308,7 @@ const defaultGalleryImages = [
   },
   {
     id: "subject-3",
+    imageKey: "12",
     src: "assets/gallery/Subject3.png",
     title: "거대한 무가 날아오는 만화풍 추격 장면",
     description: "속도선, 말풍선, 놀란 표정이 한눈에 들어오는 만화풍 이미지입니다. 과장된 크기와 빠른 움직임을 이용해 짧고 강한 제목을 만들 수 있습니다.",
@@ -311,6 +320,7 @@ const defaultGalleryImages = [
   },
   {
     id: "subject-4",
+    imageKey: "13",
     src: "assets/gallery/Subject4.png",
     title: "카메라 속 개구리 사진을 함께 보는 사람들",
     description: "카메라 화면 속 사진을 보며 여러 사람이 동시에 웃는 장면입니다. 사진 안의 사진 구조와 사람들의 표정이 제목의 단서가 됩니다.",
@@ -322,6 +332,7 @@ const defaultGalleryImages = [
   },
   {
     id: "subject-5",
+    imageKey: "14",
     src: "assets/gallery/Subject5.png",
     title: "진료실 구석에서 팔짱 낀 아기와 난감한 의사",
     description: "작은 아기가 정장을 입고 팔짱을 낀 채 서 있고, 의사는 얼굴을 감싸고 있습니다. 크기와 태도의 반전이 강해 짧은 대사형 제목을 만들기 좋습니다.",
@@ -333,6 +344,7 @@ const defaultGalleryImages = [
   },
   {
     id: "subject-6",
+    imageKey: "15",
     src: "assets/gallery/Subject6.png",
     title: "개구리 심사위원 앞에서 걷는 붉은 제복들",
     description: "무대 위 패션 쇼처럼 보이는 장면에서 개구리 캐릭터가 10점 팻말을 들고 있습니다. 심사, 자세, 무대 조명이라는 단서를 묶어 유머러스한 제목을 만들 수 있습니다.",
@@ -344,6 +356,7 @@ const defaultGalleryImages = [
   },
   {
     id: "subject-7",
+    imageKey: "16",
     src: "assets/gallery/Subject7.png",
     title: "사라진 감자튀김 앞에서 우는 조각상과 남자",
     description: "눈물을 폭포처럼 흘리는 조각상, 함께 우는 인물, 바닥의 감자튀김 하나가 과장된 비극을 만듭니다. 사소한 원인과 큰 반응의 대비가 제목 포인트입니다.",
@@ -355,6 +368,7 @@ const defaultGalleryImages = [
   },
   {
     id: "subject-9",
+    imageKey: "18",
     src: "assets/gallery/Subject9.png",
     title: "군복 입은 아기 교관과 의자에 앉은 개구리",
     description: "군사 훈련장처럼 꾸며진 공간에서 아기가 막대를 들고 설명하고, 개구리는 편하게 앉아 있습니다. 엄숙한 배경과 작은 교관의 반전이 유머를 만듭니다.",
@@ -366,6 +380,7 @@ const defaultGalleryImages = [
   },
   {
     id: "subject-10",
+    imageKey: "19",
     src: "assets/gallery/Subject10.png",
     title: "사무실 복도를 질주하는 금붕어 배달원",
     description: "금붕어 얼굴을 한 정장 차림 인물이 작은 스쿠터를 타고 복도를 달리는 초현실적인 장면입니다. 사무실의 딱딱함과 엉뚱한 속도감을 연결하면 재미있는 제목이 됩니다.",
@@ -377,6 +392,7 @@ const defaultGalleryImages = [
   },
   {
     id: "subject-11",
+    imageKey: "20",
     src: "assets/gallery/Subject11.png",
     title: "찜질방에서 휴대폰을 보는 고양이",
     description: "수건을 두른 고양이가 오이팩을 하고 누워 스마트폰을 보고 있습니다. 휴식 공간과 디지털 몰입의 대비가 명확해 생활형 유머 제목에 어울립니다.",
@@ -388,6 +404,7 @@ const defaultGalleryImages = [
   },
   {
     id: "subject-12",
+    imageKey: "21",
     src: "assets/gallery/Subject12.png",
     title: "편의점 컵라면 코너에서 장보는 알파카",
     description: "밤의 편의점에서 알파카가 장바구니를 들고 컵라면 진열대를 바라보는 장면입니다. 익숙한 쇼핑 동작과 낯선 주인공의 조합이 제목의 재미를 만듭니다.",
@@ -400,6 +417,7 @@ const defaultGalleryImages = [
 
   {
     id: "imm-012",
+    imageKey: "33",
     src: "assets/gallery/offended-cat.jpg",
     title: "주방 조리대 위, 서운함이 가득한 고양이",
     description: "조리대 위에 앉은 고양이가 눈을 가늘게 뜨고 귀를 살짝 젖힌 채 카메라를 바라보는 사진입니다. 표정에서 묘하게 서운함이 읽혀, 사람의 대사처럼 바꾸면 짧고 재미있는 제목을 만들 수 있습니다.",
@@ -411,6 +429,7 @@ const defaultGalleryImages = [
   },
   {
     id: "imm-013",
+    imageKey: "23",
     src: "assets/gallery/24-funny-red-polo.jpg",
     title: "빨간 셔츠를 입고 곁눈질로 웃는 남자",
     description: "회색 칠판 같은 배경 앞에서 한 남자가 시선을 옆으로 흘리며 입꼬리를 올린 사진입니다. 표정을 사실로 단정하기보다 곁눈질과 참는 듯한 미소가 만드는 장난스러운 분위기를 살리면 좋은 제목을 만들 수 있습니다.",
@@ -422,6 +441,7 @@ const defaultGalleryImages = [
   },
   {
     id: "imm-014",
+    imageKey: "24",
     src: "assets/gallery/suit-tiny-desk-gimbap.png",
     title: "유치원 작은 의자에 앉아 김밥을 먹는 정장 청년",
     description: "어린이집 교실의 작은 책상과 의자에 정장을 입은 청년이 몸을 접고 앉아 김밥을 먹는 사진입니다. 큰 사람과 작은 가구의 크기 대비, 진지한 옷차림과 소박한 김밥의 어긋남을 제목의 중심으로 잡으면 좋습니다.",
@@ -433,6 +453,7 @@ const defaultGalleryImages = [
   },
   {
     id: "imm-015",
+    imageKey: "25",
     src: "assets/gallery/pigeon-steals-fry.png",
     title: "감자튀김을 채 가는 비둘기와 놀란 남자",
     description: "야외 식당에서 한 남자가 입을 벌린 사이, 비둘기가 감자튀김 하나를 물고 날아오르는 순간을 잡은 사진입니다. 음식을 가운데 두고 사람과 새의 시선·동작이 부딪치는 찰나를 짧고 재미있게 표현하기 좋습니다.",
@@ -444,6 +465,7 @@ const defaultGalleryImages = [
   },
   {
     id: "imm-016",
+    imageKey: "26",
     src: "assets/gallery/suit-bathtub-newspaper.png",
     title: "옷을 입은 채 욕조에 앉아 신문을 읽는 남자",
     description: "물 없는 욕조 안에 정장을 입은 남자가 신발까지 신은 채 앉아 신문을 펼친 사진입니다. 장소와 행동이 어긋나는 상황을 침착한 태도와 묶어 능청스러운 제목으로 풀면 어울립니다.",
@@ -455,6 +477,7 @@ const defaultGalleryImages = [
   },
   {
     id: "imm-017",
+    imageKey: "27",
     src: "assets/gallery/shocked-home-selfie.png",
     title: "두 손으로 볼을 감싸고 크게 놀란 표정의 여성",
     description: "거실에서 한 여성이 양손으로 볼을 감싸고 입을 크게 벌려 과장되게 놀라는 표정의 셀카입니다. 표정의 강도와 정면 구도를 그대로 살려 짧고 강한 한마디 제목을 붙이는 연습에 좋습니다.",
@@ -466,6 +489,7 @@ const defaultGalleryImages = [
   },
   {
     id: "imm-018",
+    imageKey: "28",
     src: "assets/gallery/laptop-in-shopping-cart.png",
     title: "마트 카트 안에 앉아 노트북으로 일하는 남자",
     description: "채소 코너 앞에서 정장을 입은 남자가 쇼핑 카트 안에 들어가 앉아 무릎에 노트북을 올리고 일하는 사진입니다. 일상 공간과 업무 자세의 어긋남을 살리면 직장인의 피로를 담은 제목을 만들기 좋습니다.",
@@ -477,6 +501,7 @@ const defaultGalleryImages = [
   },
   {
     id: "imm-019",
+    imageKey: "29",
     src: "assets/gallery/cookbook-in-shower.png",
     title: "샤워 부스 안에 서서 요리책을 읽는 남자",
     description: "유리 샤워 부스 안에 셔츠와 넥타이 차림의 남자가 서서 두꺼운 요리책을 펼쳐 읽는 사진입니다. 장소와 행동이 맞지 않는 상황을 무표정한 태도와 함께 담담한 제목으로 풀면 어울립니다.",
@@ -488,6 +513,7 @@ const defaultGalleryImages = [
   },
   {
     id: "imm-020",
+    imageKey: "30",
     src: "assets/gallery/cat-steals-pizza.png",
     title: "피자를 낚아채 가는 고양이와 놀란 남자",
     description: "소파에 앉은 남자가 입을 벌린 사이, 고양이가 몸을 날려 피자 조각을 채 가는 순간을 흔들린 화면으로 잡은 사진입니다. 빠른 움직임과 놀란 표정이 겹치는 찰나를 짧고 재미있는 제목으로 옮기기 좋습니다.",
@@ -499,6 +525,7 @@ const defaultGalleryImages = [
   },
   {
     id: "imm-021",
+    imageKey: "31",
     src: "assets/gallery/title-academy-cat-student.png",
     webpSrc: "assets/gallery/webp/title-academy-cat-student.webp",
     title: "교실 책상 앞에 앉아 공책을 펴 둔 고양이",
@@ -508,6 +535,23 @@ const defaultGalleryImages = [
     observationPoints: ["책상 앞에 단정히 앉은 고양이", "펼쳐진 빈 공책과 연필 한 자루", "창으로 들어오는 따뜻한 햇빛과 교실 책장"],
     exampleTitles: ["오늘 첫 수업입니다", "제목 짓기 1교시", "아직 한 글자도 못 썼다"],
     ...photoSourcePresets.curated,
+  },
+  {
+    id: "imm-022",
+    imageKey: "34",
+    src: "assets/gallery/shore-crab-in-hand.jpg",
+    webpSrc: "assets/gallery/webp/shore-crab-in-hand.webp",
+    title: "바닷가에서 두 집게를 치켜든 게",
+    description: "검은 바위가 이어진 해안에서 사람이 게의 배가 보이도록 손 위에 올려 든 사진입니다. 몸집보다 크게 벌린 두 집게와 붙잡힌 처지가 대비되어, 당당한 대사형 제목을 붙이기 좋습니다.",
+    alt: "검은 바위 해안을 배경으로 사람 손 위에서 배를 보인 채 두 집게를 치켜든 게",
+    prompt: "붙잡힌 상황에서도 두 집게를 높이 든 게가 어떤 말을 하고 있을지 짧은 대사로 상상해보세요.",
+    observationPoints: ["좌우로 크게 치켜든 밝은색 집게", "손바닥 위로 드러난 게의 배와 여러 다리", "잔잔한 바다와 검은 바위 해안"],
+    exampleTitles: ["잡힌 건 난데 항복은 네가 해", "두 집게 들었으니 덤벼", "오늘 해변의 최종 보스"],
+    ...photoSourcePresets.curated,
+    sourceName: "사용자 제공 이미지",
+    sourceUrl: "",
+    author: "사용자 제공",
+    license: "사용자가 사이트 게시를 위해 제공한 이미지",
   },
 ];
 const authModeButtons = [loginTabButton, signupTabButton];
@@ -522,7 +566,11 @@ const gallerySlugOverrides = Object.freeze({
 });
 
 let currentUser = null;
-let galleryImages = defaultGalleryImages.map((image, index) => ({ ...image, imageKey: String(index), isUserUpload: false }));
+let galleryImages = defaultGalleryImages.map((image, index) => ({
+  ...image,
+  imageKey: String(image.imageKey ?? index),
+  isUserUpload: false,
+}));
 let currentGuestName = sessionStorage.getItem(guestStorageKey) || "";
 let selectedImageIndex = null;
 let pendingTitle = "";
@@ -550,7 +598,6 @@ let activeUserProfile = null;
 let activeMessageRecipient = null;
 let visibleGalleryCount = Math.min(galleryInitialCount, galleryImages.length);
 let analyticsScriptsLoaded = false;
-let adsScriptsLoaded = false;
 
 function createId(prefix) {
   if (globalThis.crypto?.randomUUID) {
@@ -564,7 +611,7 @@ function getGalleryDetailPath(image, index) {
   const fallbackSlug = `photo-${String(index + 1).padStart(3, "0")}`;
   const rawSlug = gallerySlugOverrides[image?.id] || image?.slug || image?.id || fallbackSlug;
   const safeSlug = String(rawSlug).toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") || fallbackSlug;
-  return `/gallery/${safeSlug}`;
+  return `/gallery/${safeSlug}/`;
 }
 
 function initializeTheme() {
@@ -597,7 +644,7 @@ function getCookieSettings() {
     return {
       necessary: true,
       analytics: Boolean(parsed.analytics),
-      ads: Boolean(parsed.ads),
+      ads: false,
       saved: Boolean(parsed.saved),
     };
   } catch {
@@ -610,7 +657,7 @@ function initializeTrackingConsent() {
   const legacyConsent = localStorage.getItem(trackingConsentStorageKey);
 
   if (!settings.saved && legacyConsent === "accepted") {
-    saveCookieSettings({ analytics: true, ads: true });
+    saveCookieSettings({ analytics: true, ads: false });
     return;
   }
 
@@ -637,14 +684,14 @@ function saveCookieSettings(settings) {
   const next = {
     necessary: true,
     analytics: Boolean(settings.analytics),
-    ads: Boolean(settings.ads),
+    ads: false,
     saved: true,
   };
   localStorage.setItem(cookieSettingsStorageKey, JSON.stringify(next));
   localStorage.setItem(trackingConsentStorageKey, next.analytics || next.ads ? "accepted" : "rejected");
   consentBanner.hidden = true;
 
-  if (next.analytics || next.ads) {
+  if (next.analytics) {
     loadTrackingScripts(next);
   }
 }
@@ -705,10 +752,8 @@ function loadTrackingScripts(settings = getCookieSettings()) {
     loadMicrosoftClarity();
   }
 
-  if (settings.ads && !adsScriptsLoaded) {
-    adsScriptsLoaded = true;
-    loadAdsense();
-  }
+  // AdSense is intentionally not loaded in this interactive SPA during review.
+  // Reintroduce ads only on content-rich static pages with their own consent-gated loader.
 }
 
 function loadGoogleAnalytics() {
@@ -738,12 +783,6 @@ function loadMicrosoftClarity() {
     y = l.getElementsByTagName(r)[0];
     y.parentNode.insertBefore(t, y);
   })(window, document, "clarity", "script", clarityProjectId);
-}
-
-function loadAdsense() {
-  loadScript(`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(adsenseClientId)}`, {
-    crossOrigin: "anonymous",
-  });
 }
 
 function loadScript(src, options = {}) {
@@ -868,7 +907,11 @@ async function loadGalleryImages() {
     renderTodayPopular(Array.isArray(data.todayPopular) ? data.todayPopular : []);
     updateSidebarLayout();
   } catch {
-    galleryImages = defaultGalleryImages.map((image, index) => ({ ...image, imageKey: String(index), isUserUpload: false }));
+    galleryImages = defaultGalleryImages.map((image, index) => ({
+      ...image,
+      imageKey: String(image.imageKey ?? index),
+      isUserUpload: false,
+    }));
     visibleGalleryCount = galleryImages.length;
     renderGallery();
     renderMonthlyRanking([]);

@@ -337,6 +337,19 @@ const defaultImages = [
     exampleTitles: ["오늘 첫 수업입니다", "제목 짓기 1교시", "아직 한 글자도 못 썼다"],
     isUserUpload: false,
   },
+  {
+    id: "imm-022",
+    imageKey: "34",
+    src: "assets/gallery/shore-crab-in-hand.jpg",
+    webpSrc: "assets/gallery/webp/shore-crab-in-hand.webp",
+    title: "바닷가에서 두 집게를 치켜든 게",
+    description: "검은 바위가 이어진 해안에서 사람이 게의 배가 보이도록 손 위에 올려 든 사진입니다. 몸집보다 크게 벌린 두 집게와 붙잡힌 처지가 대비되어, 당당한 대사형 제목을 붙이기 좋습니다.",
+    alt: "검은 바위 해안을 배경으로 사람 손 위에서 배를 보인 채 두 집게를 치켜든 게",
+    prompt: "붙잡힌 상황에서도 두 집게를 높이 든 게가 어떤 말을 하고 있을지 짧은 대사로 상상해보세요.",
+    observationPoints: ["좌우로 크게 치켜든 밝은색 집게", "손바닥 위로 드러난 게의 배와 여러 다리", "잔잔한 바다와 검은 바위 해안"],
+    exampleTitles: ["잡힌 건 난데 항복은 네가 해", "두 집게 들었으니 덤벼", "오늘 해변의 최종 보스"],
+    isUserUpload: false,
+  },
 ];
 
 // 인기 정렬 가중치: 하트(좋아요)를 가장 크게, 그다음 제목 수, 댓글 수.
