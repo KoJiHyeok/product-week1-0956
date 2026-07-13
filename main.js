@@ -554,19 +554,23 @@ const defaultGalleryImages = [
     license: "사용자가 사이트 게시를 위해 제공한 이미지",
   },
 ];
+
+// 정적 사진은 목록 끝에 append하는 순서를 게시 순서로 삼는다. 표시용 복사본만
+// 뒤집어 기존 imageKey와 저장된 제목 연결을 그대로 유지한다.
+const newestDefaultGalleryImages = defaultGalleryImages.slice().reverse();
 const authModeButtons = [loginTabButton, signupTabButton];
 const maxAvatarBytes = 5 * 1024 * 1024;
 const maxContactImageBytes = 5 * 1024 * 1024;
 const allowedContactImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const allowedContactImageExtensions = new Set(["jpg", "jpeg", "png", "webp"]);
-const galleryInitialCount = defaultGalleryImages.length;
+const galleryInitialCount = newestDefaultGalleryImages.length;
 const galleryPageSize = 0;
 const gallerySlugOverrides = Object.freeze({
   "photo-001": "cat-smoke",
 });
 
 let currentUser = null;
-let galleryImages = defaultGalleryImages.map((image, index) => ({
+let galleryImages = newestDefaultGalleryImages.map((image, index) => ({
   ...image,
   imageKey: String(image.imageKey ?? index),
   isUserUpload: false,
@@ -897,7 +901,7 @@ async function loadGalleryImages() {
     if (images.length > 0) {
       galleryImages = images.map((image, index) => ({
         ...image,
-        imageKey: image.imageKey || String(index),
+        imageKey: String(image.imageKey ?? index),
         isUserUpload: Boolean(image.isUserUpload),
       }));
       visibleGalleryCount = galleryImages.length;
@@ -907,7 +911,7 @@ async function loadGalleryImages() {
     renderTodayPopular(Array.isArray(data.todayPopular) ? data.todayPopular : []);
     updateSidebarLayout();
   } catch {
-    galleryImages = defaultGalleryImages.map((image, index) => ({
+    galleryImages = newestDefaultGalleryImages.map((image, index) => ({
       ...image,
       imageKey: String(image.imageKey ?? index),
       isUserUpload: false,
@@ -1185,7 +1189,7 @@ function getSelectedImage() {
 }
 
 function getImageKey(image, index = selectedImageIndex) {
-  return image?.imageKey || String(index);
+  return String(image?.imageKey ?? index);
 }
 
 function getSelectedImageKey() {
@@ -1194,6 +1198,25 @@ function getSelectedImageKey() {
 
 function findImageIndexByKey(imageKey) {
   return galleryImages.findIndex((image, index) => getImageKey(image, index) === imageKey);
+}
+
+function findLegacyImageIndex(rawIndex) {
+  const legacyIndex = Number(rawIndex);
+
+  if (!Number.isInteger(legacyIndex)) {
+    return -1;
+  }
+
+  const legacyImage = defaultGalleryImages[legacyIndex];
+  return legacyImage ? findImageIndexByKey(getImageKey(legacyImage, legacyIndex)) : legacyIndex;
+}
+
+function decodeRouteImageKey(value) {
+  try {
+    return decodeURIComponent(value || "");
+  } catch {
+    return "";
+  }
 }
 
 function getActiveAuthor() {
@@ -1238,20 +1261,9 @@ function routeToHash(state) {
     return "#upload";
   }
 
-  if (state.view === "title") {
-    return `#title/${state.imageIndex}`;
-  }
-
-  if (state.view === "guest") {
-    return `#guest/${state.imageIndex}`;
-  }
-
-  if (state.view === "ranking") {
-    return `#ranking/${state.imageIndex}`;
-  }
-
-  if (state.view === "random") {
-    return `#random/${state.imageIndex}`;
+  if (["title", "guest", "ranking", "random"].includes(state.view)) {
+    const image = galleryImages[state.imageIndex];
+    return `#${state.view}/key/${encodeURIComponent(getImageKey(image, state.imageIndex))}`;
   }
 
   if (state.view === "contact") {
@@ -1314,8 +1326,10 @@ function parseRouteFromHash(hash) {
     return { view: "admin" };
   }
 
-  const [view, rawIndex] = cleanHash.split("/");
-  const imageIndex = Number(rawIndex);
+  const [view, locator, rawValue] = cleanHash.split("/");
+  const imageIndex = locator === "key"
+    ? findImageIndexByKey(decodeRouteImageKey(rawValue))
+    : findLegacyImageIndex(locator);
 
   if (!["title", "guest", "ranking", "random"].includes(view) || !Number.isInteger(imageIndex)) {
     return null;

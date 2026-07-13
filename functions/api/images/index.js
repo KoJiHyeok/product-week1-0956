@@ -352,37 +352,12 @@ const defaultImages = [
   },
 ];
 
-// 인기 정렬 가중치: 하트(좋아요)를 가장 크게, 그다음 제목 수, 댓글 수.
-const SCORE_WEIGHTS = Object.freeze({ likes: 3, submissions: 2, comments: 1 });
-// "최근 가산점": 배열 뒤쪽(최근 추가)일수록 0~RECENCY_BOOST 만큼 가산. 새 사진이
-// 활동이 없어도 묻히지 않게 하고, 더 새 사진이 들어오면 자연히 내려간다(콜드스타트 완화).
-const RECENCY_BOOST = 10;
 const TODAY_POPULAR_LIMIT = 5;
 const MONTHLY_RANKING_LIMIT = 5;
 const EMPTY_STAT = Object.freeze({ submissions: 0, likes: 0, todayLikes: 0, comments: 0 });
 
 function imageKeyOf(image, index) {
   return image?.imageKey != null ? String(image.imageKey) : String(index);
-}
-
-function popularityScore(stat) {
-  return (
-    stat.likes * SCORE_WEIGHTS.likes +
-    stat.submissions * SCORE_WEIGHTS.submissions +
-    stat.comments * SCORE_WEIGHTS.comments
-  );
-}
-
-function rankImages(images, stats) {
-  const lastIndex = Math.max(images.length - 1, 1);
-  return images
-    .map((image, index) => {
-      const stat = stats.get(imageKeyOf(image, index)) || EMPTY_STAT;
-      const recency = (index / lastIndex) * RECENCY_BOOST; // 뒤(최근)일수록 큰 값
-      return { image, index, score: popularityScore(stat) + recency };
-    })
-    .sort((a, b) => b.score - a.score || a.index - b.index) // 동점은 원래 순서 유지
-    .map((entry) => entry.image);
 }
 
 function buildTodayPopular(images, stats) {
@@ -483,7 +458,9 @@ async function getMonthlyRanking(context, monthPrefix) {
 
 export async function onRequestGet(context) {
   const uploadedImages = await getApprovedUploadedImages(context);
-  const baseImages = [...defaultImages, ...uploadedImages];
+  // 정적 사진은 append 순서의 역순, 승인 업로드는 쿼리의 created_at DESC를 사용한다.
+  // 둘 다 원본을 복사해 정렬하므로 stable imageKey는 바뀌지 않는다.
+  const baseImages = [...uploadedImages, ...defaultImages.slice().reverse()];
 
   try {
     const voteDate = new Date().toISOString().slice(0, 10);
@@ -491,12 +468,12 @@ export async function onRequestGet(context) {
     const stats = await getImageStats(context, voteDate);
     const monthlyRanking = await getMonthlyRanking(context, monthPrefix);
     return json({
-      images: rankImages(baseImages, stats),
+      images: baseImages,
       todayPopular: buildTodayPopular(baseImages, stats),
       monthlyRanking,
     });
   } catch (error) {
-    // 집계 실패(테이블 부재 등) 시 기존 정적 순서로 안전하게 폴백.
+    // 집계 실패(테이블 부재 등) 시에도 최신순 이미지 목록은 그대로 제공한다.
     console.error("images ranking error", error);
     return json({ images: baseImages, todayPopular: [], monthlyRanking: [] });
   }

@@ -177,7 +177,7 @@ function headerHtml() {
 function footerHtml() {
   return `
     <footer class="info-footer" aria-label="하단 링크">
-      ${navHtml()}
+${navHtml()}
       <p class="info-meta">제목 학원은 공개 권한과 제목 연습 적합성을 검토한 이미지만 갤러리에 게시합니다.</p>
     </footer>`;
 }
@@ -279,7 +279,7 @@ function detailHtml(image, index) {
   const isUserProvided = image.sourceName === "사용자 제공 이미지";
   const sourceSummary = isUserProvided
     ? "이 사진은 사이트 게시를 위해 사용자가 직접 제공한 이미지입니다."
-    : "제목 학원에서 사용하는 이미지는 저작권이 없는 사진과 AI로 생성한 이미지입니다.";
+    : "갤러리에는 AI 생성 이미지, 이용 허가를 확인한 자산, 운영 검토를 거친 사용자 제공 이미지가 포함될 수 있습니다.";
   const sourceReview = isUserProvided
     ? "운영자는 제목 연습 적합성과 제공자가 전달한 권리·초상권 정보를 검토한 뒤 공개했습니다."
     : `이 이미지는 ${image.sourceName || "제목 학원 운영자 검토 갤러리"}에 포함된 자료입니다. 운영자는 제목 연습에 맞는지, 저작권과 초상권 문제가 없는지 확인한 뒤 공개합니다.`;
@@ -394,7 +394,7 @@ ${analysisItems(image, index)}
       <p class="info-kicker">참여하기</p>
       <h2>이 사진에 어울리는 제목을 직접 만들어보세요</h2>
       <p>메인에서 사진을 선택하면 제목을 제출하고 다른 사용자의 제목과 반응을 확인할 수 있습니다.</p>
-      <a class="info-primary-button" href="/#title/${index}">제목 달아보기</a>
+      <a class="info-primary-button" href="/#title/key/${encodeURIComponent(String(image.imageKey ?? index))}">제목 달아보기</a>
     </section>
 
 ${footerHtml()}
@@ -408,12 +408,12 @@ function galleryIndexHtml(images) {
   const animalTerms = ["고양이", "강아지", "악어", "비둘기", "알파카", "금붕어", "개구리", "두 집게"];
   const personTerms = ["남자", "여자", "남성", "여성", "사람", "아기", "인물", "청년"];
   const groups = [
-    { id: "animals", title: "동물이 등장하는 사진", images: [] },
-    { id: "people", title: "사람이 중심인 사진", images: [] },
-    { id: "scenes", title: "사물과 상상 장면", images: [] },
+    { id: "animals", title: "동물이 등장하는 사진", images: [], newestIndex: Infinity },
+    { id: "people", title: "사람이 중심인 사진", images: [], newestIndex: Infinity },
+    { id: "scenes", title: "사물과 상상 장면", images: [], newestIndex: Infinity },
   ];
 
-  for (const image of images) {
+  images.forEach((image, index) => {
     const searchable = `${image.title} ${image.alt}`;
     const group = animalTerms.some((term) => searchable.includes(term))
       ? groups[0]
@@ -421,7 +421,8 @@ function galleryIndexHtml(images) {
         ? groups[1]
         : groups[2];
     group.images.push(image);
-  }
+    group.newestIndex = Math.min(group.newestIndex, index);
+  });
 
   const cardHtml = (image) => {
     const imagePath = encodedAssetUrl(image.webpSrc || image.src);
@@ -435,6 +436,7 @@ function galleryIndexHtml(images) {
   };
 
   const groupedCards = groups
+    .sort((left, right) => left.newestIndex - right.newestIndex)
     .filter((group) => group.images.length > 0)
     .map((group) => `    <section aria-labelledby="gallery-${group.id}">
       <h2 id="gallery-${group.id}">${group.title} <span class="info-meta">${group.images.length}장</span></h2>
@@ -532,6 +534,7 @@ const normalizedImages = images.map((image, index) => ({
   ...image,
   slug: getSlug(image, index, usedSlugs),
 }));
+const newestImages = normalizedImages.slice().reverse();
 
 fs.mkdirSync(galleryRoot, { recursive: true });
 for (const image of normalizedImages) {
@@ -540,7 +543,7 @@ for (const image of normalizedImages) {
   fs.writeFileSync(path.join(directory, "index.html"), detailHtml(image, normalizedImages.indexOf(image)), "utf8");
 }
 
-fs.writeFileSync(path.join(galleryRoot, "index.html"), galleryIndexHtml(normalizedImages), "utf8");
+fs.writeFileSync(path.join(galleryRoot, "index.html"), galleryIndexHtml(newestImages), "utf8");
 fs.writeFileSync(path.join(root, "sitemap.xml"), sitemapXml(), "utf8");
 
 console.log(`Generated ${normalizedImages.length} gallery detail pages and sitemap.xml`);
