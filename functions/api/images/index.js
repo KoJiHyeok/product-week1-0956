@@ -387,10 +387,99 @@ const defaultImages = [
 
 const TODAY_POPULAR_LIMIT = 5;
 const MONTHLY_RANKING_LIMIT = 5;
+const NEW_IMAGE_WINDOW_MS = 72 * 60 * 60 * 1000;
 const EMPTY_STAT = Object.freeze({ submissions: 0, likes: 0, todayLikes: 0, comments: 0 });
 
 function imageKeyOf(image, index) {
   return image?.imageKey != null ? String(image.imageKey) : String(index);
+}
+
+function hasValidDateTimeParts(text) {
+  const match = text.match(
+    /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?)?/
+  );
+  if (!match) {
+    return false;
+  }
+
+  const [, yearText, monthText, dayText, hourText, minuteText, secondText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const check = new Date(0);
+  check.setUTCFullYear(year, month - 1, day);
+  check.setUTCHours(0, 0, 0, 0);
+  if (
+    check.getUTCFullYear() !== year ||
+    check.getUTCMonth() !== month - 1 ||
+    check.getUTCDate() !== day
+  ) {
+    return false;
+  }
+
+  return (
+    hourText == null ||
+    (Number(hourText) <= 23 && Number(minuteText) <= 59 && Number(secondText || 0) <= 59)
+  );
+}
+
+function parsePublicationValue(value) {
+  const text = typeof value === "string" ? value.trim() : "";
+  let timestamp;
+
+  if (!hasValidDateTimeParts(text)) {
+    return null;
+  }
+
+  // 정적 갤러리의 날짜는 한국 시간 자정, D1 기본 datetime은 UTC로 해석한다.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    timestamp = Date.parse(`${text}T00:00:00+09:00`);
+  } else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(text)) {
+    timestamp = Date.parse(`${text.replace(" ", "T")}Z`);
+  } else if (/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/i.test(text)) {
+    timestamp = Date.parse(text);
+  } else {
+    return null;
+  }
+
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function parsePublicationTimestamp(image) {
+  for (const value of [image?.publishedAt, image?.reviewedAt, image?.createdAt]) {
+    const timestamp = parsePublicationValue(value);
+
+    if (timestamp != null) {
+      return timestamp;
+    }
+  }
+
+  return null;
+}
+
+function sortGalleryImages(images, stats, now = Date.now()) {
+  return images
+    .map((image, baseIndex) => {
+      const publishedAt = parsePublicationTimestamp(image);
+      const age = publishedAt == null ? null : now - publishedAt;
+      const isFresh = age != null && age >= 0 && age < NEW_IMAGE_WINDOW_MS;
+      const key = imageKeyOf(image, baseIndex);
+      const likes = Number(stats.get(key)?.likes) || 0;
+      return { image, baseIndex, publishedAt, isFresh, likes };
+    })
+    .sort((left, right) => {
+      if (left.isFresh !== right.isFresh) {
+        return left.isFresh ? -1 : 1;
+      }
+      if (left.isFresh && right.isFresh && left.publishedAt !== right.publishedAt) {
+        return right.publishedAt - left.publishedAt;
+      }
+      if (!left.isFresh && left.likes !== right.likes) {
+        return right.likes - left.likes;
+      }
+      return left.baseIndex - right.baseIndex;
+    })
+    .map((entry) => entry.image);
 }
 
 function buildTodayPopular(images, stats) {
@@ -495,21 +584,36 @@ export async function onRequestGet(context) {
   // 둘 다 원본을 복사해 정렬하므로 stable imageKey는 바뀌지 않는다.
   const baseImages = [...uploadedImages, ...defaultImages.slice().reverse()];
 
+  const now = Date.now();
+  const voteDate = new Date(now).toISOString().slice(0, 10);
+  const monthPrefix = voteDate.slice(0, 7); // YYYY-MM
+  let stats;
+
   try {
-    const voteDate = new Date().toISOString().slice(0, 10);
-    const monthPrefix = voteDate.slice(0, 7); // YYYY-MM
-    const stats = await getImageStats(context, voteDate);
-    const monthlyRanking = await getMonthlyRanking(context, monthPrefix);
-    return json({
-      images: baseImages,
-      todayPopular: buildTodayPopular(baseImages, stats),
-      monthlyRanking,
-    });
+    stats = await getImageStats(context, voteDate);
   } catch (error) {
-    // 집계 실패(테이블 부재 등) 시에도 최신순 이미지 목록은 그대로 제공한다.
+    // 집계 실패 시 하트 수를 추정하지 않고, 72시간 상단 고정과 기존 동률 순서만 유지한다.
     console.error("images ranking error", error);
-    return json({ images: baseImages, todayPopular: [], monthlyRanking: [] });
+    return json({
+      images: sortGalleryImages(baseImages, new Map(), now),
+      todayPopular: [],
+      monthlyRanking: [],
+    });
   }
+
+  const sortedImages = sortGalleryImages(baseImages, stats, now);
+  let monthlyRanking = [];
+  try {
+    monthlyRanking = await getMonthlyRanking(context, monthPrefix);
+  } catch (error) {
+    console.error("images monthly ranking error", error);
+  }
+
+  return json({
+    images: sortedImages,
+    todayPopular: buildTodayPopular(sortedImages, stats),
+    monthlyRanking,
+  });
 }
 
 async function getApprovedUploadedImages(context) {
