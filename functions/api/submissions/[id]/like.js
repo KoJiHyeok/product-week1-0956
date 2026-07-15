@@ -36,39 +36,23 @@ export async function onRequestPost(context) {
       return json({ message: "제목을 찾을 수 없습니다." }, 404);
     }
 
+    // 하트는 (사용자|게스트, 제목) 단위로 최대 1개. 여러 제목에는 각각 누를 수 있다.
     const existing = await db
       .prepare(
         user
-          ? "SELECT id, submission_id FROM likes WHERE user_id = ? AND vote_date = ? LIMIT 1"
-          : "SELECT id, submission_id FROM likes WHERE guest_identifier = ? AND vote_date = ? LIMIT 1"
+          ? "SELECT id FROM likes WHERE user_id = ? AND submission_id = ? LIMIT 1"
+          : "SELECT id FROM likes WHERE guest_identifier = ? AND submission_id = ? LIMIT 1"
       )
-      .bind(user ? user.id : guestVote.identifier, voteDate)
+      .bind(user ? user.id : guestVote.identifier, submissionId)
       .first();
 
     if (existing) {
-      if (Number(existing.submission_id) === submissionId) {
-        await db.prepare("DELETE FROM likes WHERE id = ?").bind(existing.id).run();
-
-        return json(
-          {
-            liked: false,
-            likes: await countLikes(db, submissionId),
-            dailyVoteUsed: false,
-          },
-          200,
-          guestVote.cookie ? { "set-cookie": guestVote.cookie } : {}
-        );
-      }
-
-      await db.prepare("UPDATE likes SET submission_id = ?, created_at = CURRENT_TIMESTAMP WHERE id = ?").bind(submissionId, existing.id).run();
+      await db.prepare("DELETE FROM likes WHERE id = ?").bind(existing.id).run();
 
       return json(
         {
-          liked: true,
+          liked: false,
           likes: await countLikes(db, submissionId),
-          previousSubmissionId: String(existing.submission_id),
-          previousLikes: await countLikes(db, existing.submission_id),
-          dailyVoteUsed: true,
         },
         200,
         guestVote.cookie ? { "set-cookie": guestVote.cookie } : {}
@@ -84,7 +68,6 @@ export async function onRequestPost(context) {
       {
         liked: true,
         likes: await countLikes(db, submissionId),
-        dailyVoteUsed: true,
       },
       200,
       guestVote.cookie ? { "set-cookie": guestVote.cookie } : {}

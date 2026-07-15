@@ -1,6 +1,6 @@
 import { ensureUserCanWrite, getCurrentUser, getDb, json, readJson } from "../auth/_shared.js";
 import { validateDisplayName, validatePublicText } from "./_moderation.js";
-import { getOrCreateGuestVoteIdentifier, getVoteDate } from "./_vote.js";
+import { getOrCreateGuestVoteIdentifier } from "./_vote.js";
 
 export async function onRequestGet(context) {
   try {
@@ -11,7 +11,6 @@ export async function onRequestGet(context) {
     const imageKey = normalizeImageKey(url.searchParams.get("imageKey"), rawImageIndex);
     const imageIndex = Number(rawImageIndex);
     const guestVote = user ? { identifier: "", cookie: "" } : await getOrCreateGuestVoteIdentifier(context.request);
-    const voteDate = getVoteDate();
 
     if (!imageKey || !Number.isInteger(imageIndex)) {
       return json({ message: "사진 번호가 올바르지 않습니다." }, 400);
@@ -37,8 +36,7 @@ export async function onRequestGet(context) {
            COUNT(DISTINCT likes.id) AS like_count,
            MAX(
              CASE
-               WHEN likes.vote_date = ?
-                AND ((? IS NOT NULL AND likes.user_id = ?) OR (? != '' AND likes.guest_identifier = ?))
+               WHEN (? IS NOT NULL AND likes.user_id = ?) OR (? != '' AND likes.guest_identifier = ?)
                THEN 1
                ELSE 0
              END
@@ -53,7 +51,7 @@ export async function onRequestGet(context) {
          GROUP BY submissions.id
          ORDER BY like_count DESC, submissions.created_at DESC`
       )
-      .bind(voteDate, user?.id || null, user?.id || null, guestVote.identifier, guestVote.identifier, imageKey)
+      .bind(user?.id || null, user?.id || null, guestVote.identifier, guestVote.identifier, imageKey)
       .all();
 
     const submissions = await Promise.all((results || []).map((row) => withComments(db, row, user)));

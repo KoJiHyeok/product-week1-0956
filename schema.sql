@@ -98,8 +98,8 @@ CREATE INDEX IF NOT EXISTS idx_comments_submission_id ON comments(submission_id)
 CREATE INDEX IF NOT EXISTS idx_comments_visibility ON comments(hidden_at, deleted_at);
 CREATE INDEX IF NOT EXISTS idx_likes_submission_id ON likes(submission_id);
 CREATE INDEX IF NOT EXISTS idx_likes_vote_date ON likes(vote_date);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_likes_user_vote_date ON likes(user_id, vote_date) WHERE user_id IS NOT NULL;
-CREATE UNIQUE INDEX IF NOT EXISTS idx_likes_guest_vote_date ON likes(guest_identifier, vote_date) WHERE guest_identifier IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_likes_user_submission ON likes(user_id, submission_id) WHERE user_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_likes_guest_submission ON likes(guest_identifier, submission_id) WHERE guest_identifier IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS messages (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
