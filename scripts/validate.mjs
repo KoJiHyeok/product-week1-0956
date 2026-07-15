@@ -152,7 +152,7 @@ function checkSyntax() {
 }
 
 // --- 2-4: gallery list checks ---
-const SHARED_FIELDS = ["src", "webpSrc", "title", "description", "alt", "prompt", "observationPoints", "exampleTitles"];
+const SHARED_FIELDS = ["imageKey", "src", "webpSrc", "title", "description", "alt", "prompt", "observationPoints", "exampleTitles"];
 
 function deepEqual(a, b) {
   return JSON.stringify(a) === JSON.stringify(b);
