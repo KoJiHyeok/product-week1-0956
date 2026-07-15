@@ -33,7 +33,7 @@
 node scripts/validate.mjs
 ```
 
-`scripts/validate.mjs`는 단일 결정적 게이트로 다음을 한 번에 검사한다(크로스플랫폼 — PowerShell·bash 공통, Windows에서 `find`/`xargs` 불필요): 모든 JS `node --check` 문법, 갤러리 두 리스트(`main.js` `defaultGalleryImages` ↔ `functions/api/images/index.js` `defaultImages`)의 id·imageKey·필드 동기화, `src`/`webpSrc` 자산 존재, `index.html` 캐시 버전(`main.js?v=N`) 형식, `git diff --check`(공백/줄바꿈). 하나라도 실패하면 비정상 종료(exit 1).
+`scripts/validate.mjs`는 단일 결정적 게이트로 다음을 한 번에 검사한다(크로스플랫폼 — PowerShell·bash 공통, Windows에서 `find`/`xargs` 불필요): 모든 JS `node --check` 문법, 갤러리 두 리스트(`main.js` `defaultGalleryImages` ↔ `functions/api/images/gallery-data.js` `galleryImages`)의 id·imageKey·필드 동기화, `src`/`webpSrc` 자산 존재, `index.html` 캐시 버전(`main.js?v=N`) 형식, `git diff --check`(공백/줄바꿈). 하나라도 실패하면 비정상 종료(exit 1). API 쪽 갤러리 데이터는 `functions/api/images/gallery-data.js`가 정본이며 `functions/api/images/index.js`는 이를 import만 한다.
 
 정식 테스트 프레임워크는 없다. API 변경은 가능한 owner/admin 수동 엔드포인트로 검증한다 (예: `POST /api/admin/daily-summary/send-test` 에 `{ "dryRun": true }`).
 
@@ -87,10 +87,10 @@ npx wrangler pages dev . --port 9000   # Functions + 로컬 D1 포함. 첫 실�
 1. 업로드 이미지를 `assets/gallery/`에 저장 (예: `offended-cat.jpg`). 가능하면 `assets/gallery/webp/`에 webp도(선택).
 2. **두 리스트에 동일 항목 추가** (하나만 넣으면 서버↔프런트 불일치):
    - `main.js`의 `defaultGalleryImages` — 운영 데이터 연결을 보존하도록 새 항목에 **명시적이고 고유한 `imageKey`**를 넣는다. 기존 키는 삭제된 사진의 빈 슬롯 때문에 배열 인덱스와 다를 수 있으며 절대 재번호를 매기지 않는다. 항목엔 `...photoSourcePresets.curated` 스프레드와 `description`을 포함한다. webp가 있으면 `webpSrc`도 넣는다.
-   - `functions/api/images/index.js`의 `defaultImages` — 프런트 항목과 **동일한 `id`·`imageKey`·텍스트·이미지 경로**를 넣는다. 새 `imageKey`는 두 목록 전체의 최대 키보다 1 큰 값을 사용하고, 중복 여부를 확인한다. `id`는 `imm-0NN` 형식, `isUserUpload: false`로 둔다.
+   - `functions/api/images/gallery-data.js`의 `galleryImages` — 프런트 항목과 **동일한 `id`·`imageKey`·텍스트·이미지 경로**를 넣는다. (API 갤러리 데이터의 정본은 이 파일이다. `functions/api/images/index.js`는 `import { galleryImages as defaultImages } from "./gallery-data.js"`로 가져다 쓸 뿐이므로 여기서 직접 수정하지 않는다.) 새 `imageKey`는 두 목록 전체의 최대 키보다 1 큰 값을 사용하고, 중복 여부를 확인한다. `id`는 `imm-0NN` 형식, `isUserUpload: false`로 둔다.
 3. `title`/`description`/`alt`/`prompt`/`observationPoints`/`exampleTitles`를 이미지 기반으로 기존 항목 톤에 맞춰 작성. (동물·인물 표정은 사람 대사처럼 바꾼 짧은 예시 제목이 톤에 맞음)
 4. **랭킹·하트·댓글·신고 버튼은 카드 UI가 모든 항목에 자동 렌더** → 별도 작업 없음.
-5. `node --check`(두 파일) → 두 목록의 `id`·`imageKey` 일치와 키 중복 확인 → 1건만 추가해 사용자에게 보여주고 확인 → `index.html`의 `main.js?v=N` 올림 → 커밋·푸시(자동 배포). (함정: 기존 `imageKey`를 배열 인덱스에 맞춰 재번호하면 저장된 제출이 엉뚱한 사진에 붙는다)
+5. `node --check`(수정한 파일들: `main.js`, `functions/api/images/gallery-data.js`) → 두 목록의 `id`·`imageKey` 일치와 키 중복 확인(`node scripts/validate.mjs`) → 1건만 추가해 사용자에게 보여주고 확인 → `index.html`의 `main.js?v=N` 올림 → 커밋·푸시(자동 배포). (함정: 기존 `imageKey`를 배열 인덱스에 맞춰 재번호하면 저장된 제출이 엉뚱한 사진에 붙는다)
 
 ## 배포
 

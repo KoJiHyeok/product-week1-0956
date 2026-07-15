@@ -326,9 +326,9 @@ checkSyntax();
 let apiImages = [];
 let mainImages = [];
 try {
-  apiImages = loadArray(path.join(root, "functions/api/images/index.js"), "const defaultImages =", false);
+  apiImages = loadArray(path.join(root, "functions/api/images/gallery-data.js"), "export const galleryImages =", false);
   mainImages = loadArray(path.join(root, "main.js"), "const defaultGalleryImages =", true);
-  pass("Gallery data parsing", `functions/api/images/index.js: ${apiImages.length}개, main.js: ${mainImages.length}개 로드`);
+  pass("Gallery data parsing", `functions/api/images/gallery-data.js: ${apiImages.length}개, main.js: ${mainImages.length}개 로드`);
 } catch (error) {
   fail("Gallery data parsing", String(error?.stack || error));
 }
