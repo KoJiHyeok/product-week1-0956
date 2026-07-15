@@ -276,13 +276,19 @@ function detailHtml(image, index) {
   const webpPath = image.webpSrc ? encodedAssetUrl(image.webpSrc) : "";
   const imageFullUrl = `${siteUrl}${encodedImagePath}`;
   const title = `${image.title} - 사진 해설 | 제목 학원`;
-  const isUserProvided = image.sourceName === "사용자 제공 이미지";
-  const sourceSummary = isUserProvided
-    ? "이 사진은 사이트 게시를 위해 사용자가 직접 제공한 이미지입니다."
+  const isUserProvided = String(image.sourceName || "").startsWith("사용자 제공");
+  const isAiGenerated = String(image.sourceName || "").includes("AI 생성");
+  const sourceSummary = isAiGenerated
+    ? "이 이미지는 사용자가 AI 생성 이미지라고 밝히고 사이트 게시를 위해 제공한 자료입니다."
+    : isUserProvided
+      ? "이 사진은 사이트 게시를 위해 사용자가 직접 제공한 이미지입니다."
     : "갤러리에는 AI 생성 이미지, 이용 허가를 확인한 자산, 운영 검토를 거친 사용자 제공 이미지가 포함될 수 있습니다.";
   const sourceReview = isUserProvided
-    ? "운영자는 제목 연습 적합성과 제공자가 전달한 권리·초상권 정보를 검토한 뒤 공개했습니다."
+    ? "운영자는 사용자의 게시 요청과 제목 연습 적합성을 확인한 뒤 공개했습니다."
     : `이 이미지는 ${image.sourceName || "제목 학원 운영자 검토 갤러리"}에 포함된 자료입니다. 운영자는 제목 연습에 맞는지, 저작권과 초상권 문제가 없는지 확인한 뒤 공개합니다.`;
+  const publicationDates = image.publishedAt
+    ? `      "datePublished": ${JSON.stringify(image.publishedAt)},\n      "dateModified": ${JSON.stringify(image.updatedAt || image.publishedAt)},\n`
+    : "";
   const firstPoint = image.observationPoints?.[0];
   const restPoints = image.observationPoints?.slice(1).join(", ");
   const pointText = firstPoint
@@ -325,7 +331,7 @@ function detailHtml(image, index) {
       "inLanguage": "ko-KR",
       "mainEntityOfPage": "${canonical}",
       "image": "${imageFullUrl}",
-      "author": { "@type": "Organization", "name": "제목 학원" },
+${publicationDates}      "author": { "@type": "Organization", "name": "제목 학원" },
       "publisher": {
         "@type": "Organization",
         "name": "제목 학원",
@@ -497,7 +503,7 @@ ${footerHtml()}
 `;
 }
 
-function sitemapXml() {
+function sitemapXml(images) {
   const staticUrls = [
     ["/", "weekly", "1.0"],
     ["/about/", "monthly", "0.8"],
@@ -513,12 +519,15 @@ function sitemapXml() {
     ["/terms/", "monthly", "0.7"],
   ];
 
+  const galleryUpdatedAt = images
+    .map((image) => image.updatedAt || image.publishedAt || "")
+    .sort()
+    .at(-1);
   const entries = staticUrls.map(([loc, changefreq, priority]) => `  <url>
     <loc>${siteUrl}${loc}</loc>
-    <changefreq>${changefreq}</changefreq>
+${loc === "/gallery/" && galleryUpdatedAt ? `    <lastmod>${galleryUpdatedAt}</lastmod>\n` : ""}    <changefreq>${changefreq}</changefreq>
     <priority>${priority}</priority>
   </url>`).join("\n");
-
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${entries}
@@ -544,6 +553,6 @@ for (const image of normalizedImages) {
 }
 
 fs.writeFileSync(path.join(galleryRoot, "index.html"), galleryIndexHtml(newestImages), "utf8");
-fs.writeFileSync(path.join(root, "sitemap.xml"), sitemapXml(), "utf8");
+fs.writeFileSync(path.join(root, "sitemap.xml"), sitemapXml(normalizedImages), "utf8");
 
 console.log(`Generated ${normalizedImages.length} gallery detail pages and sitemap.xml`);

@@ -553,6 +553,27 @@ const defaultGalleryImages = [
     author: "사용자 제공",
     license: "사용자가 사이트 게시를 위해 제공한 이미지",
   },
+  {
+    id: "imm-023",
+    imageKey: "35",
+    src: "assets/gallery/giant-nose-side-eye.png",
+    webpSrc: "assets/gallery/webp/giant-nose-side-eye.webp",
+    title: "커다란 코 너머로 곁눈질하는 남자",
+    description: "화면 대부분을 차지하는 커다란 코를 중심으로, 양옆 눈이 비스듬히 흐르고 입꼬리는 살짝 올라간 AI 생성 일러스트입니다. 과장된 얼굴 비율과 묘한 표정을 살려 눈치 보기나 딴생각을 담은 대사형 제목을 붙이기 좋습니다.",
+    alt: "커다란 코가 화면 중앙을 가득 채우고 옆으로 곁눈질하며 살짝 웃는 남자의 AI 생성 일러스트",
+    prompt: "화면을 가득 채운 코와 옆으로 흐르는 눈동자, 올라간 입꼬리를 단서로 들킨 순간의 속마음을 상상해보세요.",
+    observationPoints: ["화면 중앙을 가득 채운 과장된 코", "양옆으로 비스듬히 흐르는 눈동자", "살짝 올라간 입꼬리와 턱의 짧은 수염"],
+    exampleTitles: ["코앞인데 못 본 척", "나 안 봤는데", "눈치만 살짝 두고 갑니다"],
+    sourceName: "사용자 제공 AI 생성 이미지",
+    sourceUrl: "",
+    author: "사용자 제공",
+    license: "사용자가 사이트 게시를 위해 제공한 AI 생성 이미지",
+    attributionRequired: false,
+    commercialUseAllowed: false,
+    modificationAllowed: false,
+    publishedAt: "2026-07-15",
+    updatedAt: "2026-07-15",
+  },
 ];
 
 // 정적 사진은 목록 끝에 append하는 순서를 게시 순서로 삼는다. 표시용 복사본만
