@@ -2,6 +2,15 @@
 
 이 파일은 이 repo에서 작업하는 모든 AI 에이전트(Claude Code · Cowork · Codex 등)의 **단일 출처(single source of truth)** 작업 지침이다. 방향이 바뀌면 이 파일을 고친다.
 
+## 실행 하네스 — 조건부 위임 규율
+
+**작업 위험도에 따라 위임 수준을 정한다. 무조건 위임하지 않는다.** 판단·리뷰는 상위 모델(Fable / Opus, Codex는 sol), 실제 변경은 위험도가 높을 때만 하위 실행 모델(Sonnet 5, Codex는 luna max)에 위임한다.
+
+- **저위험·단일 파일·기계적 작업 → 오케스트레이터가 직접 처리** (subagent 안 띄움). 예: 캐시 버전 한 줄 올리기, 문구/카피 수정, 워크플로대로 갤러리 레코드 1건 추가, 작은 CSS 조정.
+- **실행·문법·계약 검사 → 결정적 스크립트로** (고급 모델 역할 아님). `node scripts/validate.mjs`(문법·갤러리 id/imageKey/필드 동기화·자산·캐시버전·`git diff --check` 일괄), 개별 `node --check`, git 명령.
+- **다계층·고위험 작업 → 판단은 오케스트레이터, 코드 작성·수정은 Sonnet 5(luna max) subagent에 위임.** 예: 여러 파일에 걸친 로직 변경, D1 마이그레이션, 배포 영향 변경, 복합 장애 진단. 위임 시 명확한 지시·완료 기준·검증 게이트를 함께 넘기고, 독립 작업은 병렬로. 결과 검증은 오케스트레이터 책임.
+- **경계:** 판단에 필요한 읽기·탐색은 오케스트레이터가 직접. prod DB·배포·메일 등 위험 작업은 아래 "위험 작업 규율" 게이트를 반드시 통과한다.
+
 ## 프로젝트 개요
 
 - **무엇:** "제목 학원" — 사진에 제목을 붙이고 랭킹·하트·댓글로 노는 한국어 웹 서비스.
@@ -21,11 +30,10 @@
 ## 작업 전 검증 게이트 (커밋 전 필수)
 
 ```bash
-# 모든 JS 문법 검사
-find . -name '*.js' -not -path './node_modules/*' -print0 | xargs -0 -n1 node --check
-# 공백/줄바꿈 오류
-git diff --check
+node scripts/validate.mjs
 ```
+
+`scripts/validate.mjs`는 단일 결정적 게이트로 다음을 한 번에 검사한다(크로스플랫폼 — PowerShell·bash 공통, Windows에서 `find`/`xargs` 불필요): 모든 JS `node --check` 문법, 갤러리 두 리스트(`main.js` `defaultGalleryImages` ↔ `functions/api/images/index.js` `defaultImages`)의 id·imageKey·필드 동기화, `src`/`webpSrc` 자산 존재, `index.html` 캐시 버전(`main.js?v=N`) 형식, `git diff --check`(공백/줄바꿈). 하나라도 실패하면 비정상 종료(exit 1).
 
 정식 테스트 프레임워크는 없다. API 변경은 가능한 owner/admin 수동 엔드포인트로 검증한다 (예: `POST /api/admin/daily-summary/send-test` 에 `{ "dryRun": true }`).
 
