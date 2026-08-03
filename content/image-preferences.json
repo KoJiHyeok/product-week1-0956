@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "guidance": {
+    "preferredQualities": [
+      {
+        "quality": "너무 인위적이지 않고 일상에 자연스럽게 녹아드는 장면",
+        "strength": "preference",
+        "note": "절대 규칙이 아니라 후보 선택 시 우선 고려하는 경향"
+      }
+    ],
+    "hardRules": [
+      "브랜드 로고·글자·워터마크 제외",
+      "유명인·저작권 캐릭터 제외"
+    ]
+  },
+  "selections": [
+    {
+      "date": "2026-08-03",
+      "selectedCandidate": 3,
+      "asset": "assets/gallery/raincoat-duck-bus-stop.png",
+      "decision": "approved",
+      "feedback": "네 후보 중 가장 자연스러운 사진으로 느껴졌다. 너무 인위적이지 않고 일상에 녹아드는 사진을 선호하지만 무조건적인 기준은 아니다.",
+      "signals": [
+        "자연스러운 사진 질감",
+        "익숙한 일상 공간",
+        "장면에 무리 없이 섞인 작은 반전"
+      ]
+    }
+  ]
+}

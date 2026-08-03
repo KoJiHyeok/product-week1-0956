@@ -66,6 +66,11 @@ node_modules/
 
 # dotenv environment variables file
 .env
+.env.*
+!.env.example
+
+# Codex가 생성한 일일 이미지 후보(승인 전 로컬 산출물)
+output/image-candidates/
 
 # dataconnect generated files
 .dataconnect

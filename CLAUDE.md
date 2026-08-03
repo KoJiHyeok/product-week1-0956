@@ -92,6 +92,14 @@ npx wrangler pages dev . --port 9000   # Functions + 로컬 D1 포함. 첫 실�
 4. **랭킹·하트·댓글·신고 버튼은 카드 UI가 모든 항목에 자동 렌더** → 별도 작업 없음.
 5. `node --check`(수정한 파일들: `main.js`, `functions/api/images/gallery-data.js`) → 두 목록의 `id`·`imageKey` 일치와 키 중복 확인(`node scripts/validate.mjs`) → 1건만 추가해 사용자에게 보여주고 확인 → `index.html`의 `main.js?v=N` 올림 → 커밋·푸시(자동 배포). (함정: 기존 `imageKey`를 배열 인덱스에 맞춰 재번호하면 저장된 제출이 엉뚱한 사진에 붙는다)
 
+### 일일 후보 승인 후 자동 반영
+
+- 사용자가 Discord 일일 후보에 대해 `N번 승인`처럼 최종 승인을 명시하면 추가 확인을 요구하지 않는다.
+- 승인 이미지를 갤러리에 1장 추가하고 `content/image-preferences.json`에 선택 이유와 선호 강도를 기록한다. 선호는 사용자가 절대 조건이라고 명시하지 않는 한 가중치로만 사용한다.
+- 갤러리 해설 페이지를 다시 생성하고 `node scripts/validate.mjs`를 통과시킨다.
+- 검증 성공 시 관련 변경만 커밋해 `main`에 push한다. Cloudflare Pages 자동 배포까지 승인 범위에 포함된다.
+- 검증 실패, 이미지 품질 문제, 권리·안전 문제, unrelated 변경과의 충돌이 있으면 배포하지 않고 원인을 보고한다.
+
 ## 배포
 
 - **Pages:** `main`을 GitHub에 push → Cloudflare Pages 통합이 자동 빌드·배포.
