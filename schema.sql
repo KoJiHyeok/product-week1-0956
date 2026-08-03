@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   email_verified_at TEXT,
   google_sub TEXT UNIQUE,
+  naver_sub TEXT UNIQUE,
   auth_provider TEXT NOT NULL DEFAULT 'password',
   bio TEXT NOT NULL DEFAULT '',
   is_profile_public INTEGER NOT NULL DEFAULT 1,
