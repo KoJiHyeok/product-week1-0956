@@ -1,4 +1,5 @@
 import { getDb } from "../../auth/_shared.js";
+import { ensureMessagesSchema } from "../../messages/_schema.js";
 
 // image_data(BLOB)는 목록/조회 응답에 필요 없으므로 존재 여부만 가져온다.
 const SUGGESTION_COLUMNS = `image_suggestions.id, image_suggestions.inquiry_id, image_suggestions.user_id,
@@ -34,6 +35,40 @@ export function findSuggestion(context, id) {
     )
     .bind(id)
     .first();
+}
+
+// 게시되면 제안한 회원에게 쪽지로 알린다. 비회원 제안은 받을 계정이 없어 건너뛴다.
+// 쪽지 실패가 승인 자체를 막지 않도록 오류는 삼키고 로그만 남긴다.
+export async function notifySuggesterApproved(context, suggestion, adminUser, galleryTitle) {
+  const recipientUserId = Number(suggestion?.user_id);
+
+  if (!Number.isInteger(recipientUserId) || recipientUserId === Number(adminUser?.id)) {
+    return false;
+  }
+
+  try {
+    const db = getDb(context);
+    await ensureMessagesSchema(db);
+    await db
+      .prepare("INSERT INTO messages (sender_user_id, recipient_user_id, body) VALUES (?, ?, ?)")
+      .bind(
+        adminUser.id,
+        recipientUserId,
+        [
+          "제안해주신 이미지가 갤러리에 게시되었습니다. 🎉",
+          "",
+          `게시 제목: ${galleryTitle}`,
+          "",
+          "홈 갤러리에서 확인하고 첫 제목을 달아보세요. 좋은 사진 제안 감사합니다!",
+        ].join("\n")
+      )
+      .run();
+
+    return true;
+  } catch (error) {
+    console.error("image suggestion approval message error", error);
+    return false;
+  }
 }
 
 // 이미지 제안을 처리하면 연결된 문의도 같은 흐름으로 닫아준다.

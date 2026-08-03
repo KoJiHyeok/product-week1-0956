@@ -1,7 +1,7 @@
 import { getDb, json, readJson } from "../../../auth/_shared.js";
 import { buildGalleryFields, getSuggestionImageKey } from "../../../images/_suggestions.js";
 import { logAdminAction, requireAdmin } from "../../_shared.js";
-import { closeLinkedInquiry, findSuggestion } from "../_shared.js";
+import { closeLinkedInquiry, findSuggestion, notifySuggesterApproved } from "../_shared.js";
 
 export async function onRequestPost(context) {
   try {
@@ -58,9 +58,16 @@ export async function onRequestPost(context) {
     }
 
     await closeLinkedInquiry(context, suggestion.inquiry_id, "resolved");
+
+    // 문구만 다시 반영하는 재게시에서는 쪽지를 또 보내지 않는다.
+    const notified =
+      suggestion.status === "approved"
+        ? false
+        : await notifySuggesterApproved(context, suggestion, admin.user, gallery.title);
+
     await logAdminAction(context, admin.user, "approve", "image_suggestion", id, `이미지 제안을 승인해 갤러리에 게시했습니다: ${gallery.title}`);
 
-    return json({ approved: true, imageKey: getSuggestionImageKey(id), title: gallery.title });
+    return json({ approved: true, imageKey: getSuggestionImageKey(id), title: gallery.title, notified });
   } catch (error) {
     console.error("image suggestion approve error", error);
     return json({ message: "이미지 제안을 승인하지 못했습니다." }, 500);
