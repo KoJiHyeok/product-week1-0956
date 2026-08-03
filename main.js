@@ -128,6 +128,7 @@ const signupForm = document.querySelector("#signupForm");
 const loginIdInput = document.querySelector("#loginIdInput");
 const loginPasswordInput = document.querySelector("#loginPasswordInput");
 const signupLoginIdInput = document.querySelector("#signupLoginIdInput");
+const signupLoginIdHint = document.querySelector("#signupLoginIdHint");
 const signupEmailInput = document.querySelector("#signupEmailInput");
 const signupUsernameInput = document.querySelector("#signupUsernameInput");
 const signupPasswordInput = document.querySelector("#signupPasswordInput");
@@ -4815,9 +4816,73 @@ passwordResetLink.addEventListener("click", () => {
   loginMessage.textContent = "비밀번호 재설정이 필요하면 문의 페이지로 계정 이메일과 함께 요청해주세요.";
 });
 
+let signupLoginIdTaken = false;
+let signupLoginIdCheckTimer;
+
+function setSignupLoginIdHint(text, tone) {
+  signupLoginIdHint.textContent = text;
+  signupLoginIdHint.classList.toggle("error", tone === "error");
+  signupLoginIdHint.classList.toggle("ok", tone === "ok");
+  signupLoginIdHint.hidden = !text;
+}
+
+async function checkSignupLoginIdAvailability(loginId) {
+  try {
+    const response = await fetch(`/api/auth/check-login-id?loginId=${encodeURIComponent(loginId)}`, {
+      credentials: "include",
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (signupLoginIdInput.value.trim() !== loginId) {
+      return;
+    }
+
+    if (data.available) {
+      signupLoginIdTaken = false;
+      setSignupLoginIdHint("사용 가능한 아이디입니다.", "ok");
+      return;
+    }
+
+    if (data.reason === "taken" || data.reason === "invalid") {
+      signupLoginIdTaken = true;
+      setSignupLoginIdHint(data.message || "이미 사용 중인 아이디입니다.", "error");
+      return;
+    }
+
+    setSignupLoginIdHint(data.message || "확인에 실패했습니다. 잠시 후 다시 시도해주세요.", "error");
+  } catch {
+    if (signupLoginIdInput.value.trim() !== loginId) {
+      return;
+    }
+    setSignupLoginIdHint("확인에 실패했습니다. 잠시 후 다시 시도해주세요.", "error");
+  }
+}
+
+signupLoginIdInput.addEventListener("input", () => {
+  const loginId = signupLoginIdInput.value.trim();
+  window.clearTimeout(signupLoginIdCheckTimer);
+
+  if (!loginId) {
+    signupLoginIdTaken = false;
+    setSignupLoginIdHint("", null);
+    return;
+  }
+
+  signupLoginIdCheckTimer = window.setTimeout(() => {
+    checkSignupLoginIdAvailability(loginId);
+  }, 400);
+});
+
 signupForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   signupMessage.textContent = "";
+
+  if (signupLoginIdTaken) {
+    signupMessage.textContent = "이미 사용 중인 아이디입니다. 다른 아이디를 입력해주세요.";
+    signupLoginIdInput.focus();
+    return;
+  }
+
   const loginId = signupLoginIdInput.value.trim();
   const email = signupEmailInput.value.trim();
   const username = signupUsernameInput.value.trim();

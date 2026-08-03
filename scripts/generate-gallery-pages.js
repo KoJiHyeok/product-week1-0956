@@ -358,7 +358,7 @@ function detailHtml(image, index) {
   <meta name="twitter:description" content="${escapeHtml(image.description)}" />
   <meta name="twitter:image" content="${imageFullUrl}" />
   <title>${escapeHtml(title)}</title>
-  <link href="/style.css?v=16" rel="stylesheet" />
+  <link href="/style.css?v=17" rel="stylesheet" />
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -510,7 +510,7 @@ ${group.images.map(cardHtml).join("\n")}
   <meta property="og:image" content="${siteUrl}/assets/gallery/logo.png" />
   <meta property="og:image:alt" content="제목 학원 로고" />
   <title>사진별 제목 해설 모음 - 제목 학원</title>
-  <link href="/style.css?v=16" rel="stylesheet" />
+  <link href="/style.css?v=17" rel="stylesheet" />
 </head>
 <body class="info-page">
   <main class="info-shell">

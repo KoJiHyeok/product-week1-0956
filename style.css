@@ -491,6 +491,8 @@ button.rank-row:focus-visible { outline:2px solid var(--primary); outline-offset
   font-weight:var(--fw-bold); color:var(--text-strong); font-size:var(--fs-sm); margin-top:6px;
 }
 .form-copy,.field-hint { color:var(--text-muted); font-size:var(--fs-xs); margin:0; }
+.field-hint.error { color:var(--danger); }
+.field-hint.ok { color:var(--success); }
 .entry-row { display:flex; gap:10px; }
 .entry-row input { flex:1; }
 .compact-form { max-width:480px; }
