@@ -5,6 +5,36 @@ const root = path.resolve(__dirname, "..");
 const siteUrl = "https://jemokhakwon.com";
 const mainJsPath = path.join(root, "main.js");
 const galleryRoot = path.join(root, "gallery");
+const galleryCopyDir = path.join(root, "content", "gallery-copy");
+
+const staticBlogUrls = Object.freeze([
+  "/blog/funny-photo-titles/",
+  "/blog/everyday-photo-titles/",
+  "/blog/landscape-photo-titles/",
+  "/blog/food-photo-titles/",
+  "/blog/title-length-guide/",
+  "/blog/title-mistakes/",
+  "/blog/popular-title-patterns/",
+  "/blog/meme-title-lessons/",
+  "/blog/observation-training/",
+]);
+
+function loadGalleryCopyMap() {
+  const map = new Map();
+  if (!fs.existsSync(galleryCopyDir)) {
+    return map;
+  }
+
+  const files = fs.readdirSync(galleryCopyDir).filter((name) => name.endsWith(".json"));
+  for (const file of files) {
+    const entries = JSON.parse(fs.readFileSync(path.join(galleryCopyDir, file), "utf8"));
+    for (const entry of entries) {
+      map.set(entry.id, entry);
+    }
+  }
+
+  return map;
+}
 
 const slugOverrides = Object.freeze({
   "photo-001": "cat-smoke",
@@ -269,7 +299,14 @@ function analysisItems(image, pageIndex) {
   }).join("\n");
 }
 
+function copyAnalysisItems(image, copy) {
+  return (image.exampleTitles || []).map((title, i) => {
+    return `          <li><strong>${escapeHtml(title)}</strong> - ${escapeHtml(copy.analysis[i])}</li>`;
+  }).join("\n");
+}
+
 function detailHtml(image, index) {
+  const copy = galleryCopyMap.get(image.id);
   const canonical = `${siteUrl}/gallery/${image.slug}/`;
   const imagePath = assetUrl(image.src);
   const encodedImagePath = encodedAssetUrl(image.src);
@@ -306,7 +343,7 @@ function detailHtml(image, index) {
   <link rel="icon" type="image/png" href="/Logo-image.png">
   <link rel="apple-touch-icon" href="/Logo-image.png">
   <meta name="description" content="${escapeHtml(image.description)}" />
-  <meta name="robots" content="noindex, follow" />
+  <meta name="robots" content="${copy ? "index, follow" : "noindex, follow"}" />
   <link rel="canonical" href="${canonical}" />
   <meta property="og:type" content="article" />
   <meta property="og:locale" content="ko_KR" />
@@ -321,7 +358,7 @@ function detailHtml(image, index) {
   <meta name="twitter:description" content="${escapeHtml(image.description)}" />
   <meta name="twitter:image" content="${imageFullUrl}" />
   <title>${escapeHtml(title)}</title>
-  <link href="/style.css?v=2" rel="stylesheet" />
+  <link href="/style.css?v=15" rel="stylesheet" />
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -362,8 +399,9 @@ ${webpPath ? `          <source srcset="${escapeHtml(webpPath)}" type="image/web
 
       <article class="info-card">
         <h2>이 사진의 핵심 장면</h2>
-        <p>${escapeHtml(image.prompt || image.description)}</p>
-        <p>${escapeHtml(pointText)}</p>
+${copy
+    ? copy.scene.map((paragraph) => `        <p>${escapeHtml(paragraph)}</p>`).join("\n")
+    : `        <p>${escapeHtml(image.prompt || image.description)}</p>\n        <p>${escapeHtml(pointText)}</p>`}
       </article>
 
       <article class="info-card">
@@ -376,18 +414,18 @@ ${listItems(image.observationPoints || [])}
 
       <article class="info-card">
         <h2>예시 제목과 해석</h2>
-        <p>아래 제목은 정답이 아니라 표현 방향을 보여주는 참고용입니다.</p>
-        <ul class="info-link-list">
-${analysisItems(image, index)}
+${copy ? "" : `        <p>아래 제목은 정답이 아니라 표현 방향을 보여주는 참고용입니다.</p>\n`}        <ul class="info-link-list">
+${copy ? copyAnalysisItems(image, copy) : analysisItems(image, index)}
         </ul>
       </article>
 
       <article class="info-card">
         <h2>직접 제목을 만들 때</h2>
-        <p>${escapeHtml(composeCard.a)}</p>
-        <p>${escapeHtml(composeCard.b)}</p>
+${copy
+    ? copy.composeTip.map((paragraph) => `        <p>${escapeHtml(paragraph)}</p>`).join("\n")
+    : `        <p>${escapeHtml(composeCard.a)}</p>\n        <p>${escapeHtml(composeCard.b)}</p>`}
       </article>
-
+${copy ? `      <article class="info-card">\n        <h2>한 걸음 더 관찰하기</h2>\n        <p>${escapeHtml(copy.extra)}</p>\n      </article>\n\n` : ""}
       <article class="info-card info-card-wide">
         <h2>이미지 출처와 검토</h2>
         <p>${escapeHtml(sourceSummary)}</p>
@@ -401,7 +439,7 @@ ${analysisItems(image, index)}
       <h2>이 사진에 어울리는 제목을 직접 만들어보세요</h2>
       <p>메인에서 사진을 선택하면 제목을 제출하고 다른 사용자의 제목과 반응을 확인할 수 있습니다.</p>
       <a class="info-primary-button" href="/#title/key/${encodeURIComponent(String(image.imageKey ?? index))}">제목 달아보기</a>
-    </section>
+${copy ? `      <a class="info-link" href="/titles/${encodeURIComponent(String(image.imageKey ?? index))}/">이 사진에 달린 제목 랭킹 보기</a>\n` : ""}    </section>
 
 ${footerHtml()}
   </main>
@@ -472,7 +510,7 @@ ${group.images.map(cardHtml).join("\n")}
   <meta property="og:image" content="${siteUrl}/assets/gallery/logo.png" />
   <meta property="og:image:alt" content="제목 학원 로고" />
   <title>사진별 제목 해설 모음 - 제목 학원</title>
-  <link href="/style.css?v=2" rel="stylesheet" />
+  <link href="/style.css?v=15" rel="stylesheet" />
 </head>
 <body class="info-page">
   <main class="info-shell">
@@ -514,6 +552,7 @@ function sitemapXml(images) {
     ["/blog/photo-title-tips/", "monthly", "0.8"],
     ["/blog/animal-photo-titles/", "monthly", "0.8"],
     ["/blog/emotion-photo-titles/", "monthly", "0.8"],
+    ...staticBlogUrls.map((loc) => [loc, "monthly", "0.8"]),
     ["/contact/", "monthly", "0.7"],
     ["/privacy/", "monthly", "0.7"],
     ["/terms/", "monthly", "0.7"],
@@ -523,17 +562,32 @@ function sitemapXml(images) {
     .map((image) => image.updatedAt || image.publishedAt || "")
     .sort()
     .at(-1);
-  const entries = staticUrls.map(([loc, changefreq, priority]) => `  <url>
+  const staticEntries = staticUrls.map(([loc, changefreq, priority]) => `  <url>
     <loc>${siteUrl}${loc}</loc>
 ${loc === "/gallery/" && galleryUpdatedAt ? `    <lastmod>${galleryUpdatedAt}</lastmod>\n` : ""}    <changefreq>${changefreq}</changefreq>
     <priority>${priority}</priority>
-  </url>`).join("\n");
+  </url>`);
+
+  const galleryEntries = images
+    .filter((image) => galleryCopyMap.has(image.id))
+    .map((image) => {
+      const lastmod = image.updatedAt || image.publishedAt || "";
+      return `  <url>
+    <loc>${siteUrl}/gallery/${image.slug}/</loc>
+${lastmod ? `    <lastmod>${lastmod}</lastmod>\n` : ""}    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>`;
+    });
+
+  const entries = [...staticEntries, ...galleryEntries].join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${entries}
 </urlset>
 `;
 }
+
+const galleryCopyMap = loadGalleryCopyMap();
 
 const mainJs = fs.readFileSync(mainJsPath, "utf8");
 const arrayLiteral = extractArrayLiteral(mainJs, "const defaultGalleryImages =");
