@@ -1118,9 +1118,11 @@ async function signup(loginId, email, username, password, passwordConfirm) {
     body: JSON.stringify({ loginId, email, username, password, passwordConfirm }),
   });
 
-  setCurrentUser(data.user);
-  closeAuthModal();
-  showToast(data.emailVerificationSent ? "가입 완료. 인증 메일을 확인해주세요." : "가입 완료. 인증 메일 설정이 필요합니다.");
+  setAuthMode("login");
+  signupPasswordInput.value = "";
+  signupPasswordConfirmInput.value = "";
+  loginMessage.textContent = data.message || "가입이 완료되었습니다. 이메일의 인증 링크를 확인한 뒤 로그인해주세요.";
+  showToast(data.emailVerificationSent ? "가입 완료. 인증 메일을 확인해주세요." : "가입 완료. 인증 메일 발송에 실패했습니다. 로그인 후 다시 시도해주세요.");
 }
 
 async function logout() {
@@ -2690,12 +2692,15 @@ async function verifyEmailFromUrl() {
   }
 
   try {
-    const data = await requestAuth("/api/auth/email/verify", {
+    await requestAuth("/api/auth/email/verify", {
       method: "POST",
       body: JSON.stringify({ token }),
     });
-    showToast(data.message || "이메일 인증이 완료되었습니다.");
+    showToast("이메일 인증이 완료되었습니다. 이제 로그인할 수 있습니다.");
     await restoreSession();
+    if (!currentUser) {
+      openAuthModal("login");
+    }
   } catch (error) {
     showToast(error.message);
   } finally {

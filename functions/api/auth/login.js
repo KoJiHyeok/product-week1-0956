@@ -7,6 +7,9 @@ import {
   readJson,
   verifyPassword,
 } from "./_shared.js";
+import { createEmailVerification } from "./register.js";
+
+const EMAIL_VERIFICATION_RESEND_COOLDOWN_MS = 5 * 60 * 1000;
 
 export async function onRequestPost(context) {
   try {
@@ -32,6 +35,7 @@ async function handleLogin(context) {
 
   const db = getDb(context);
   let user;
+  let hasEmailColumns = true;
 
   try {
     user = await db
@@ -46,6 +50,7 @@ async function handleLogin(context) {
       .bind(loginId)
       .first();
   } catch {
+    hasEmailColumns = false;
     user = await db
       .prepare("SELECT id, login_id, username, password_hash FROM users WHERE login_id = ? LIMIT 1")
       .bind(loginId)
@@ -54,6 +59,10 @@ async function handleLogin(context) {
 
   if (!user || !(await verifyPassword(password, user.password_hash))) {
     return json({ message: "아이디 또는 비밀번호가 올바르지 않습니다." }, 401);
+  }
+
+  if (hasEmailColumns && user.auth_provider === "password" && !user.email_verified_at) {
+    return await handleUnverifiedEmail(context, db, user);
   }
 
   const session = await createSession(db, context.request, user.id);
@@ -68,4 +77,45 @@ async function handleLogin(context) {
       "set-cookie": session.cookie,
     }
   );
+}
+
+async function handleUnverifiedEmail(context, db, user) {
+  const recentToken = await db
+    .prepare(
+      `SELECT created_at FROM email_verification_tokens
+       WHERE user_id = ?
+       ORDER BY created_at DESC
+       LIMIT 1`
+    )
+    .bind(user.id)
+    .first();
+
+  const isRecent = Date.now() - parseSqliteTimestamp(recentToken?.created_at) < EMAIL_VERIFICATION_RESEND_COOLDOWN_MS;
+
+  if (!isRecent) {
+    await createEmailVerification(context, db, user).catch((error) => {
+      console.error("auth/login email verification resend error", error);
+    });
+  }
+
+  return json(
+    {
+      error: "email_unverified",
+      message: isRecent
+        ? "이미 발송된 인증 메일을 확인해주세요."
+        : `이메일 인증이 필요합니다. ${user.email}로 인증 메일을 보냈으니 링크를 눌러 인증 후 다시 로그인해주세요.`,
+    },
+    403
+  );
+}
+
+function parseSqliteTimestamp(value) {
+  if (!value) {
+    return 0;
+  }
+
+  const iso = value.includes("T") ? value : `${value.replace(" ", "T")}Z`;
+  const time = new Date(iso).getTime();
+
+  return Number.isFinite(time) ? time : 0;
 }

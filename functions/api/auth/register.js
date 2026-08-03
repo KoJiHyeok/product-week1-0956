@@ -1,5 +1,4 @@
 import {
-  createSession,
   createRandomToken,
   getDb,
   hashToken,
@@ -8,7 +7,6 @@ import {
   normalizeEmail,
   normalizeLoginId,
   normalizeUsername,
-  publicUser,
   readJson,
   validateEmail,
   validateLoginId,
@@ -103,7 +101,6 @@ async function handleRegister(context) {
       profile_image_url: "",
       auth_provider: "password",
     };
-    const session = await createSession(db, context.request, user.id);
     const emailVerificationSent = await createEmailVerification(context, db, user).catch((error) => {
       console.error("auth/register email verification error", getErrorDetails(error));
       return false;
@@ -111,14 +108,10 @@ async function handleRegister(context) {
 
     return json(
       {
-        user: publicUser(user),
-        expiresAt: session.expiresAt,
         emailVerificationSent,
+        message: "가입이 완료되었습니다. 이메일의 인증 링크를 확인한 뒤 로그인해주세요.",
       },
-      201,
-      {
-        "set-cookie": session.cookie,
-      }
+      201
     );
   } catch (error) {
     const message = String(error?.message || "");
@@ -140,7 +133,7 @@ async function handleRegister(context) {
   }
 }
 
-async function createEmailVerification(context, db, user) {
+export async function createEmailVerification(context, db, user) {
   if (!context.env.RESEND_API_KEY) {
     return false;
   }
