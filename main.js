@@ -4597,11 +4597,23 @@ uploadCancelButton.addEventListener("click", () => {
 });
 imageReportCloseButton.addEventListener("click", closeReportModal);
 imageReportCancelButton.addEventListener("click", closeReportModal);
-imageReportModal.addEventListener("click", (event) => {
-  if (event.target === imageReportModal) {
-    closeReportModal();
-  }
-});
+
+// 모달 안에서 드래그를 시작해 배경 위에서 마우스를 놓으면 click 대상이 배경으로 잡혀
+// 모달이 닫히는 문제가 있어, 누름(pointerdown)과 놓음(click)이 모두 배경일 때만 닫는다.
+function bindModalBackdropClose(modal, close) {
+  let pressedOnBackdrop = false;
+  modal.addEventListener("pointerdown", (event) => {
+    pressedOnBackdrop = event.target === modal;
+  });
+  modal.addEventListener("click", (event) => {
+    if (pressedOnBackdrop && event.target === modal) {
+      close();
+    }
+    pressedOnBackdrop = false;
+  });
+}
+
+bindModalBackdropClose(imageReportModal, closeReportModal);
 imageReportForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   await submitImageReport();
@@ -4744,11 +4756,7 @@ consentRejectButton.addEventListener("click", () => {
 cookieSettingsButton.addEventListener("click", openCookieSettings);
 cookieSettingsCloseButton.addEventListener("click", closeCookieSettings);
 cookieSettingsCancelButton.addEventListener("click", closeCookieSettings);
-cookieSettingsModal.addEventListener("click", (event) => {
-  if (event.target === cookieSettingsModal) {
-    closeCookieSettings();
-  }
-});
+bindModalBackdropClose(cookieSettingsModal, closeCookieSettings);
 cookieSettingsForm.addEventListener("submit", (event) => {
   event.preventDefault();
   saveCookieSettings({
@@ -4782,11 +4790,7 @@ naverAuthButton.addEventListener("click", () => {
 
 modalClose.addEventListener("click", closeAuthModal);
 
-authModal.addEventListener("click", (event) => {
-  if (event.target === authModal) {
-    closeAuthModal();
-  }
-});
+bindModalBackdropClose(authModal, closeAuthModal);
 
 authModeButtons.forEach((button) => {
   button.addEventListener("click", () => {
@@ -4999,11 +5003,7 @@ userInfoPopover.addEventListener("click", (event) => {
 });
 messageComposeCloseButton.addEventListener("click", closeMessageCompose);
 messageComposeCancelButton.addEventListener("click", closeMessageCompose);
-messageComposeModal.addEventListener("click", (event) => {
-  if (event.target === messageComposeModal) {
-    closeMessageCompose();
-  }
-});
+bindModalBackdropClose(messageComposeModal, closeMessageCompose);
 messageComposeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   await sendMessage();
@@ -5065,17 +5065,9 @@ passwordChangeButton.addEventListener("click", openPasswordChangeModal);
 accountDeleteButton.addEventListener("click", openDeleteAccountModal);
 deleteCancelButton.addEventListener("click", closeDeleteAccountModal);
 deleteConfirmButton.addEventListener("click", deleteAccount);
-deleteAccountModal.addEventListener("click", (event) => {
-  if (event.target === deleteAccountModal) {
-    closeDeleteAccountModal();
-  }
-});
+bindModalBackdropClose(deleteAccountModal, closeDeleteAccountModal);
 passwordCancelButton.addEventListener("click", closePasswordChangeModal);
-passwordChangeModal.addEventListener("click", (event) => {
-  if (event.target === passwordChangeModal) {
-    closePasswordChangeModal();
-  }
-});
+bindModalBackdropClose(passwordChangeModal, closePasswordChangeModal);
 passwordChangeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   await changePassword();
