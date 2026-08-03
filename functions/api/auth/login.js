@@ -61,7 +61,8 @@ async function handleLogin(context) {
     return json({ message: "아이디 또는 비밀번호가 올바르지 않습니다." }, 401);
   }
 
-  if (hasEmailColumns && user.auth_provider === "password" && !user.email_verified_at) {
+  // email이 없는 초기 계정(migration 0003 이전 가입)은 인증 자체가 불가능하므로 게이트 제외.
+  if (hasEmailColumns && user.auth_provider === "password" && user.email && !user.email_verified_at) {
     return await handleUnverifiedEmail(context, db, user);
   }
 
