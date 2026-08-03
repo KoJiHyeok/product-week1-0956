@@ -355,8 +355,14 @@ button.rank-row:focus-visible { outline:2px solid var(--primary); outline-offset
   animation:jh-pop-in var(--dur-3) var(--ease-out) both;
 }
 .photo-card.has-image:hover { transform:translateY(-6px); box-shadow:var(--shadow-3); }
-.photo-card-picture { display:block; aspect-ratio:4/3; overflow:hidden; background:var(--surface-inset); }
-.photo-card-image { width:100%; height:100%; object-fit:cover; display:block; transition:transform var(--dur-4) var(--ease-out); }
+.photo-card-picture {
+  position:relative; display:block; width:100%; aspect-ratio:4/3;
+  overflow:hidden; background:var(--surface-inset);
+}
+.photo-card-image {
+  position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;
+  transition:transform var(--dur-4) var(--ease-out);
+}
 .photo-card.has-image:hover .photo-card-image { transform:scale(1.06); }
 .photo-card-placeholder {
   display:none; align-items:center; justify-content:center; aspect-ratio:4/3;
