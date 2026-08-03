@@ -27,7 +27,7 @@
   <meta name="twitter:image:alt" content="제목 학원 로고" />
 
   <title>제목 학원 - 사진 제목 만들기와 예시 가이드</title>
-  <link href="style.css?v=15" rel="stylesheet" />
+  <link href="style.css?v=16" rel="stylesheet" />
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -645,6 +645,12 @@
         <p class="auth-message" id="signupMessage" aria-live="polite"></p>
         <button class="auth-button solid full" type="submit">회원가입</button>
       </form>
+
+      <div class="auth-social" id="authSocial" hidden>
+        <p class="auth-divider">또는</p>
+        <button class="auth-button ghost full auth-social-button" id="googleAuthButton" type="button" hidden>Google로 계속하기</button>
+        <button class="auth-button full auth-social-button auth-social-button--naver" id="naverAuthButton" type="button" hidden>네이버로 계속하기</button>
+      </div>
     </div>
   </div>
 
@@ -716,6 +722,6 @@
     </div>
   </section>
 
-  <script type="module" src="main.js?v=22"></script>
+  <script type="module" src="main.js?v=23"></script>
 </body>
 </html>

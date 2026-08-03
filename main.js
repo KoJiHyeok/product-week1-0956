@@ -137,6 +137,9 @@ const termsAgreeInput = document.querySelector("#termsAgreeInput");
 const passwordResetLink = document.querySelector("#passwordResetLink");
 const loginMessage = document.querySelector("#loginMessage");
 const signupMessage = document.querySelector("#signupMessage");
+const authSocial = document.querySelector("#authSocial");
+const googleAuthButton = document.querySelector("#googleAuthButton");
+const naverAuthButton = document.querySelector("#naverAuthButton");
 const contactForm = document.querySelector("#contactForm");
 const contactTypeInput = document.querySelector("#contactTypeInput");
 const contactTitleInput = document.querySelector("#contactTitleInput");
@@ -2637,6 +2640,40 @@ function closeAuthModal() {
   authModal.hidden = true;
 }
 
+async function initializeAuthProviders() {
+  try {
+    const data = await requestAuth("/api/auth/providers", { method: "GET", headers: {} });
+    const googleEnabled = Boolean(data.google);
+    const naverEnabled = Boolean(data.naver);
+    googleAuthButton.hidden = !googleEnabled;
+    naverAuthButton.hidden = !naverEnabled;
+    authSocial.hidden = !(googleEnabled || naverEnabled);
+  } catch (error) {
+    console.warn("소셜 로그인 제공자 정보를 불러오지 못했습니다.", error);
+  }
+}
+
+const AUTH_ERROR_MESSAGES = {
+  google_state: "구글 로그인 요청이 만료되었습니다. 다시 시도해주세요.",
+  google_failed: "구글 로그인에 실패했습니다. 다시 시도해주세요.",
+  naver_state: "네이버 로그인 요청이 만료되었습니다. 다시 시도해주세요.",
+  naver_failed: "네이버 로그인에 실패했습니다. 다시 시도해주세요.",
+  account_blocked: "차단된 계정입니다.",
+};
+
+function handleAuthErrorFromUrl() {
+  const url = new URL(window.location.href);
+  const code = url.searchParams.get("auth_error");
+
+  if (!code) {
+    return;
+  }
+
+  showToast(AUTH_ERROR_MESSAGES[code] || "로그인에 실패했습니다. 다시 시도해주세요.");
+  url.searchParams.delete("auth_error");
+  history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
 async function verifyEmailFromUrl() {
   const url = new URL(window.location.href);
   const token = url.searchParams.get("verifyEmailToken");
@@ -4735,6 +4772,14 @@ signupButton.addEventListener("click", () => {
   openAuthModal("signup");
 });
 
+googleAuthButton.addEventListener("click", () => {
+  window.location.href = "/api/auth/google";
+});
+
+naverAuthButton.addEventListener("click", () => {
+  window.location.href = "/api/auth/naver";
+});
+
 modalClose.addEventListener("click", closeAuthModal);
 
 authModal.addEventListener("click", (event) => {
@@ -5207,9 +5252,11 @@ async function initializeApp() {
   initializeTrackingConsent();
   renderGallery();
   renderUser();
+  handleAuthErrorFromUrl();
   await verifyEmailFromUrl();
   await restoreSession();
   await loadGalleryImages();
+  await initializeAuthProviders();
   initializeRoute();
 }
 
