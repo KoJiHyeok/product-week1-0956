@@ -1909,6 +1909,9 @@ function renderGallery() {
       const picture = document.createElement("picture");
       picture.className = "photo-card-picture";
 
+      const media = document.createElement("div");
+      media.className = "photo-card-media";
+
       if (image.webpSrc) {
         const source = document.createElement("source");
         source.type = "image/webp";
@@ -1926,6 +1929,7 @@ function renderGallery() {
         card.classList.add("is-image-missing");
       }, { once: true });
       picture.append(photo);
+      media.append(picture);
 
       const placeholder = document.createElement("span");
       placeholder.className = "photo-card-placeholder";
@@ -1972,7 +1976,7 @@ function renderGallery() {
       card.tabIndex = 0;
       card.setAttribute("role", "button");
       card.setAttribute("aria-label", `${image.alt}. 제목 입력`);
-      card.append(picture, placeholder, actions);
+      card.append(media, placeholder, actions);
     } else {
       card.classList.add("is-empty");
       card.tabIndex = 0;
