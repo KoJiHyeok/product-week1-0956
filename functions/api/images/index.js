@@ -1,5 +1,6 @@
 import { getDb, json } from "../auth/_shared.js";
 import { serializeUploadedImage } from "./_shared.js";
+import { toGalleryImage } from "./_suggestions.js";
 import { galleryImages as defaultImages } from "./gallery-data.js";
 
 const TODAY_POPULAR_LIMIT = 5;
@@ -197,9 +198,10 @@ async function getMonthlyRanking(context, monthPrefix) {
 
 export async function onRequestGet(context) {
   const uploadedImages = await getApprovedUploadedImages(context);
-  // 정적 사진은 append 순서의 역순, 승인 업로드는 쿼리의 created_at DESC를 사용한다.
+  const suggestedImages = await getApprovedImageSuggestions(context);
+  // 정적 사진은 append 순서의 역순, 승인 업로드/제안은 쿼리의 최신순을 사용한다.
   // 둘 다 원본을 복사해 정렬하므로 stable imageKey는 바뀌지 않는다.
-  const baseImages = [...uploadedImages, ...defaultImages.slice().reverse()];
+  const baseImages = [...uploadedImages, ...suggestedImages, ...defaultImages.slice().reverse()];
 
   const now = Date.now();
   const voteDate = new Date(now).toISOString().slice(0, 10);
@@ -231,6 +233,32 @@ export async function onRequestGet(context) {
     todayPopular: buildTodayPopular(sortedImages, stats),
     monthlyRanking,
   });
+}
+
+// 관리자가 승인한 이미지 제안은 배포 없이 즉시 갤러리에 합류한다.
+async function getApprovedImageSuggestions(context) {
+  try {
+    const db = getDb(context);
+    const { results } = await db
+      .prepare(
+        `SELECT image_suggestions.id, image_suggestions.submitter_name, image_suggestions.gallery_title,
+                image_suggestions.gallery_description, image_suggestions.gallery_alt, image_suggestions.gallery_prompt,
+                image_suggestions.gallery_observation_points, image_suggestions.gallery_example_titles,
+                image_suggestions.created_at, image_suggestions.reviewed_at, image_suggestions.published_at,
+                users.username
+         FROM image_suggestions
+         LEFT JOIN users ON users.id = image_suggestions.user_id
+         WHERE image_suggestions.status = 'approved' AND image_suggestions.image_data IS NOT NULL
+         ORDER BY COALESCE(image_suggestions.published_at, image_suggestions.reviewed_at, image_suggestions.created_at) DESC
+         LIMIT 100`
+      )
+      .all();
+
+    return (results || []).map(toGalleryImage);
+  } catch (error) {
+    console.error("approved image suggestions error", error);
+    return [];
+  }
 }
 
 async function getApprovedUploadedImages(context) {

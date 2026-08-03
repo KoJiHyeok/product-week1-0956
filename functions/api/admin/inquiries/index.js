@@ -1,4 +1,5 @@
 import { getDb, json } from "../../auth/_shared.js";
+import { IMAGE_SUGGESTION_TYPE } from "../../images/_suggestions.js";
 import { INQUIRY_STATUSES, requireAdmin } from "../_shared.js";
 
 export async function onRequestGet(context) {
@@ -17,7 +18,20 @@ export async function onRequestGet(context) {
     }
 
     const db = getDb(context);
-    const whereClause = status === "all" ? "" : "WHERE contact_inquiries.status = ?";
+    // 이미지 제안은 "이미지 제안" 탭에서 검수한다. 다만 제안 레코드가 만들어지지 않은
+    // 문의는 누락되지 않도록 문의 목록에 그대로 남긴다.
+    const conditions = [
+      `(contact_inquiries.type <> ?
+        OR NOT EXISTS (SELECT 1 FROM image_suggestions WHERE image_suggestions.inquiry_id = contact_inquiries.id))`,
+    ];
+    const binds = [IMAGE_SUGGESTION_TYPE];
+
+    if (status !== "all") {
+      conditions.push("contact_inquiries.status = ?");
+      binds.push(status);
+    }
+
+    const whereClause = `WHERE ${conditions.join(" AND ")}`;
     const statement = db.prepare(
       `SELECT contact_inquiries.id, contact_inquiries.user_id, contact_inquiries.type,
               contact_inquiries.title, contact_inquiries.reply_email, contact_inquiries.body,
@@ -29,7 +43,7 @@ export async function onRequestGet(context) {
        ORDER BY contact_inquiries.created_at DESC
        LIMIT 100`
     );
-    const { results } = status === "all" ? await statement.all() : await statement.bind(status).all();
+    const { results } = await statement.bind(...binds).all();
 
     return json({
       inquiries: (results || []).map((inquiry) => ({

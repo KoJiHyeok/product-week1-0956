@@ -1,6 +1,7 @@
 import { ensureUserCanWrite, getCurrentUser, json, readJson, validateEmail } from "./auth/_shared.js";
+import { IMAGE_SUGGESTION_TYPE, MAX_SUGGESTION_IMAGE_BYTES } from "./images/_suggestions.js";
 
-const ALLOWED_TYPES = new Set(["버그/악용 신고", "개선 방안 제안", "이미지 제안"]);
+const ALLOWED_TYPES = new Set(["버그/악용 신고", "개선 방안 제안", IMAGE_SUGGESTION_TYPE]);
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp"]);
 const ALLOWED_IMAGE_MIME_TYPES = new Map([
@@ -31,7 +32,7 @@ async function handleContact(context) {
   const user = await getCurrentUser(context);
 
   if (user) {
-    const restrictionResponse = await ensureUserCanWrite(context, user, type === "이미지 제안" ? "upload" : "write");
+    const restrictionResponse = await ensureUserCanWrite(context, user, type === IMAGE_SUGGESTION_TYPE ? "upload" : "write");
 
     if (restrictionResponse) {
       return restrictionResponse;
@@ -78,7 +79,17 @@ async function handleContact(context) {
   }
 
   const attachment = attachmentResult?.attachment || null;
+
+  // 제안 이미지는 D1 BLOB으로 보관하므로 행 크기 상한보다 작아야 한다.
+  if (type === IMAGE_SUGGESTION_TYPE && attachment && attachment.size > MAX_SUGGESTION_IMAGE_BYTES) {
+    return json({ message: "제안 이미지는 1.5MB 이하로 첨부해주세요." }, 400);
+  }
+
   await saveInquiry(context, inquiryId, user, { type, title, replyEmail, message });
+
+  if (type === IMAGE_SUGGESTION_TYPE) {
+    await saveImageSuggestion(context, inquiryId, user, { title, replyEmail, message }, attachment);
+  }
 
   const safeEmail = {
     type: escapeHtml(type),
@@ -157,6 +168,42 @@ async function saveInquiry(context, inquiryId, user, inquiry) {
   }
 }
 
+// 이미지 제안은 문의 목록이 아니라 관리자 "이미지 제안" 탭에서 검수한다.
+// 이미지 바이트까지 함께 저장해야 관리자가 미리 보고 승인할 수 있다.
+async function saveImageSuggestion(context, inquiryId, user, inquiry, attachment) {
+  if (!context.env.DB) {
+    return;
+  }
+
+  try {
+    await context.env.DB
+      .prepare(
+        `INSERT INTO image_suggestions (
+           id, inquiry_id, user_id, submitter_name, submitter_email, inquiry_title, inquiry_body,
+           file_name, content_type, byte_size, image_data
+         )
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .bind(
+        inquiryId,
+        inquiryId,
+        user?.id || null,
+        user?.username || null,
+        inquiry.replyEmail,
+        inquiry.title,
+        inquiry.message,
+        attachment?.displayName || null,
+        attachment?.type || null,
+        attachment?.size || 0,
+        attachment?.bytes || null
+      )
+      .run();
+  } catch (error) {
+    // 저장 실패 시에도 메일은 이미 발송 경로에 있고, 문의 목록에 남아 누락되지 않는다.
+    console.error("image suggestion save error", error);
+  }
+}
+
 function normalizeText(value) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -222,6 +269,7 @@ async function prepareImageAttachment(file, inquiryId) {
       filename: `contact-image-${inquiryId}.${extension}`,
       size: buffer.byteLength,
       type: file.type,
+      bytes: buffer,
       content: arrayBufferToBase64(buffer),
     },
   };

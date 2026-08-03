@@ -271,3 +271,38 @@ WHERE status = 'sent';
 
 CREATE INDEX IF NOT EXISTS idx_admin_daily_summaries_created_at
 ON admin_daily_summaries(created_at);
+
+CREATE TABLE IF NOT EXISTS image_suggestions (
+  id TEXT PRIMARY KEY,
+  inquiry_id TEXT,
+  user_id INTEGER,
+  submitter_name TEXT,
+  submitter_email TEXT,
+  inquiry_title TEXT,
+  inquiry_body TEXT,
+  file_name TEXT,
+  content_type TEXT,
+  byte_size INTEGER NOT NULL DEFAULT 0,
+  image_data BLOB,
+  status TEXT NOT NULL DEFAULT 'pending',
+  gallery_title TEXT,
+  gallery_description TEXT,
+  gallery_alt TEXT,
+  gallery_prompt TEXT,
+  gallery_observation_points TEXT,
+  gallery_example_titles TEXT,
+  moderation_reason TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  reviewed_at TEXT,
+  reviewed_by INTEGER,
+  published_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL,
+  CHECK (status IN ('pending', 'approved', 'rejected', 'deleted'))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_image_suggestions_inquiry_id
+ON image_suggestions(inquiry_id);
+
+CREATE INDEX IF NOT EXISTS idx_image_suggestions_status_created_at
+ON image_suggestions(status, created_at);

@@ -666,6 +666,14 @@ select { appearance:none; background-image:linear-gradient(45deg,transparent 50%
 .admin-image-body { padding-top:12px; }
 .admin-image-meta,.admin-image-source { font-size:var(--fs-xs); color:var(--text-muted); }
 .admin-image-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+.admin-suggestion-body { font-size:var(--fs-sm); white-space:pre-wrap; margin:8px 0 0; }
+.admin-caption-grid { display:flex; flex-direction:column; gap:8px; margin:12px 0; }
+.admin-caption-field { display:flex; flex-direction:column; gap:4px; }
+.admin-caption-label { font-size:var(--fs-xs); color:var(--text-muted); }
+.admin-caption-input {
+  width:100%; padding:8px 10px; border:1px solid var(--border-soft); border-radius:var(--radius-md);
+  background:var(--surface-inset); color:var(--text-strong); font:inherit; font-size:var(--fs-sm); resize:vertical;
+}
 .my-title-empty { color:var(--text-muted); text-align:center; padding:var(--space-8); }
 
 /* ===================== DRAWER ===================== */

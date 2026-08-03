@@ -15,7 +15,6 @@ import {
   getReportTargetLabel,
   getReportReasonLabel,
   getAdminContentStatusLabel,
-  getImageSourceLabel,
 } from "./js/utils.js";
 
 const homeLink = document.querySelector("#homeLink");
@@ -622,6 +621,10 @@ const defaultGalleryImages = [
 const newestDefaultGalleryImages = defaultGalleryImages.slice().reverse();
 const authModeButtons = [loginTabButton, signupTabButton];
 const maxAvatarBytes = 5 * 1024 * 1024;
+const imageSuggestionType = "이미지 제안";
+// 서버(D1 BLOB) 보관 상한과 같은 값. 넘으면 제출 전에 축소한다.
+const maxSuggestionImageBytes = 1_500_000;
+const suggestionMaxImageEdge = 1600;
 const galleryInitialCount = newestDefaultGalleryImages.length;
 const galleryPageSize = 0;
 const gallerySlugOverrides = Object.freeze({
@@ -1540,6 +1543,36 @@ function goImageSuggestionContact() {
   contactBodyInput.focus();
 }
 
+// 제안 이미지는 D1에 보관돼 행 크기 상한이 있다. 큰 사진은 긴 변 1600px JPEG로 줄인다.
+async function shrinkImageForSuggestion(file) {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, suggestionMaxImageEdge / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+
+    const context = canvas.getContext("2d");
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close?.();
+
+    for (const quality of [0.85, 0.7, 0.55, 0.4]) {
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+
+      if (blob && blob.size <= maxSuggestionImageBytes) {
+        const baseName = String(file.name || "image").replace(/\.[^.]+$/, "") || "image";
+        return new File([blob], `${baseName}.jpg`, { type: "image/jpeg" });
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function clearContactAttachment(resetInput = true) {
   selectedContactImage = null;
 
@@ -1916,13 +1949,16 @@ function renderGallery() {
 
       actions.append(rankingButton);
 
-      const guideLink = document.createElement("a");
-      guideLink.className = "photo-action photo-guide-action";
-      guideLink.dataset.action = "guide";
-      guideLink.href = getGalleryDetailPath(image, index);
-      guideLink.textContent = "해설 보기";
-      guideLink.setAttribute("aria-label", `${image.title || image.alt} 사진 해설 보기`);
-      actions.append(guideLink);
+      // 승인 직후 게시되는 제안 이미지는 정적 해설 페이지가 없어 링크를 걸지 않는다.
+      if (image.hasDetailPage !== false) {
+        const guideLink = document.createElement("a");
+        guideLink.className = "photo-action photo-guide-action";
+        guideLink.dataset.action = "guide";
+        guideLink.href = getGalleryDetailPath(image, index);
+        guideLink.textContent = "해설 보기";
+        guideLink.setAttribute("aria-label", `${image.title || image.alt} 사진 해설 보기`);
+        actions.append(guideLink);
+      }
 
       const reportButton = document.createElement("button");
       reportButton.className = "photo-action photo-report-action";
@@ -3351,7 +3387,7 @@ function renderAdminDashboard() {
     ["users", "회원 관리", "회원 정지 상태와 admin 권한을 관리합니다."],
     ["reports", "신고 관리", "제목, 댓글, 사진 신고의 처리 상태를 변경합니다."],
     ["inquiries", "문의 관리", "문의 접수 상태를 검토하고 저장합니다."],
-    ["images", "이미지 제안", "사용자 이미지 제안과 신고된 이미지를 검수합니다."],
+    ["images", "이미지 제안", "문의로 접수된 제안 이미지를 미리 보고, 승인하면 갤러리에 바로 게시합니다."],
     ["logs", "활동 로그", "관리자 작업 이력을 확인합니다."],
   ];
   const grid = document.createElement("div");
@@ -3607,8 +3643,11 @@ async function loadAdminImageSuggestions() {
 
   try {
     const status = adminFilters.images;
-    const data = await requestJson(`/api/admin/images?status=${encodeURIComponent(status)}`, { method: "GET", headers: {} });
-    renderAdminImages(data.images || []);
+    const data = await requestJson(`/api/admin/image-suggestions?status=${encodeURIComponent(status)}`, {
+      method: "GET",
+      headers: {},
+    });
+    renderAdminImageSuggestions(data.suggestions || []);
   } catch (error) {
     adminImageList.replaceChildren(createAdminMessage(error.message));
   }
@@ -3708,19 +3747,65 @@ function renderAdminReports(reports) {
   adminImageList.replaceChildren(fragment);
 }
 
-function renderAdminImages(images) {
+// 갤러리 문구 입력칸. 여러 줄 입력은 줄바꿈 하나가 항목 하나다.
+function createSuggestionField(label, field, options = {}) {
+  const wrap = document.createElement("label");
+  wrap.className = "admin-caption-field";
+
+  const caption = document.createElement("span");
+  caption.className = "admin-caption-label";
+  caption.textContent = label;
+
+  const input = options.rows ? document.createElement("textarea") : document.createElement("input");
+
+  if (options.rows) {
+    input.rows = options.rows;
+  } else {
+    input.type = "text";
+  }
+
+  input.className = "admin-caption-input";
+  input.dataset.field = field;
+  input.maxLength = options.maxLength || 200;
+  input.placeholder = options.placeholder || "";
+  input.value = options.value || "";
+
+  wrap.append(caption, input);
+  return wrap;
+}
+
+function readSuggestionGalleryInput(card) {
+  const readValue = (field) => card.querySelector(`[data-field="${field}"]`)?.value.trim() || "";
+  const readLines = (field) =>
+    readValue(field)
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, 5);
+
+  return {
+    title: readValue("title"),
+    alt: readValue("alt"),
+    description: readValue("description"),
+    prompt: readValue("prompt"),
+    observationPoints: readLines("observationPoints"),
+    exampleTitles: readLines("exampleTitles"),
+  };
+}
+
+function renderAdminImageSuggestions(suggestions) {
   const fragment = document.createDocumentFragment();
   fragment.append(
     createAdminStatusFilter("images", [
       ["pending", "대기"],
-      ["approved", "승인"],
+      ["approved", "게시 중"],
       ["rejected", "거절"],
       ["deleted", "삭제"],
       ["all", "전체"],
     ])
   );
 
-  if (images.length === 0) {
+  if (suggestions.length === 0) {
     fragment.append(createAdminMessage("해당 상태의 이미지 제안이 없습니다."));
     adminImageList.replaceChildren(fragment);
     return;
@@ -3729,48 +3814,98 @@ function renderAdminImages(images) {
   const grid = document.createElement("div");
   grid.className = "admin-card-grid";
 
-  images.forEach((image) => {
+  suggestions.forEach((suggestion) => {
     const card = document.createElement("article");
     card.className = "admin-image-card";
-    card.dataset.imageId = image.id;
-
-    const preview = document.createElement("img");
-    preview.className = "admin-image-preview";
-    preview.src = image.src;
-    preview.alt = image.alt || "업로드 이미지";
-    preview.loading = "lazy";
+    card.dataset.suggestionId = suggestion.id;
 
     const body = document.createElement("div");
     body.className = "admin-image-body";
 
     const title = document.createElement("h2");
-    title.textContent = image.alt || "설명 없음";
+    title.textContent = suggestion.inquiryTitle || "이미지 제안";
 
     const meta = document.createElement("p");
     meta.className = "admin-image-meta";
-    meta.textContent = `상태 ${image.status} · 신고 ${image.reportCount || 0}회 · 제안자 ${image.uploader || "회원"}${image.uploaderEmail ? ` (${image.uploaderEmail})` : ""} · ${formatDate(image.createdAt)}`;
+    meta.textContent = `상태 ${getSuggestionStatusLabel(suggestion.status)} · 제안자 ${suggestion.submitter}${suggestion.submitterEmail ? ` (${suggestion.submitterEmail})` : ""} · ${formatDate(suggestion.createdAt)}`;
 
     const source = document.createElement("p");
     source.className = "admin-image-source";
-    source.textContent = `출처 유형: ${getImageSourceLabel(image.sourceType)} / 원본 URL: ${image.sourceUrl || "-"} / 작성자: ${image.authorName || "-"} / 라이선스: ${image.licenseName || "-"}`;
+    source.textContent = suggestion.hasImage
+      ? `첨부 파일: ${suggestion.fileName || "이미지"} · ${Math.max(1, Math.round(suggestion.byteSize / 1024))}KB · ${suggestion.contentType || "-"}`
+      : "첨부 이미지가 저장되지 않은 제안입니다. 제안자에게 이미지 재제출을 요청하세요.";
+
+    const bodyText = document.createElement("p");
+    bodyText.className = "admin-suggestion-body";
+    bodyText.textContent = suggestion.inquiryBody || "문의 내용 없음";
+
+    const captions = document.createElement("div");
+    captions.className = "admin-caption-grid";
+    captions.append(
+      createSuggestionField("카드 제목", "title", {
+        value: suggestion.title,
+        maxLength: 80,
+        placeholder: "비워두면 문의 제목을 사용합니다",
+      }),
+      createSuggestionField("대체 텍스트(alt)", "alt", {
+        value: suggestion.alt,
+        maxLength: 200,
+        placeholder: "비워두면 카드 제목을 사용합니다",
+      }),
+      createSuggestionField("장면 설명", "description", {
+        value: suggestion.description,
+        rows: 3,
+        maxLength: 800,
+        placeholder: "비워두면 문의 내용을 사용합니다",
+      }),
+      createSuggestionField("제목짓기 힌트", "prompt", {
+        value: suggestion.prompt,
+        rows: 2,
+        maxLength: 300,
+      }),
+      createSuggestionField("관찰 포인트 (한 줄에 하나)", "observationPoints", {
+        value: suggestion.observationPoints.join("\n"),
+        rows: 3,
+        maxLength: 400,
+      }),
+      createSuggestionField("예시 제목 (한 줄에 하나)", "exampleTitles", {
+        value: suggestion.exampleTitles.join("\n"),
+        rows: 3,
+        maxLength: 400,
+      })
+    );
 
     const reasonInput = document.createElement("textarea");
     reasonInput.className = "admin-reason-input";
     reasonInput.rows = 2;
     reasonInput.maxLength = 1000;
-    reasonInput.placeholder = "거절 또는 숨김 사유";
+    reasonInput.placeholder = "거절 사유";
     reasonInput.setAttribute("aria-label", "검수 사유");
-    reasonInput.value = image.moderationReason || "";
+    reasonInput.value = suggestion.moderationReason || "";
 
     const actions = document.createElement("div");
     actions.className = "admin-image-actions";
 
-    [
-      ["approve", "승인", "solid"],
-      ["reject", "거절", "ghost"],
-      ["hide", "숨김", "ghost"],
-      ["delete", "삭제", "danger"],
-    ].forEach(([action, label, style]) => {
+    const actionList = [];
+
+    if (suggestion.status !== "approved" && suggestion.hasImage) {
+      actionList.push(["suggestion-approve", "승인 후 바로 게시", "solid"]);
+    }
+
+    actionList.push(["suggestion-save", "문구만 저장", "ghost"]);
+
+    if (suggestion.status === "approved") {
+      actionList.push(["suggestion-approve", "문구 반영해 다시 게시", "solid"]);
+      actionList.push(["suggestion-unpublish", "갤러리에서 내리기", "ghost"]);
+    }
+
+    if (suggestion.status !== "rejected") {
+      actionList.push(["suggestion-reject", "거절", "ghost"]);
+    }
+
+    actionList.push(["suggestion-delete", "삭제", "danger"]);
+
+    actionList.forEach(([action, label, style]) => {
       const button = document.createElement("button");
       button.className = `auth-button ${style}`;
       button.type = "button";
@@ -3779,13 +3914,88 @@ function renderAdminImages(images) {
       actions.append(button);
     });
 
-    body.append(title, meta, source, reasonInput, actions);
-    card.append(preview, body);
+    body.append(title, meta, source, bodyText, captions, reasonInput, actions);
+
+    if (suggestion.hasImage) {
+      const preview = document.createElement("img");
+      preview.className = "admin-image-preview";
+      preview.src = suggestion.src;
+      preview.alt = suggestion.alt || suggestion.inquiryTitle || "제안 이미지";
+      preview.loading = "lazy";
+      card.append(preview);
+    }
+
+    card.append(body);
     grid.append(card);
   });
 
   fragment.append(grid);
   adminImageList.replaceChildren(fragment);
+}
+
+function getSuggestionStatusLabel(status) {
+  if (status === "approved") {
+    return "게시 중";
+  }
+
+  if (status === "rejected") {
+    return "거절";
+  }
+
+  if (status === "deleted") {
+    return "삭제";
+  }
+
+  return "대기";
+}
+
+async function handleImageSuggestionAction(card, action) {
+  const suggestionId = card.dataset.suggestionId;
+  const endpoint = `/api/admin/image-suggestions/${encodeURIComponent(suggestionId)}`;
+  const gallery = readSuggestionGalleryInput(card);
+  const reason = card.querySelector(".admin-reason-input")?.value.trim() || "";
+
+  try {
+    if (action === "suggestion-approve") {
+      if (!window.confirm("이 이미지를 승인해 갤러리에 바로 게시할까요?")) {
+        return;
+      }
+
+      const data = await requestJson(`${endpoint}/approve`, { method: "POST", body: JSON.stringify(gallery) });
+      showToast(`갤러리에 게시했습니다: ${data.title || "이미지 제안"}`);
+    } else if (action === "suggestion-save") {
+      await requestJson(endpoint, { method: "PATCH", body: JSON.stringify(gallery) });
+      showToast("갤러리 문구를 저장했습니다.");
+    } else if (action === "suggestion-unpublish") {
+      if (!window.confirm("갤러리에서 내리고 대기 상태로 되돌릴까요?")) {
+        return;
+      }
+
+      await requestJson(endpoint, { method: "PATCH", body: JSON.stringify({ ...gallery, status: "pending" }) });
+      showToast("갤러리에서 내렸습니다.");
+    } else if (action === "suggestion-reject") {
+      if (!window.confirm("이 이미지 제안을 거절할까요?")) {
+        return;
+      }
+
+      await requestJson(`${endpoint}/reject`, { method: "POST", body: JSON.stringify({ reason }) });
+      showToast("이미지 제안을 거절했습니다.");
+    } else if (action === "suggestion-delete") {
+      if (!window.confirm("이미지 제안을 삭제할까요? 저장된 이미지도 함께 지워집니다.")) {
+        return;
+      }
+
+      await requestJson(endpoint, { method: "DELETE", headers: {} });
+      showToast("이미지 제안을 삭제했습니다.");
+    } else {
+      return;
+    }
+
+    await loadAdminImageSuggestions();
+    await loadGalleryImages();
+  } catch (error) {
+    adminImageMessage.textContent = error.message;
+  }
 }
 
 async function loadAdminUsers() {
@@ -4766,7 +4976,14 @@ adminImageList.addEventListener("click", async (event) => {
     return;
   }
 
-  await moderateImage(card, button.dataset.action);
+  if (card.dataset.suggestionId) {
+    await handleImageSuggestionAction(card, button.dataset.action);
+    return;
+  }
+
+  if (card.dataset.imageId) {
+    await moderateImage(card, button.dataset.action);
+  }
 });
 
 consentAcceptButton.addEventListener("click", () => {
@@ -5062,14 +5279,29 @@ contactForm.addEventListener("submit", async (event) => {
   contactSubmitButton.textContent = "제출 중...";
 
   try {
+    let attachment = selectedContactImage;
+
+    // 제안 이미지는 서버에 보관되므로 상한을 넘으면 먼저 축소해서 보낸다.
+    if (attachment && type === imageSuggestionType && attachment.size > maxSuggestionImageBytes) {
+      contactSubmitButton.textContent = "이미지 준비 중...";
+      attachment = await shrinkImageForSuggestion(attachment);
+
+      if (!attachment) {
+        contactMessage.textContent = "이미지 크기를 줄이지 못했습니다. 1.5MB 이하 이미지를 첨부해주세요.";
+        return;
+      }
+    }
+
+    contactSubmitButton.textContent = "제출 중...";
+
     const formData = new FormData();
     formData.append("type", type);
     formData.append("title", title);
     formData.append("replyEmail", replyEmail);
     formData.append("body", body);
 
-    if (selectedContactImage) {
-      formData.append("image", selectedContactImage);
+    if (attachment) {
+      formData.append("image", attachment);
     }
 
     const data = await requestFormJson("/api/contact", formData, { method: "POST" });
