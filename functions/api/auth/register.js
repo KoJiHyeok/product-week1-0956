@@ -173,6 +173,11 @@ export async function createEmailVerification(context, db, user) {
     }),
   });
 
+  if (!result.ok) {
+    const detail = await result.text().catch(() => "");
+    console.error("auth verification email send failed", result.status, detail.slice(0, 300));
+  }
+
   return result.ok;
 }
 
