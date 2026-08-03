@@ -4821,6 +4821,29 @@ authModeButtons.forEach((button) => {
   });
 });
 
+// 브라우저 암묵 제출에만 의존하면 IME 조합 확정·자동완성 선택이 Enter를 소비해
+// 제출이 안 되는 환경이 있어, 입력칸에서의 Enter를 명시적으로 제출로 연결한다.
+function bindEnterSubmit(form) {
+  form.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || event.target.tagName !== "INPUT" || event.target.type === "checkbox") {
+      return;
+    }
+    // 한글 등 조합 중 Enter는 확정용이므로 통과시키되, 비밀번호 칸은 ASCII 전용이라 바로 제출.
+    if ((event.isComposing || event.keyCode === 229) && event.target.type !== "password") {
+      return;
+    }
+    event.preventDefault();
+    if (typeof form.requestSubmit === "function") {
+      form.requestSubmit();
+    } else {
+      form.querySelector('button[type="submit"]')?.click();
+    }
+  });
+}
+
+bindEnterSubmit(loginForm);
+bindEnterSubmit(signupForm);
+
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   loginMessage.textContent = "";
