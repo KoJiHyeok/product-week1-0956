@@ -1,4 +1,5 @@
 import { ensureUserCanWrite, getCurrentUser, json, readJson, validateEmail } from "./auth/_shared.js";
+import { notifyImageSuggestionToDiscord } from "./images/_suggestion-discord.js";
 import { IMAGE_SUGGESTION_TYPE, MAX_SUGGESTION_IMAGE_BYTES } from "./images/_suggestions.js";
 
 const ALLOWED_TYPES = new Set(["버그/악용 신고", "개선 방안 제안", IMAGE_SUGGESTION_TYPE]);
@@ -89,6 +90,14 @@ async function handleContact(context) {
 
   if (type === IMAGE_SUGGESTION_TYPE) {
     await saveImageSuggestion(context, inquiryId, user, { title, replyEmail, message }, attachment);
+    notifyDiscord(context, {
+      id: inquiryId,
+      title,
+      body: message,
+      submitter: user?.username || "비회원",
+      submitterEmail: replyEmail,
+      attachment,
+    });
   }
 
   const safeEmail = {
@@ -201,6 +210,17 @@ async function saveImageSuggestion(context, inquiryId, user, inquiry, attachment
   } catch (error) {
     // 저장 실패 시에도 메일은 이미 발송 경로에 있고, 문의 목록에 남아 누락되지 않는다.
     console.error("image suggestion save error", error);
+  }
+}
+
+// 디스코드 알림은 응답을 붙잡지 않도록 waitUntil로 넘기고, 실패해도 접수는 성공시킨다.
+function notifyDiscord(context, suggestion) {
+  const task = notifyImageSuggestionToDiscord(context.env, suggestion).catch((error) => {
+    console.error("image suggestion discord notify error", error);
+  });
+
+  if (typeof context.waitUntil === "function") {
+    context.waitUntil(task);
   }
 }
 
