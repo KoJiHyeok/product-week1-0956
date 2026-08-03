@@ -93,21 +93,24 @@ async function handleUnverifiedEmail(context, db, user) {
 
   const isRecent = Date.now() - parseSqliteTimestamp(recentToken?.created_at) < EMAIL_VERIFICATION_RESEND_COOLDOWN_MS;
 
+  let sent = false;
   if (!isRecent) {
-    await createEmailVerification(context, db, user).catch((error) => {
+    sent = await createEmailVerification(context, db, user).catch((error) => {
       console.error("auth/login email verification resend error", error);
+      return false;
     });
   }
 
-  return json(
-    {
-      error: "email_unverified",
-      message: isRecent
-        ? "이미 발송된 인증 메일을 확인해주세요."
-        : `이메일 인증이 필요합니다. ${user.email}로 인증 메일을 보냈으니 링크를 눌러 인증 후 다시 로그인해주세요.`,
-    },
-    403
-  );
+  let message;
+  if (isRecent) {
+    message = "최근 발송된 인증 메일이 있습니다. 메일함과 스팸함을 확인해주세요.";
+  } else if (sent) {
+    message = `이메일 인증이 필요합니다. ${user.email}로 인증 메일을 보냈으니 링크를 눌러 인증 후 다시 로그인해주세요.`;
+  } else {
+    message = "인증 메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요. 문제가 계속되면 문의 페이지로 알려주세요.";
+  }
+
+  return json({ error: "email_unverified", message }, 403);
 }
 
 function parseSqliteTimestamp(value) {

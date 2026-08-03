@@ -142,7 +142,7 @@ export async function createEmailVerification(context, db, user) {
   const tokenHash = await hashToken(token);
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString();
 
-  await db
+  const insertResult = await db
     .prepare(
       `INSERT INTO email_verification_tokens (token_hash, user_id, email, expires_at)
        VALUES (?, ?, ?, ?)`
@@ -176,6 +176,16 @@ export async function createEmailVerification(context, db, user) {
   if (!result.ok) {
     const detail = await result.text().catch(() => "");
     console.error("auth verification email send failed", result.status, detail.slice(0, 300));
+
+    // 발송 실패한 토큰을 남기면 재발송 쿨다운이 헛걸리므로 방금 만든 토큰만 지운다.
+    const tokenRowId = insertResult?.meta?.last_row_id;
+    if (tokenRowId) {
+      await db
+        .prepare("DELETE FROM email_verification_tokens WHERE id = ?")
+        .bind(tokenRowId)
+        .run()
+        .catch(() => {});
+    }
   }
 
   return result.ok;
