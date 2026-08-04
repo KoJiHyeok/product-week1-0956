@@ -6,6 +6,11 @@
         "quality": "너무 인위적이지 않고 일상에 자연스럽게 녹아드는 장면",
         "strength": "preference",
         "note": "절대 규칙이 아니라 후보 선택 시 우선 고려하는 경향"
+      },
+      {
+        "quality": "평범한 공간에서 사물이 사람처럼 진지하게 행동하는 의외의 상황",
+        "strength": "preference",
+        "note": "무표정한 현실감 속에서 장면의 이유를 상상하게 만드는 반전을 선호"
       }
     ],
     "hardRules": [
@@ -24,6 +29,21 @@
         "자연스러운 사진 질감",
         "익숙한 일상 공간",
         "장면에 무리 없이 섞인 작은 반전"
+      ]
+    },
+    {
+      "date": "2026-08-04",
+      "selectedCandidate": [1, 4],
+      "assets": [
+        "assets/gallery/robot-vacuum-elevator.png",
+        "assets/gallery/plant-rain-bench.png"
+      ],
+      "decision": "approved",
+      "feedback": "의외의 상황이 재미있어 보인다. 평범한 사물이 사람처럼 목적을 가진 듯 행동하는 장면을 선호한다.",
+      "signals": [
+        "익숙한 일상 공간",
+        "사물에 생긴 듯한 의도와 성격",
+        "장면의 앞뒤 이야기를 궁금하게 만드는 반전"
       ]
     }
   ]
