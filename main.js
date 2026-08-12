@@ -648,6 +648,24 @@ const defaultGalleryImages = [
     publishedAt: "2026-08-04",
     updatedAt: "2026-08-04",
   },
+  {
+    id: "imm-027",
+    imageKey: "39",
+    src: "assets/gallery/wide-angle-nose-selfie.jpg",
+    title: "카메라에 코부터 들이민 초근접 셀카",
+    description: "카메라를 얼굴 바로 앞에 대고 찍어 코가 화면 한가운데를 가득 채우고, 두 눈은 옆쪽을 흘겨보는 초근접 사진입니다. 렌즈와의 거리 때문에 과장된 코와 딴 데를 보는 눈빛의 대비를 살리면 재치 있는 제목을 만들기 좋습니다.",
+    alt: "카메라를 아주 가까이 대고 찍어 코가 화면 중앙을 가득 채운 사람의 얼굴 클로즈업. 두 눈은 옆쪽을 바라보고 있고 오른쪽 아래에 카무플라주 무늬 소매가 걸쳐 있다.",
+    prompt: "코가 먼저 도착한 이 얼굴이 지금 눈으로 무엇을 보고 있을지 짧은 대사로 상상해보세요.",
+    observationPoints: ["화면 중앙을 가득 채운 확대된 코", "옆쪽을 향한 두 눈과 살짝 올라간 눈썹", "오른쪽 아래로 걸친 카무플라주 무늬 소매"],
+    exampleTitles: ["코 먼저 입장했습니다", "눈은 딴 데 보는 중", "거리 조절 실패한 하루"],
+    ...photoSourcePresets.curated,
+    sourceName: "사용자 제공 이미지",
+    sourceUrl: "",
+    author: "사용자 제공",
+    license: "사용자가 사이트 게시를 위해 제공한 이미지",
+    publishedAt: "2026-08-13",
+    updatedAt: "2026-08-13",
+  },
 ];
 
 // 정적 사진은 목록 끝에 append하는 순서를 게시 순서로 삼는다. 표시용 복사본만
