@@ -2,6 +2,7 @@ import { getDb, json } from "../auth/_shared.js";
 import { serializeUploadedImage } from "./_shared.js";
 import { toGalleryImage } from "./_suggestions.js";
 import { galleryImages as defaultImages } from "./gallery-data.js";
+import { formatAuthorName } from "../submissions/_guest-identity.js";
 
 const TODAY_POPULAR_LIMIT = 5;
 const MONTHLY_RANKING_LIMIT = 5;
@@ -155,7 +156,8 @@ async function getImageStats(context, voteDate) {
 }
 
 // 이달의 랭킹: 이번 달(monthPrefix = "YYYY-MM") 동안 자신의 제목이 받은 하트 합계로
-// 참여자를 순위 매김. 가입 사용자는 author_user_id로, 비회원은 guest_name으로 묶는다.
+// 참여자를 순위 매김. 가입 사용자는 author_user_id로, 비회원은 guest_name + guest_tag로 묶는다
+// (이름이 같아도 태그가 다르면 다른 사람이다).
 // (사이트 활동이 대부분 비회원이라, 회원만 집계하면 랭킹이 거의 항상 비어 비회원도 포함한다.)
 async function getMonthlyRanking(context, monthPrefix) {
   const db = getDb(context);
@@ -164,8 +166,11 @@ async function getMonthlyRanking(context, monthPrefix) {
       `SELECT
          CASE WHEN submissions.author_user_id IS NOT NULL
               THEN 'u:' || submissions.author_user_id
-              ELSE 'g:' || submissions.guest_name END AS rank_key,
+              ELSE 'g:' || submissions.guest_name || ':' || COALESCE(submissions.guest_tag, '') END AS rank_key,
          submissions.author_user_id AS user_id,
+         users.username AS username,
+         submissions.guest_name AS guest_name,
+         submissions.guest_tag AS guest_tag,
          COALESCE(users.username, submissions.guest_name) AS display_name,
          users.is_profile_public AS is_profile_public,
          users.profile_image_url AS profile_image_url,
@@ -188,7 +193,7 @@ async function getMonthlyRanking(context, monthPrefix) {
 
   return (results || []).map((row) => ({
     userId: row.user_id ? String(row.user_id) : "",
-    username: row.display_name || "비회원",
+    username: formatAuthorName(row),
     isGuest: !row.user_id,
     // 회원 비공개 프로필/비회원은 아바타 이미지를 노출하지 않는다(이름은 제목에 이미 공개됨).
     avatarUrl: row.user_id && row.is_profile_public !== 0 ? row.profile_image_url || "" : "",

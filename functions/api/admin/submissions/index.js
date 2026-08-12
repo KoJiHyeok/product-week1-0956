@@ -1,5 +1,6 @@
 import { getDb, json } from "../../auth/_shared.js";
 import { requireAdmin } from "../_shared.js";
+import { formatAuthorName } from "../../submissions/_guest-identity.js";
 
 const validTypes = new Set(["all", "submission", "comment"]);
 const validStatuses = new Set(["active", "deleted"]);
@@ -36,7 +37,7 @@ export async function onRequestGet(context) {
       const { results } = await db
         .prepare(
           `SELECT submissions.id, submissions.image_index, submissions.image_key, submissions.title,
-                  submissions.author_user_id, submissions.guest_name, submissions.created_at,
+                  submissions.author_user_id, submissions.guest_name, submissions.guest_tag, submissions.created_at,
                   submissions.hidden_at, submissions.hidden_reason, submissions.deleted_at,
                   submissions.deleted_reason, submissions.excluded_from_ranking,
                   users.username, users.email, users.login_id,
@@ -60,7 +61,7 @@ export async function onRequestGet(context) {
       const { results } = await db
         .prepare(
           `SELECT comments.id, comments.submission_id, comments.text, comments.author_user_id,
-                  comments.guest_name, comments.created_at, comments.hidden_at, comments.hidden_reason,
+                  comments.guest_name, comments.guest_tag, comments.created_at, comments.hidden_at, comments.hidden_reason,
                   comments.deleted_at, comments.deleted_reason, comments.excluded_from_ranking,
                   users.username, users.email, users.login_id,
                   submissions.image_index, submissions.image_key, submissions.title AS submission_title
@@ -91,7 +92,7 @@ function serializeSubmission(row) {
     parentSubmissionId: "",
     content: row.title,
     parentTitle: "",
-    author: row.username || row.guest_name || "비회원",
+    author: formatAuthorName(row),
     authorEmail: row.email || "",
     authorLoginId: row.login_id || "",
     createdAt: row.created_at,
@@ -114,7 +115,7 @@ function serializeComment(row) {
     parentSubmissionId: row.submission_id ? String(row.submission_id) : "",
     content: row.text,
     parentTitle: row.submission_title || "",
-    author: row.username || row.guest_name || "비회원",
+    author: formatAuthorName(row),
     authorEmail: row.email || "",
     authorLoginId: row.login_id || "",
     createdAt: row.created_at,

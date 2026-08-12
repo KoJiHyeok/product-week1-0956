@@ -1,5 +1,6 @@
 import { getDb } from "../api/auth/_shared.js";
 import { galleryImages } from "../api/images/gallery-data.js";
+import { formatAuthorName } from "../api/submissions/_guest-identity.js";
 
 const SITE_ORIGIN = "https://jemokhakwon.com";
 const ADSENSE_ACCOUNT = "ca-pub-2571483149742375";
@@ -36,6 +37,7 @@ async function loadTitleRanking(db, imageKey) {
          submissions.title,
          submissions.author_user_id,
          submissions.guest_name,
+         submissions.guest_tag,
          submissions.created_at,
          users.username,
          COUNT(DISTINCT likes.id) AS like_count,
@@ -61,7 +63,7 @@ async function loadTitleRanking(db, imageKey) {
 
   return (results || []).map((row) => ({
     title: row.title,
-    author: row.username || row.guest_name || "비회원",
+    author: formatAuthorName(row),
     likeCount: Number(row.like_count) || 0,
     commentCount: Number(row.comment_count) || 0,
     createdAt: row.created_at,

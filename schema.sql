@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS submissions (
   title TEXT NOT NULL,
   author_user_id INTEGER,
   guest_name TEXT,
+  guest_tag TEXT,
   hidden_at TEXT,
   hidden_reason TEXT,
   deleted_at TEXT,
@@ -66,6 +67,7 @@ CREATE TABLE IF NOT EXISTS comments (
   submission_id INTEGER NOT NULL,
   author_user_id INTEGER,
   guest_name TEXT,
+  guest_tag TEXT,
   text TEXT NOT NULL,
   hidden_at TEXT,
   hidden_reason TEXT,
@@ -94,6 +96,7 @@ CREATE INDEX IF NOT EXISTS idx_submissions_image_key ON submissions(image_key);
 CREATE INDEX IF NOT EXISTS idx_submissions_author_user_id ON submissions(author_user_id);
 CREATE INDEX IF NOT EXISTS idx_submissions_user_duplicate_guard ON submissions(author_user_id, image_key, title, created_at) WHERE author_user_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_submissions_guest_duplicate_guard ON submissions(guest_name, image_key, title, created_at) WHERE author_user_id IS NULL;
+CREATE INDEX IF NOT EXISTS idx_submissions_guest_tag_duplicate_guard ON submissions(guest_name, guest_tag, image_key, title, created_at) WHERE author_user_id IS NULL;
 CREATE INDEX IF NOT EXISTS idx_submissions_visibility ON submissions(hidden_at, deleted_at, excluded_from_ranking);
 CREATE INDEX IF NOT EXISTS idx_comments_submission_id ON comments(submission_id);
 CREATE INDEX IF NOT EXISTS idx_comments_visibility ON comments(hidden_at, deleted_at);
