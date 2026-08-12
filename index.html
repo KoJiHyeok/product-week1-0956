@@ -27,7 +27,7 @@
   <meta name="twitter:image:alt" content="제목 학원 로고" />
 
   <title>제목 학원 - 레전드 짤 보고 제목 짓기</title>
-  <link href="style.css?v=25" rel="stylesheet" />
+  <link href="style.css?v=26" rel="stylesheet" />
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -659,6 +659,26 @@
 
   <section class="user-popover" id="userInfoPopover" hidden aria-label="사용자 정보"></section>
 
+  <div class="confirm-modal" id="authorProfileModal" hidden role="dialog" aria-modal="true" aria-labelledby="authorProfileName">
+    <div class="confirm-card author-profile-card">
+      <button class="modal-close" id="authorProfileCloseButton" type="button" aria-label="닫기"></button>
+      <div class="author-profile-head">
+        <span class="author-profile-avatar" id="authorProfileAvatar" aria-hidden="true"></span>
+        <div class="author-profile-identity">
+          <h2 id="authorProfileName">작성자</h2>
+          <p class="author-profile-type" id="authorProfileType"></p>
+        </div>
+      </div>
+      <p class="author-profile-bio" id="authorProfileBio"></p>
+      <p class="author-profile-stats" id="authorProfileStats"></p>
+      <div class="author-profile-actions" id="authorProfileActions" hidden>
+        <button class="auth-button solid small" id="authorProfileMessageButton" type="button">쪽지 보내기</button>
+      </div>
+      <h3 class="author-profile-subtitle">지은 제목</h3>
+      <div class="author-title-list" id="authorTitleList" aria-live="polite"></div>
+    </div>
+  </div>
+
   <div class="confirm-modal" id="messageComposeModal" hidden role="dialog" aria-modal="true" aria-labelledby="messageComposeTitle">
     <div class="confirm-card message-compose-card">
       <div class="message-compose-head">
@@ -725,6 +745,6 @@
     </div>
   </section>
 
-  <script type="module" src="main.js?v=33"></script>
+  <script type="module" src="main.js?v=34"></script>
 </body>
 </html>

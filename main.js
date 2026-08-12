@@ -172,6 +172,16 @@ const imageReportDetailInput = document.querySelector("#imageReportDetailInput")
 const imageReportMessage = document.querySelector("#imageReportMessage");
 const imageReportSubmitButton = document.querySelector("#imageReportSubmitButton");
 const userInfoPopover = document.querySelector("#userInfoPopover");
+const authorProfileModal = document.querySelector("#authorProfileModal");
+const authorProfileCloseButton = document.querySelector("#authorProfileCloseButton");
+const authorProfileAvatar = document.querySelector("#authorProfileAvatar");
+const authorProfileName = document.querySelector("#authorProfileName");
+const authorProfileType = document.querySelector("#authorProfileType");
+const authorProfileBio = document.querySelector("#authorProfileBio");
+const authorProfileStats = document.querySelector("#authorProfileStats");
+const authorProfileActions = document.querySelector("#authorProfileActions");
+const authorProfileMessageButton = document.querySelector("#authorProfileMessageButton");
+const authorTitleList = document.querySelector("#authorTitleList");
 const messageComposeModal = document.querySelector("#messageComposeModal");
 const messageComposeTitle = document.querySelector("#messageComposeTitle");
 const messageComposeForm = document.querySelector("#messageComposeForm");
@@ -713,6 +723,8 @@ let serverSubmissionsByImage = {};
 const expandedCommentIds = new Set();
 let pendingRankingFocus = null;
 let activeUserProfile = null;
+let activeAuthorProfile = null;
+let authorProfileRequestId = 0;
 let activeMessageRecipient = null;
 let visibleGalleryCount = Math.min(galleryInitialCount, galleryImages.length);
 let analyticsScriptsLoaded = false;
@@ -1060,7 +1072,20 @@ function renderMonthlyRanking(items) {
   const fragment = document.createDocumentFragment();
   items.forEach((item, rank) => {
     const li = document.createElement("li");
-    li.className = "rank-row monthly-rank-item";
+    li.className = "monthly-rank-item";
+
+    const displayName = item.username || "사용자";
+    // 이름을 누르면 프로필 + 지은 제목 목록을 연다.
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "rank-row monthly-rank-link";
+    button.dataset.action = "show-author-profile";
+    button.dataset.userId = item.userId || "";
+    button.dataset.guestName = item.guestName || "";
+    button.dataset.guestTag = item.guestTag || "";
+    button.dataset.username = displayName;
+    button.dataset.avatarUrl = item.avatarUrl || "";
+    button.setAttribute("aria-label", `${displayName}님의 프로필과 지은 제목 보기 (이달 하트 ${item.monthLikes}개)`);
 
     const rankBadge = document.createElement("span");
     rankBadge.className = "rank-badge";
@@ -1076,18 +1101,19 @@ function renderMonthlyRanking(items) {
       img.decoding = "async";
       avatar.append(img);
     } else {
-      avatar.textContent = (item.username || "?").slice(0, 1);
+      avatar.textContent = displayName.slice(0, 1);
     }
 
     const name = document.createElement("span");
     name.className = "rank-name";
-    name.textContent = item.username || "사용자";
+    name.textContent = displayName;
 
     const likes = document.createElement("span");
     likes.className = "rank-likes";
     likes.innerHTML = `<span class="heart-icon" aria-hidden="true"></span><span>${item.monthLikes}</span>`;
 
-    li.append(rankBadge, avatar, name, likes);
+    button.append(rankBadge, avatar, name, likes);
+    li.append(button);
     fragment.append(li);
   });
 
@@ -1158,6 +1184,17 @@ function updateSidebarLayout() {
   if (layout) {
     layout.classList.toggle("is-sidebar-empty", bothHidden);
   }
+}
+
+const monthlyRankListEl = document.querySelector("#monthlyRankList");
+if (monthlyRankListEl) {
+  monthlyRankListEl.addEventListener("click", async (event) => {
+    const trigger = event.target.closest("button[data-action='show-author-profile']");
+    if (!trigger) {
+      return;
+    }
+    await openAuthorProfile(trigger);
+  });
 }
 
 const todayPopularListEl = document.querySelector("#todayPopularList");
@@ -2539,6 +2576,172 @@ function closeUserPopover() {
   userInfoPopover.hidden = true;
   userInfoPopover.replaceChildren();
   activeUserProfile = null;
+}
+
+// 이달의 랭킹에서 이름을 누르면 공개 프로필 + 지은 제목 목록을 모달로 보여준다.
+// 회원은 userId로, 비회원은 이름+태그로 조회한다(랭킹 집계 키와 동일).
+async function openAuthorProfile(trigger) {
+  const userId = trigger.dataset.userId || "";
+  const guestName = trigger.dataset.guestName || "";
+  const guestTag = trigger.dataset.guestTag || "";
+  const username = trigger.dataset.username || "비회원";
+
+  if (!userId && !guestName) {
+    showToast("작성자 정보를 찾을 수 없습니다.");
+    return;
+  }
+
+  closeUserPopover();
+  activeAuthorProfile = null;
+  authorProfileRequestId += 1;
+  const requestId = authorProfileRequestId;
+
+  renderAuthorProfileHead(
+    {
+      id: userId,
+      username,
+      memberType: userId ? "회원" : "비회원",
+      isGuest: !userId,
+      isProfilePublic: true,
+      bio: "",
+      avatarUrl: trigger.dataset.avatarUrl || "",
+      canReceiveMessages: Boolean(userId),
+    },
+    null
+  );
+  authorTitleList.replaceChildren(createMyTitleMessage("불러오는 중입니다."));
+  authorProfileModal.hidden = false;
+  authorProfileCloseButton.focus();
+
+  const params = new URLSearchParams();
+
+  if (userId) {
+    params.set("userId", userId);
+  } else {
+    params.set("guestName", guestName);
+    params.set("guestTag", guestTag);
+  }
+
+  try {
+    const data = await requestJson(`/api/authors?${params.toString()}`, { method: "GET", headers: {} });
+
+    // 응답 도착 전에 닫았거나 다른 사람을 눌렀으면 무시한다.
+    if (requestId !== authorProfileRequestId || authorProfileModal.hidden) {
+      return;
+    }
+
+    activeAuthorProfile = data.author || null;
+    renderAuthorProfileHead(data.author, data.stats);
+    renderAuthorTitles(data.titles || [], data.hasMore);
+  } catch (error) {
+    if (requestId !== authorProfileRequestId || authorProfileModal.hidden) {
+      return;
+    }
+
+    authorTitleList.replaceChildren(createMyTitleMessage(error.message));
+  }
+}
+
+function renderAuthorProfileHead(author, stats) {
+  if (!author) {
+    return;
+  }
+
+  const displayName = author.username || "비회원";
+  authorProfileAvatar.textContent = author.avatarUrl ? "" : displayName.slice(0, 1);
+  authorProfileAvatar.style.backgroundImage = author.avatarUrl ? `url("${author.avatarUrl}")` : "";
+  authorProfileName.textContent = displayName;
+  authorProfileType.textContent = author.isGuest
+    ? "비회원 작성자"
+    : author.isProfilePublic === false
+      ? "회원 · 비공개 프로필"
+      : "회원 · 공개 프로필";
+
+  authorProfileBio.textContent = author.bio || "";
+  authorProfileBio.hidden = !author.bio;
+
+  if (stats) {
+    authorProfileStats.textContent = `제목 ${stats.titleCount}개 · 이달 하트 ${stats.monthLikes}개 · 누적 하트 ${stats.totalLikes}개`;
+    authorProfileStats.hidden = false;
+  } else {
+    authorProfileStats.textContent = "";
+    authorProfileStats.hidden = true;
+  }
+
+  const canMessage =
+    Boolean(author.id) && author.canReceiveMessages !== false && String(author.id) !== String(currentUser?.id || "");
+  authorProfileActions.hidden = !canMessage;
+}
+
+function renderAuthorTitles(titles, hasMore) {
+  if (!titles.length) {
+    authorTitleList.replaceChildren(createMyTitleMessage("아직 공개된 제목이 없습니다."));
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  titles.forEach((entry) => {
+    const card = document.createElement("article");
+    card.className = "my-title-card author-title-card";
+    card.dataset.entryId = entry.id;
+    card.dataset.imageKey = entry.imageKey || String(entry.imageIndex);
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.setAttribute("aria-label", `${entry.title} 랭킹으로 이동`);
+
+    const image = document.createElement("img");
+    image.className = "my-title-thumb";
+    image.src =
+      entry.imageSrc ||
+      galleryImages[findImageIndexByKey(entry.imageKey)]?.src ||
+      galleryImages[entry.imageIndex]?.src ||
+      "";
+    image.alt = "";
+    image.loading = "lazy";
+
+    const body = document.createElement("div");
+    body.className = "my-title-body";
+
+    const title = document.createElement("strong");
+    title.textContent = entry.title;
+
+    const meta = document.createElement("p");
+    meta.className = "my-title-meta";
+    meta.textContent = `하트 ${entry.likes || 0}개`;
+
+    body.append(title, meta);
+    card.append(image, body);
+    fragment.append(card);
+  });
+
+  if (hasMore) {
+    fragment.append(createMyTitleMessage("하트를 많이 받은 제목 20개만 표시됩니다."));
+  }
+
+  authorTitleList.replaceChildren(fragment);
+}
+
+function openAuthorTitleLocation(card) {
+  const imageKey = card.dataset.imageKey || "";
+  const entryId = card.dataset.entryId || "";
+
+  if (findImageIndexByKey(imageKey) < 0) {
+    showToast("해당 사진을 찾지 못했습니다.");
+    return;
+  }
+
+  closeAuthorProfile();
+  openRankingLocation(imageKey, entryId);
+}
+
+function closeAuthorProfile() {
+  authorProfileRequestId += 1;
+  authorProfileModal.hidden = true;
+  authorTitleList.replaceChildren();
+  authorProfileStats.hidden = true;
+  authorProfileActions.hidden = true;
+  activeAuthorProfile = null;
 }
 
 function openMessageCompose(profile) {
@@ -5413,6 +5616,36 @@ userInfoPopover.addEventListener("click", (event) => {
 
   openMessageCompose(activeUserProfile);
 });
+authorProfileCloseButton.addEventListener("click", closeAuthorProfile);
+bindModalBackdropClose(authorProfileModal, closeAuthorProfile);
+authorProfileMessageButton.addEventListener("click", () => {
+  const profile = activeAuthorProfile;
+  closeAuthorProfile();
+  openMessageCompose(profile);
+});
+authorTitleList.addEventListener("click", (event) => {
+  const card = event.target.closest(".author-title-card[data-entry-id]");
+
+  if (!card) {
+    return;
+  }
+
+  openAuthorTitleLocation(card);
+});
+authorTitleList.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") {
+    return;
+  }
+
+  const card = event.target.closest(".author-title-card[data-entry-id]");
+
+  if (!card) {
+    return;
+  }
+
+  event.preventDefault();
+  openAuthorTitleLocation(card);
+});
 messageComposeCloseButton.addEventListener("click", closeMessageCompose);
 messageComposeCancelButton.addEventListener("click", closeMessageCompose);
 bindModalBackdropClose(messageComposeModal, closeMessageCompose);
@@ -5595,6 +5828,7 @@ window.addEventListener("keydown", (event) => {
     trapFocus(event, deleteAccountModal) ||
     trapFocus(event, passwordChangeModal) ||
     trapFocus(event, messageComposeModal) ||
+    trapFocus(event, authorProfileModal) ||
     trapFocus(event, imageReportModal) ||
     trapFocus(event, cookieSettingsModal) ||
     trapFocus(event, profileDrawer, [drawerEdgeClose])
@@ -5623,6 +5857,11 @@ window.addEventListener("keydown", (event) => {
 
   if (!messageComposeModal.hidden) {
     closeMessageCompose();
+    return;
+  }
+
+  if (!authorProfileModal.hidden) {
+    closeAuthorProfile();
     return;
   }
 

@@ -195,6 +195,9 @@ async function getMonthlyRanking(context, monthPrefix) {
     userId: row.user_id ? String(row.user_id) : "",
     username: formatAuthorName(row),
     isGuest: !row.user_id,
+    // 비회원 프로필 조회용 식별자(표시 이름에 이미 포함된 값이라 추가 노출은 없다).
+    guestName: row.user_id ? "" : row.guest_name || "",
+    guestTag: row.user_id ? "" : row.guest_tag || "",
     // 회원 비공개 프로필/비회원은 아바타 이미지를 노출하지 않는다(이름은 제목에 이미 공개됨).
     avatarUrl: row.user_id && row.is_profile_public !== 0 ? row.profile_image_url || "" : "",
     monthLikes: Number(row.month_likes) || 0,

@@ -319,7 +319,8 @@ button.rank-row {
 }
 button.rank-row:hover { background:var(--surface-muted); transform:translateX(2px); }
 button.rank-row:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
-.monthly-rank-item { padding:6px; }
+/* 이달의 랭킹 행 전체가 작성자 프로필을 여는 버튼이다 */
+.monthly-rank-link { cursor:pointer; }
 
 .rank-badge {
   width:22px; height:22px; flex:0 0 22px; border-radius:var(--radius-pill);
@@ -760,6 +761,29 @@ select { appearance:none; background-image:linear-gradient(45deg,transparent 50%
 .auth-social-button--naver:hover { background:color-mix(in srgb,#03c75a 88%,#fff); transform:translateY(-2px); box-shadow:0 7px 0 color-mix(in srgb,#03c75a 60%,#000); }
 .auth-social-button--naver:active { transform:translateY(3px); box-shadow:0 2px 0 color-mix(in srgb,#03c75a 60%,#000); }
 .legal-link { color:var(--link); font-weight:var(--fw-bold); }
+
+/* 작성자 프로필 + 지은 제목 목록 (이달의 랭킹에서 이름 클릭) */
+.author-profile-card { display:flex; flex-direction:column; gap:10px; }
+.author-profile-head { display:flex; align-items:center; gap:12px; padding-right:40px; }
+.author-profile-avatar {
+  width:52px; height:52px; flex:0 0 52px; border-radius:var(--radius-pill); overflow:hidden;
+  background:var(--surface-inset) center/cover no-repeat; color:var(--text-muted);
+  display:inline-flex; align-items:center; justify-content:center; font-weight:var(--fw-bold); font-size:var(--fs-lg);
+}
+.author-profile-identity { min-width:0; }
+.author-profile-identity h2 { margin:0; overflow-wrap:anywhere; }
+.author-profile-type { margin:2px 0 0; font-size:var(--fs-xs); color:var(--text-muted); font-weight:var(--fw-bold); }
+.author-profile-bio { margin:0; font-size:var(--fs-sm); color:var(--text-body); line-height:var(--lh-normal); white-space:pre-wrap; }
+.author-profile-stats { margin:0; font-size:var(--fs-xs); color:var(--text-muted); font-weight:var(--fw-bold); }
+.author-profile-actions { display:flex; gap:8px; }
+.author-profile-subtitle {
+  margin:6px 0 0; font-family:var(--font-display); font-size:var(--fs-lg);
+  color:var(--text-strong); border-top:1px solid var(--border-soft); padding-top:12px;
+}
+.author-title-list { display:flex; flex-direction:column; gap:8px; }
+.author-title-card { cursor:pointer; transition:background var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out); }
+.author-title-card:hover { background:var(--surface-inset); transform:translateX(2px); }
+.author-title-card:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
 
 /* user popover */
 .user-popover { position:fixed; z-index:95; width:min(320px,86vw); background:var(--surface-card); border-radius:var(--radius-lg); box-shadow:var(--shadow-3); border:1px solid var(--border-soft); padding:var(--space-5); }
