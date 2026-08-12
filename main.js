@@ -977,7 +977,10 @@ async function requestJson(path, options = {}) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.message || "요청 처리 중 오류가 발생했습니다.");
+    const error = new Error(data.message || "요청 처리 중 오류가 발생했습니다.");
+    error.status = response.status;
+    error.code = data.code || "";
+    throw error;
   }
 
   return data;
@@ -1315,6 +1318,11 @@ function setTitleSubmitting(isSubmitting) {
 
 function isServerEntry(entry) {
   return /^\d+$/.test(String(entry?.id || ""));
+}
+
+// 비회원 이름 자체가 거부된 경우(회원 사칭·# 포함)는 로컬 저장 폴백 대신 다시 입력받는다.
+function isGuestNameError(error) {
+  return error?.code === "guest_name_taken" || error?.code === "guest_name_invalid";
 }
 
 function canDeleteLocalAuthor(author) {
@@ -1787,8 +1795,14 @@ async function addSubmission(author) {
     refreshRanking();
     return;
   } catch (error) {
-    if (currentUser) {
+    if (currentUser || isGuestNameError(error)) {
       showToast(error.message || "제목을 저장하지 못했습니다.");
+
+      if (isGuestNameError(error)) {
+        guestNameInput.focus();
+        guestNameInput.select();
+      }
+
       return;
     }
   } finally {
