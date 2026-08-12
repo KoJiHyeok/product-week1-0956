@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "guidance": {
     "preferredQualities": [
       {
@@ -12,6 +12,12 @@
         "strength": "preference",
         "note": "무표정한 현실감 속에서 장면의 이유를 상상하게 만드는 반전을 선호"
       }
+    ],
+    "operationalLessons": [
+      "선호를 '엉뚱한 장소에 사물 하나를 배치'하는 공식으로 단순화하지 않음",
+      "정적인 명사 조합보다 행동·목적·앞뒤 사연이 읽히는 장면을 우선함",
+      "최근 탈락 후보도 비교해 소재뿐 아니라 행동과 구도 문법의 반복을 피함",
+      "후보마다 서로 다른 제목이 최소 3개 나오는지 전송 전에 확인함"
     ],
     "hardRules": [
       "브랜드 로고·글자·워터마크 제외",
@@ -53,6 +59,30 @@
       "feedback": "이번에도 모두 탈락.",
       "signals": [],
       "note": "구체적인 탈락 이유가 없어 새로운 시각적 선호나 하드룰은 추론하지 않음"
+    },
+    {
+      "date": "2026-08-09",
+      "rejectedCandidates": [1, 2, 3, 4],
+      "decision": "rejected_all",
+      "feedback": "후보 4장 모두 탈락.",
+      "signals": [],
+      "note": "구체적인 개별 사유는 사용자 선호로 추론하지 않고, 연속 탈락 분석에만 사용"
+    },
+    {
+      "date": "2026-08-11",
+      "rejectedCandidates": [1, 2, 3, 4],
+      "decision": "rejected_all",
+      "feedback": "후보 4장 모두 탈락.",
+      "signals": [],
+      "note": "구체적인 개별 사유는 사용자 선호로 추론하지 않고, 연속 탈락 분석에만 사용"
+    },
+    {
+      "date": "2026-08-13",
+      "rejectedCandidates": [1, 2, 3, 4],
+      "decision": "rejected_all",
+      "feedback": "최근 3회 후보가 모두 탈락해 생성·선별 절차 개선에 동의함.",
+      "signals": [],
+      "note": "승인작과 최근 3회 탈락작의 비교에서 도출한 내용은 사용자 취향이 아닌 운영 개선 기준으로만 기록"
     }
   ]
 }
