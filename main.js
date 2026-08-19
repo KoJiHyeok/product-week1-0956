@@ -710,6 +710,24 @@ const defaultGalleryImages = [
     publishedAt: "2026-08-15",
     updatedAt: "2026-08-15",
   },
+  {
+    id: "imm-030",
+    imageKey: "42",
+    src: "assets/gallery/dog-tows-fishing-boat.png",
+    webpSrc: "assets/gallery/webp/dog-tows-fishing-boat.webp",
+    title: "부두에서 밧줄을 물고 배를 끌어당기는 개",
+    description: "작은 어선이 부두에 닿으려는 순간, 개가 팽팽한 밧줄을 입에 물고 뒤로 버티고 어부는 배 위에서 손을 뻗는 AI 생성 사진입니다. 밧줄 양쪽의 진지한 표정과 엇갈린 힘의 방향을 구조, 견인, 관계의 장면으로 바꾸면 여러 이야기를 만들기 좋습니다.",
+    alt: "나무 부두에서 개가 어선의 밧줄을 입에 물고 뒤로 당기며 배 위의 어부가 손을 뻗는 모습",
+    prompt: "밧줄 양끝에서 서로를 바라보는 개와 어부 중 누가 누구를 돕고 있는지 바꾸어 상상해보세요.",
+    observationPoints: ["밧줄을 입에 물고 네 발로 버티는 개", "배 위에서 개를 향해 손을 뻗는 어부", "부두와 작은 어선 사이를 팽팽하게 잇는 밧줄"],
+    exampleTitles: ["퇴근 5분 전 추가 업무", "이번 정류장은 육지입니다", "견인 서비스 도착했습니다"],
+    ...photoSourcePresets.curated,
+    sourceName: "제목 학원 AI 생성 이미지",
+    author: "제목 학원",
+    license: "사이트 내 제목 연습용으로 생성·검토된 이미지",
+    publishedAt: "2026-08-19",
+    updatedAt: "2026-08-19",
+  },
 ];
 
 // 정적 사진은 목록 끝에 append하는 순서를 게시 순서로 삼는다. 표시용 복사본만
