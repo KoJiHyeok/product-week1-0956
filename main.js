@@ -54,6 +54,9 @@ const rankingTabs = document.querySelectorAll(".ranking-tab");
 const galleryMoreButton = document.querySelector("#galleryMoreButton");
 const backToGalleryButton = document.querySelector("#backToGalleryButton");
 const rankingSelfLink = document.querySelector("#rankingSelfLink");
+const shareBanner = document.querySelector("#shareBanner");
+const shareBannerButton = document.querySelector("#shareBannerButton");
+const shareBannerClose = document.querySelector("#shareBannerClose");
 const authActions = document.querySelector("#authActions");
 const guestChip = document.querySelector("#guestChip");
 const loginButton = document.querySelector("#loginButton");
@@ -756,6 +759,8 @@ let currentGuestName = sessionStorage.getItem(guestStorageKey) || "";
 let selectedImageIndex = null;
 let pendingTitle = "";
 let isTitleSubmitting = false;
+let pendingShareSubmission = null;
+const dismissedShareSubmissionIds = new Set();
 let activeReportImage = null;
 let activeAdminSection = "dashboard";
 let currentAdminRole = "user";
@@ -1583,6 +1588,20 @@ function showView(viewToShow) {
   window.scrollTo({ top: 0, behavior: "auto" });
 }
 
+function updateShareBanner() {
+  if (!shareBanner) {
+    return;
+  }
+
+  const imageKey = getSelectedImageKey();
+  const shouldShow =
+    pendingShareSubmission &&
+    pendingShareSubmission.imageKey === imageKey &&
+    !dismissedShareSubmissionIds.has(pendingShareSubmission.submission.id);
+
+  shareBanner.hidden = !shouldShow;
+}
+
 function applyRoute(state) {
   const route = getValidRoute(state);
 
@@ -1679,6 +1698,7 @@ function applyRoute(state) {
   renderRanking();
   refreshRanking();
   showView(rankingView);
+  updateShareBanner();
 }
 
 function navigateTo(state, options = {}) {
@@ -1906,6 +1926,9 @@ async function addSubmission(author) {
     const imageKey = getSelectedImageKey();
     prependServerSubmission(imageKey, data.submission);
     pendingTitle = "";
+    if (data.submission) {
+      pendingShareSubmission = { imageKey, submission: data.submission };
+    }
     renderRanking();
     navigateTo({ view: "ranking", imageIndex: selectedImageIndex });
     refreshRanking();
@@ -4732,6 +4755,43 @@ function showToast(message) {
     toast.classList.remove("is-visible");
   }, 1800);
 }
+
+async function shareSubmission(imageKey, submission) {
+  const url = `${location.origin}/titles/${encodeURIComponent(imageKey)}/?t=${submission.id}`;
+  const text = `"${submission.title}" — 내가 지은 제목인데 평가 좀. 더 웃기게 지을 수 있으면 도전`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: "제목 학원", text, url });
+      return;
+    } catch (error) {
+      if (error?.name === "AbortError") {
+        return;
+      }
+    }
+  }
+
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast("공유 링크를 복사했어요. 카톡에 붙여넣어 보세요!");
+  } catch {
+    showToast(url);
+  }
+}
+
+shareBannerButton?.addEventListener("click", () => {
+  if (!pendingShareSubmission) {
+    return;
+  }
+  shareSubmission(pendingShareSubmission.imageKey, pendingShareSubmission.submission);
+});
+
+shareBannerClose?.addEventListener("click", () => {
+  if (pendingShareSubmission) {
+    dismissedShareSubmissionIds.add(pendingShareSubmission.submission.id);
+  }
+  updateShareBanner();
+});
 
 homeLink.addEventListener("click", (event) => {
   event.preventDefault();

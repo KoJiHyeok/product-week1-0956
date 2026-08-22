@@ -15,18 +15,61 @@ export async function onRequestGet(context) {
     return htmlResponse(renderNotFoundPage(), 404);
   }
 
+  const requestUrl = new URL(context.request.url);
+  const sharedSubmissionId = parsePositiveInt(requestUrl.searchParams.get("t"));
+
   let titles = [];
   let loadError = false;
+  let sharedSubmission = null;
 
   try {
     const db = getDb(context);
     titles = await loadTitleRanking(db, imageKey);
+
+    if (sharedSubmissionId) {
+      sharedSubmission = await loadSharedSubmission(db, sharedSubmissionId, imageKey);
+    }
   } catch (error) {
     console.error("titles/[key] error", error);
     loadError = true;
   }
 
-  return htmlResponse(renderTitlesPage(photo, imageKey, titles, loadError), 200);
+  return htmlResponse(renderTitlesPage(photo, imageKey, titles, loadError, sharedSubmission), 200);
+}
+
+function parsePositiveInt(value) {
+  if (typeof value !== "string" || !/^[1-9]\d*$/.test(value)) {
+    return null;
+  }
+
+  return Number(value);
+}
+
+async function loadSharedSubmission(db, submissionId, imageKey) {
+  const row = await db
+    .prepare(
+      `SELECT submissions.id, submissions.title, submissions.author_user_id,
+              submissions.guest_name, submissions.guest_tag, users.username,
+              (SELECT COUNT(*) FROM likes WHERE likes.submission_id = submissions.id) AS like_count
+       FROM submissions LEFT JOIN users ON users.id = submissions.author_user_id
+       WHERE submissions.id = ?
+         AND COALESCE(submissions.image_key, CAST(submissions.image_index AS TEXT)) = ?
+         AND submissions.hidden_at IS NULL AND submissions.deleted_at IS NULL
+         AND submissions.excluded_from_ranking = 0`
+    )
+    .bind(submissionId, imageKey)
+    .first();
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: Number(row.id),
+    title: row.title,
+    author: formatAuthorName(row),
+    likeCount: Number(row.like_count) || 0,
+  };
 }
 
 async function loadTitleRanking(db, imageKey) {
@@ -70,15 +113,26 @@ async function loadTitleRanking(db, imageKey) {
   }));
 }
 
-function renderTitlesPage(photo, imageKey, titles, loadError) {
+function renderTitlesPage(photo, imageKey, titles, loadError, sharedSubmission) {
   const titleCount = titles.length;
-  const pageTitle = `${escapeHtml(photo.title)}에 달린 제목 랭킹 | 제목 학원`;
-  const description = `${photo.description} 지금까지 ${titleCount}개의 제목이 달렸습니다.`;
-  const escapedDescription = escapeHtml(description);
   const canonicalUrl = `${SITE_ORIGIN}/titles/${encodeURIComponent(imageKey)}/`;
   const imageUrl = toAbsoluteUrl(photo.src);
-  const robots = titleCount >= MIN_INDEXABLE_TITLE_COUNT ? "index, follow" : "noindex, follow";
   const submitUrl = `/#title/key/${encodeURIComponent(imageKey)}`;
+
+  let pageTitle = `${escapeHtml(photo.title)}에 달린 제목 랭킹 | 제목 학원`;
+  let description = `${photo.description} 지금까지 ${titleCount}개의 제목이 달렸습니다.`;
+  let robots = titleCount >= MIN_INDEXABLE_TITLE_COUNT ? "index, follow" : "noindex, follow";
+  let ogUrl = canonicalUrl;
+
+  if (sharedSubmission) {
+    pageTitle = `"${escapeHtml(sharedSubmission.title)}" — ${escapeHtml(sharedSubmission.author)}의 제목 | 제목 학원`;
+    description = `${photo.title} 사진에 달린 제목입니다. 이보다 웃긴 제목을 지을 수 있다면 도전해보세요!`;
+    robots = "noindex, follow";
+    ogUrl = `${canonicalUrl}?t=${sharedSubmission.id}`;
+  }
+
+  const escapedDescription = escapeHtml(description);
+  const sharedSubmissionBlock = sharedSubmission ? renderSharedSubmissionBlock(sharedSubmission) : "";
 
   return `<!doctype html>
 <html lang="ko">
@@ -96,7 +150,7 @@ function renderTitlesPage(photo, imageKey, titles, loadError) {
   <meta property="og:site_name" content="제목 학원" />
   <meta property="og:title" content="${pageTitle}" />
   <meta property="og:description" content="${escapedDescription}" />
-  <meta property="og:url" content="${canonicalUrl}" />
+  <meta property="og:url" content="${ogUrl}" />
   <meta property="og:image" content="${imageUrl}" />
   <meta property="og:image:alt" content="${escapeHtml(photo.alt || photo.title)}" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -134,6 +188,8 @@ function renderTitlesPage(photo, imageKey, titles, loadError) {
       <h1>${escapeHtml(photo.title)}에 달린 제목 랭킹</h1>
       <p>${escapedDescription}</p>
     </section>
+
+    ${sharedSubmissionBlock}
 
     <section class="info-grid">
       <article class="info-card info-card-wide">
@@ -178,6 +234,14 @@ function renderTitlesPage(photo, imageKey, titles, loadError) {
 </body>
 </html>
 `;
+}
+
+function renderSharedSubmissionBlock(sharedSubmission) {
+  return `<article class="info-card info-card-wide">
+      <p class="info-kicker">공유된 제목</p>
+      <h2>"${escapeHtml(sharedSubmission.title)}"</h2>
+      <p>${escapeHtml(sharedSubmission.author)} · 하트 ${sharedSubmission.likeCount}개</p>
+    </article>`;
 }
 
 function renderRankingList(titles, loadError) {
