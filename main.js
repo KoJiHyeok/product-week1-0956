@@ -1255,19 +1255,181 @@ function renderTodayPopular(items) {
   list.append(fragment);
 }
 
-// 두 블록이 모두 숨겨지면 사이드바를 감추고 갤러리를 전체 폭으로.
+// 세 블록이 모두 숨겨지면 사이드바를 감추고 갤러리를 전체 폭으로.
 function updateSidebarLayout() {
+  const weekly = document.querySelector("#weeklyRankBlock");
   const monthly = document.querySelector("#monthlyRankBlock");
   const today = document.querySelector("#todayPopularBlock");
   const sidebar = document.querySelector("#gallerySidebar");
   const layout = document.querySelector("#galleryLayout");
-  const bothHidden = (!monthly || monthly.hidden) && (!today || today.hidden);
+  const allHidden = (!weekly || weekly.hidden) && (!monthly || monthly.hidden) && (!today || today.hidden);
   if (sidebar) {
-    sidebar.hidden = bothHidden;
+    sidebar.hidden = allHidden;
   }
   if (layout) {
-    layout.classList.toggle("is-sidebar-empty", bothHidden);
+    layout.classList.toggle("is-sidebar-empty", allHidden);
   }
+}
+
+// 이번 주 랭킹: 이번 주 월요일(KST) 0시 이후 하트를 가장 많이 받은 사용자. 데이터 없으면 블록을 숨긴다.
+function renderWeeklyRanking(items) {
+  const list = document.querySelector("#weeklyRankList");
+  const block = document.querySelector("#weeklyRankBlock");
+  if (!list || !block) {
+    return;
+  }
+
+  list.replaceChildren();
+
+  if (!items.length) {
+    block.hidden = true;
+    updateSidebarLayout();
+    return;
+  }
+  block.hidden = false;
+
+  const fragment = document.createDocumentFragment();
+  items.forEach((item, rank) => {
+    const li = document.createElement("li");
+    li.className = "weekly-rank-item";
+
+    const row = document.createElement("span");
+    row.className = "rank-row";
+
+    const rankBadge = document.createElement("span");
+    rankBadge.className = "rank-badge";
+    rankBadge.textContent = String(rank + 1);
+
+    const name = document.createElement("span");
+    name.className = "rank-name";
+    name.textContent = item.author || "비회원";
+
+    const likes = document.createElement("span");
+    likes.className = "rank-likes";
+    likes.innerHTML = `<span class="heart-icon" aria-hidden="true"></span><span>${item.likes}</span>`;
+
+    row.append(rankBadge, name, likes);
+    li.append(row);
+    fragment.append(li);
+  });
+
+  list.append(fragment);
+  updateSidebarLayout();
+}
+
+let dailyTodayImageKey = null;
+let dailyCountdownIntervalId = null;
+
+async function loadDaily() {
+  try {
+    const response = await fetch("/api/daily", { credentials: "include" });
+    if (!response.ok) {
+      throw new Error("daily fetch failed");
+    }
+    const data = await response.json();
+    renderDailyHero(data.today);
+    renderDailyWinner(data.yesterday);
+    renderWeeklyRanking(Array.isArray(data.weekly) ? data.weekly : []);
+  } catch {
+    renderDailyHero(null);
+    renderDailyWinner(null);
+    renderWeeklyRanking([]);
+  }
+}
+
+function formatMonthDay(dateString) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateString || ""));
+  return match ? `${Number(match[2])}월 ${Number(match[3])}일` : "";
+}
+
+// 오늘의 짤 히어로: 실패하거나 갤러리에서 사진을 찾지 못하면 블록 자체를 숨긴다.
+function renderDailyHero(today) {
+  const hero = document.querySelector("#dailyHero");
+  if (!hero) {
+    return;
+  }
+
+  const imageKey = today?.imageKey != null ? String(today.imageKey) : "";
+  const index = imageKey ? findImageIndexByKey(imageKey) : -1;
+  const image = index >= 0 ? galleryImages[index] : null;
+
+  if (!image) {
+    hero.hidden = true;
+    dailyTodayImageKey = null;
+    return;
+  }
+
+  dailyTodayImageKey = imageKey;
+
+  const imageEl = document.querySelector("#dailyHeroImage");
+  const sourceEl = document.querySelector("#dailyHeroSource");
+  const badgeEl = document.querySelector("#dailyHeroBadge");
+  const countEl = document.querySelector("#dailyHeroCount");
+
+  if (imageEl) {
+    imageEl.src = image.src;
+    imageEl.alt = image.alt || "";
+  }
+  if (sourceEl) {
+    sourceEl.srcset = image.webpSrc || "";
+  }
+  if (badgeEl) {
+    const dateLabel = formatMonthDay(today.date);
+    badgeEl.textContent = dateLabel ? `오늘의 짤 · ${dateLabel}` : "오늘의 짤";
+  }
+  if (countEl) {
+    countEl.textContent = `지금까지 제목 ${Number(today.submissionCount) || 0}개`;
+  }
+
+  hero.hidden = false;
+  updateDailyCountdown();
+}
+
+// 어제의 1등: winner가 없으면(아직 아무도 제목을 안 남겼거나 API 실패) 블록을 숨긴다.
+function renderDailyWinner(yesterday) {
+  const card = document.querySelector("#dailyWinner");
+  if (!card) {
+    return;
+  }
+
+  const winner = yesterday?.winner;
+  const imageKey = yesterday?.imageKey != null ? String(yesterday.imageKey) : "";
+
+  if (!winner || !imageKey) {
+    card.hidden = true;
+    return;
+  }
+
+  const titleEl = document.querySelector("#dailyWinnerTitle");
+  const metaEl = document.querySelector("#dailyWinnerMeta");
+  const linkEl = document.querySelector("#dailyWinnerLink");
+
+  if (titleEl) {
+    titleEl.textContent = `"${winner.title}"`;
+  }
+  if (metaEl) {
+    metaEl.textContent = `${winner.author || "비회원"} · 하트 ${Number(winner.likeCount) || 0}개`;
+  }
+  if (linkEl) {
+    linkEl.href = `/titles/${encodeURIComponent(imageKey)}/?t=${encodeURIComponent(winner.submissionId)}`;
+  }
+
+  card.hidden = false;
+}
+
+// 다음 KST 자정까지 남은 시간을 1분 단위로 표시. 홈 뷰에 머무는 동안만 갱신한다.
+function updateDailyCountdown() {
+  const el = document.querySelector("#dailyHeroCountdown");
+  if (!el || document.querySelector("#dailyHero")?.hidden) {
+    return;
+  }
+
+  const kstNow = Date.now() + 9 * 60 * 60 * 1000;
+  const msLeft = 24 * 60 * 60 * 1000 - (kstNow % (24 * 60 * 60 * 1000));
+  const totalMinutes = Math.max(0, Math.ceil(msLeft / 60000));
+  const hours = String(Math.floor(totalMinutes / 60)).padStart(2, "0");
+  const minutes = String(totalMinutes % 60).padStart(2, "0");
+  el.textContent = `자정 마감까지 ${hours}:${minutes}`;
 }
 
 const monthlyRankListEl = document.querySelector("#monthlyRankList");
@@ -1289,6 +1451,18 @@ if (todayPopularListEl) {
       return;
     }
     const index = findImageIndexByKey(link.dataset.imageKey);
+    if (index < 0) {
+      showToast("해당 사진을 찾지 못했습니다.");
+      return;
+    }
+    startTitleEntry(index);
+  });
+}
+
+const dailyHeroButtonEl = document.querySelector("#dailyHeroButton");
+if (dailyHeroButtonEl) {
+  dailyHeroButtonEl.addEventListener("click", () => {
+    const index = dailyTodayImageKey ? findImageIndexByKey(dailyTodayImageKey) : -1;
     if (index < 0) {
       showToast("해당 사진을 찾지 못했습니다.");
       return;
@@ -1586,6 +1760,16 @@ function showView(viewToShow) {
     view.hidden = view !== viewToShow;
   });
   window.scrollTo({ top: 0, behavior: "auto" });
+
+  if (viewToShow === homeView) {
+    updateDailyCountdown();
+    if (!dailyCountdownIntervalId) {
+      dailyCountdownIntervalId = setInterval(updateDailyCountdown, 60000);
+    }
+  } else if (dailyCountdownIntervalId) {
+    clearInterval(dailyCountdownIntervalId);
+    dailyCountdownIntervalId = null;
+  }
 }
 
 function updateShareBanner() {
@@ -6039,6 +6223,7 @@ async function initializeApp() {
   await verifyEmailFromUrl();
   await restoreSession();
   await loadGalleryImages();
+  await loadDaily();
   await initializeAuthProviders();
   initializeRoute();
 }

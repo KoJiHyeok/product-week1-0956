@@ -27,7 +27,7 @@
   <meta name="twitter:image:alt" content="제목 학원 로고" />
 
   <title>제목 학원 - 레전드 짤 보고 제목 짓기</title>
-  <link href="style.css?v=27" rel="stylesheet" />
+  <link href="style.css?v=28" rel="stylesheet" />
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -107,8 +107,34 @@
     </header>
 
     <section class="view gallery-view" id="homeView" aria-label="사진 선택">
+      <section class="daily-hero" id="dailyHero" hidden aria-label="오늘의 짤">
+        <div class="daily-hero-media">
+          <picture>
+            <source id="dailyHeroSource" type="image/webp" srcset="" />
+            <img id="dailyHeroImage" class="daily-hero-image" src="" alt="" loading="eager" decoding="async" />
+          </picture>
+          <span class="daily-hero-badge" id="dailyHeroBadge">오늘의 짤</span>
+        </div>
+        <div class="daily-hero-body">
+          <p class="daily-hero-count" id="dailyHeroCount"></p>
+          <p class="daily-hero-countdown" id="dailyHeroCountdown"></p>
+          <button class="auth-button solid" id="dailyHeroButton" type="button">이 사진에 제목 달기</button>
+        </div>
+      </section>
+
+      <section class="daily-winner" id="dailyWinner" hidden aria-label="어제의 1등">
+        <p class="daily-winner-kicker">어제의 1등 🏆</p>
+        <p class="daily-winner-title" id="dailyWinnerTitle"></p>
+        <p class="daily-winner-meta" id="dailyWinnerMeta"></p>
+        <a class="auth-button ghost small" id="dailyWinnerLink" href="#">구경하기</a>
+      </section>
+
       <div class="gallery-layout" id="galleryLayout">
         <aside class="gallery-sidebar" id="gallerySidebar" aria-label="랭킹">
+          <section class="rank-block" id="weeklyRankBlock" hidden aria-label="이번 주 랭킹">
+            <h2 class="rank-block-title">이번 주 랭킹</h2>
+            <ol class="rank-list weekly-rank-list" id="weeklyRankList"></ol>
+          </section>
           <section class="rank-block" id="monthlyRankBlock" hidden aria-label="이달의 랭킹">
             <h2 class="rank-block-title">이달의 랭킹</h2>
             <ol class="rank-list monthly-rank-list" id="monthlyRankList"></ol>
@@ -124,6 +150,7 @@
       <p class="gallery-subguide">
         각 사진에는 운영자가 정리한 관찰 포인트와 예시 제목이 함께 제공됩니다. 사진을 고른 뒤 장면의 단서, 감정, 반전을 살려 나만의 제목을 작성해보세요.
       </p>
+      <p class="gallery-subguide">지난 짤에도 언제든 제목을 달 수 있어요. 아래 갤러리에서 마음에 드는 사진을 골라보세요.</p>
 
       <div class="random-cta">
         <button class="random-cta-button" id="randomEntryButton" type="button" aria-label="랜덤 사진 한 장 뽑아서 제목 짓기">
@@ -753,6 +780,6 @@
     </div>
   </section>
 
-  <script type="module" src="main.js?v=38"></script>
+  <script type="module" src="main.js?v=39"></script>
 </body>
 </html>
