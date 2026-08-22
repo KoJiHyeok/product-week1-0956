@@ -208,6 +208,7 @@ const clarityProjectId = "wme6uejz4h";
 const trackingConsentStorageKey = "title-academy-tracking-consent";
 const cookieSettingsStorageKey = "title-academy-cookie-settings";
 const themeStorageKey = "title-academy-theme";
+const visitDateStorageKey = "title-academy-visit-date";
 const guestStorageKey = "title-academy-guest-name";
 const submissionsStorageKey = "title-academy-submissions";
 const photoSourcePresets = Object.freeze({
@@ -876,6 +877,32 @@ function saveCookieSettings(settings) {
   if (next.analytics) {
     loadTrackingScripts(next);
   }
+}
+
+// 개인정보를 저장하지 않는 first-party 방문자 집계용 하루 1회 비콘. 쿠키 동의와 무관하게 항상 전송한다.
+function recordDailyVisit() {
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
+  if (localStorage.getItem(visitDateStorageKey) === today) {
+    return;
+  }
+
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon("/api/visit");
+    } else {
+      fetch("/api/visit", { method: "POST", keepalive: true }).catch(() => {});
+    }
+  } catch {
+    // 비콘 전송 실패는 UX에 영향을 주지 않는다.
+  }
+
+  localStorage.setItem(visitDateStorageKey, today);
 }
 
 function openCookieSettings() {
@@ -5945,6 +5972,7 @@ window.addEventListener("keydown", (event) => {
 async function initializeApp() {
   initializeTheme();
   initializeTrackingConsent();
+  recordDailyVisit();
   renderGallery();
   renderUser();
   handleAuthErrorFromUrl();

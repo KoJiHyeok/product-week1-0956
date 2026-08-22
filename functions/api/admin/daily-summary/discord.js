@@ -10,6 +10,7 @@ const SENT_TO = "discord";
 
 // 변화율 추적 지표. table 값은 아래 고정 리터럴만 들어오므로 인젝션 위험 없음.
 const METRICS = [
+  { key: "visitors", label: "방문자", unit: "명", table: "daily_visits", emoji: "👀" },
   { key: "titles", label: "제목", unit: "건", table: "submissions", emoji: "📝" },
   { key: "members", label: "회원", unit: "명", table: "users", emoji: "🙋" },
   { key: "hearts", label: "하트", unit: "개", table: "likes", emoji: "❤️" },
@@ -97,11 +98,15 @@ function shiftKstDate(kstDay, deltaDays) {
 }
 
 async function countOnKstDay(db, table, kstDay) {
-  // table은 위 고정 리터럴(submissions/users/likes/reports/contact_inquiries)만 들어온다.
-  const row = await db
-    .prepare(`SELECT COUNT(*) AS cnt FROM ${table} WHERE date(created_at, '+9 hours') = ?`)
-    .bind(kstDay)
-    .first();
+  // table은 위 고정 리터럴(daily_visits/submissions/users/likes/reports/contact_inquiries)만 들어온다.
+  // daily_visits는 created_at이 아니라 이미 KST 문자열인 visit_date 컬럼으로 센다.
+  const row =
+    table === "daily_visits"
+      ? await db.prepare("SELECT COUNT(*) AS cnt FROM daily_visits WHERE visit_date = ?").bind(kstDay).first()
+      : await db
+          .prepare(`SELECT COUNT(*) AS cnt FROM ${table} WHERE date(created_at, '+9 hours') = ?`)
+          .bind(kstDay)
+          .first();
   return Number(row?.cnt) || 0;
 }
 
