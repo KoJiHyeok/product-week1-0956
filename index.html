@@ -27,7 +27,7 @@
   <meta name="twitter:image:alt" content="제목 학원 로고" />
 
   <title>제목 학원 - 레전드 짤 보고 제목 짓기</title>
-  <link href="style.css?v=28" rel="stylesheet" />
+  <link href="style.css?v=30" rel="stylesheet" />
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -51,16 +51,31 @@
     <header class="top-bar">
       <div class="brand-cluster">
         <a class="brand" id="homeLink" href="/" aria-label="제목 학원 홈">
-          <picture>
-            <img class="brand-logo" src="assets/gallery/logo.png" alt="제목 학원 로고" width="56" height="56" />
-          </picture>
+          <svg class="brand-logo" width="40" height="40" viewBox="0 0 48 48" role="img" aria-label="제목 학원 로고">
+            <rect x="5" y="4" width="38" height="27" rx="6" fill="none" stroke="currentColor" stroke-width="3.4"></rect>
+            <circle cx="18" cy="14" r="2.4" fill="currentColor"></circle>
+            <circle cx="30" cy="14" r="2.4" fill="currentColor"></circle>
+            <path d="M16.5 19.5c2.2 3 5 4.5 7.5 4.5s5.3-1.5 7.5-4.5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"></path>
+            <rect x="5" y="36" width="38" height="9" rx="4.5" fill="#E36A4E"></rect>
+            <rect x="10" y="39.1" width="17" height="2.8" rx="1.4" fill="#FFF8F0"></rect>
+            <rect x="30" y="38.4" width="2.8" height="4.2" rx="1" fill="#FFF8F0" opacity="0.9"></rect>
+          </svg>
           <span>제목 학원</span>
         </a>
       </div>
 
+      <nav class="feed-tabs" id="feedTabs" role="tablist" aria-label="피드 기간 선택">
+        <button class="feed-tab is-active" type="button" data-feed-window="12h" role="tab" aria-selected="true">급상승 12h</button>
+        <button class="feed-tab" type="button" data-feed-window="today" role="tab" aria-selected="false">오늘</button>
+        <button class="feed-tab" type="button" data-feed-window="week" role="tab" aria-selected="false">주간</button>
+        <button class="feed-tab" type="button" data-feed-window="all" role="tab" aria-selected="false">전당</button>
+        <a class="feed-tab feed-tab-link" id="pastGalleryLink" href="/#gallery">지난 짤</a>
+      </nav>
+
       <button class="auth-button upload-nav-button small" id="uploadNavButton" type="button">원하는 이미지 제안하기</button>
 
       <div class="top-actions">
+        <button class="auth-button solid small feed-title-cta" id="feedTitleCtaButton" type="button">제목 달기</button>
         <a class="contact-link" id="contactLink" href="/#contact">문의</a>
         <button class="auth-button ghost small" id="adminNavButton" type="button" hidden>관리자</button>
         <div class="auth-actions" id="authActions">
@@ -93,48 +108,62 @@
           </section>
         </div>
       </div>
-      <nav class="site-nav top-site-nav" aria-label="주요 페이지">
-        <a href="/">홈</a>
-        <a href="/about">제목 학원이란?</a>
-        <a href="/guide">사용 가이드</a>
-        <a href="/examples">제목 예시</a>
-        <a href="/gallery">사진 해설</a>
-        <a href="/blog/">글쓰기 칼럼</a>
-        <a href="/privacy">개인정보처리방침</a>
-        <a href="/terms">이용약관</a>
-        <a href="/contact">문의</a>
-      </nav>
     </header>
 
-    <section class="view gallery-view" id="homeView" aria-label="사진 선택">
-      <section class="daily-hero" id="dailyHero" hidden aria-label="오늘의 짤">
-        <div class="daily-hero-media">
-          <picture>
-            <source id="dailyHeroSource" type="image/webp" srcset="" />
-            <img id="dailyHeroImage" class="daily-hero-image" src="" alt="" loading="eager" decoding="async" />
-          </picture>
-          <span class="daily-hero-badge" id="dailyHeroBadge">오늘의 짤</span>
+    <section class="view feed-view" id="homeView" aria-label="유머 피드">
+      <div class="feed-layout" id="feedLayout">
+        <div class="feed-main">
+          <ol class="feed-list" id="feedList" aria-label="제출된 제목 목록"></ol>
+          <p class="feed-empty" id="feedEmpty" hidden>아직 등록된 제목이 없어요. 첫 제목을 남겨보세요!</p>
+          <button class="auth-button ghost full feed-more-button" id="feedMoreButton" type="button" hidden>더 보기</button>
         </div>
-        <div class="daily-hero-body">
-          <p class="daily-hero-count" id="dailyHeroCount"></p>
-          <p class="daily-hero-countdown" id="dailyHeroCountdown"></p>
-          <button class="auth-button solid" id="dailyHeroButton" type="button">이 사진에 제목 달기</button>
-        </div>
-      </section>
 
-      <section class="daily-winner" id="dailyWinner" hidden aria-label="어제의 1등">
-        <p class="daily-winner-kicker">어제의 1등 🏆</p>
-        <p class="daily-winner-title" id="dailyWinnerTitle"></p>
-        <p class="daily-winner-meta" id="dailyWinnerMeta"></p>
-        <a class="auth-button ghost small" id="dailyWinnerLink" href="#">구경하기</a>
-      </section>
+        <aside class="feed-sidebar" id="feedSidebar" aria-label="오늘의 짤 · 랭킹 · 명예의 전당">
+          <section class="side-card side-daily" id="dailyHero" hidden aria-label="오늘의 짤">
+            <div class="side-daily-media">
+              <picture>
+                <source id="dailyHeroSource" type="image/webp" srcset="" />
+                <img id="dailyHeroImage" class="side-daily-image" src="" alt="" loading="eager" decoding="async" />
+              </picture>
+              <span class="side-daily-badge" id="dailyHeroBadge">오늘의 짤</span>
+            </div>
+            <div class="side-daily-body">
+              <p class="side-daily-count" id="dailyHeroCount"></p>
+              <p class="side-daily-countdown" id="dailyHeroCountdown"></p>
+              <button class="auth-button solid full" id="dailyHeroButton" type="button">지금 제목 달기</button>
+
+              <div class="side-daily-winner" id="dailyWinner" hidden aria-label="어제의 1등">
+                <p class="side-daily-winner-kicker">어제의 1등</p>
+                <p class="side-daily-winner-title" id="dailyWinnerTitle"></p>
+                <p class="side-daily-winner-meta" id="dailyWinnerMeta"></p>
+                <a class="side-daily-winner-link" id="dailyWinnerLink" href="#">구경하기 →</a>
+              </div>
+            </div>
+          </section>
+
+          <section class="side-card side-weekly rank-block" id="weeklyRankBlock" hidden aria-label="주간 랭킹">
+            <h2 class="rank-block-title">주간 랭킹</h2>
+            <ol class="rank-list weekly-rank-list" id="weeklyRankList"></ol>
+          </section>
+
+          <section class="side-card side-hof" aria-label="명예의 전당">
+            <h2 class="side-hof-title">명예의 전당</h2>
+            <p class="side-hof-copy">역대 가장 많은 하트를 받은 제목들을 한자리에서 만나보세요.</p>
+            <button class="auth-button ghost full" id="sideHofButton" type="button">명예의 전당 보기</button>
+          </section>
+        </aside>
+      </div>
+    </section>
+
+    <section class="view gallery-view" id="galleryView" hidden aria-label="지난 짤 갤러리">
+      <div class="page-head">
+        <p class="view-kicker">지난 짤</p>
+        <h2 class="view-title">지난 짤 갤러리</h2>
+        <p class="gallery-subguide">사진에 어울리는 제목을 만들어보세요. 각 사진에는 운영자가 정리한 관찰 포인트와 예시 제목이 함께 제공됩니다.</p>
+      </div>
 
       <div class="gallery-layout" id="galleryLayout">
         <aside class="gallery-sidebar" id="gallerySidebar" aria-label="랭킹">
-          <section class="rank-block" id="weeklyRankBlock" hidden aria-label="이번 주 랭킹">
-            <h2 class="rank-block-title">이번 주 랭킹</h2>
-            <ol class="rank-list weekly-rank-list" id="weeklyRankList"></ol>
-          </section>
           <section class="rank-block" id="monthlyRankBlock" hidden aria-label="이달의 랭킹">
             <h2 class="rank-block-title">이달의 랭킹</h2>
             <ol class="rank-list monthly-rank-list" id="monthlyRankList"></ol>
@@ -146,111 +175,9 @@
         </aside>
 
         <div class="gallery-main">
-      <p class="gallery-guide">사진에 어울리는 제목을 만들어보세요!!</p>
-      <p class="gallery-subguide">
-        각 사진에는 운영자가 정리한 관찰 포인트와 예시 제목이 함께 제공됩니다. 사진을 고른 뒤 장면의 단서, 감정, 반전을 살려 나만의 제목을 작성해보세요.
-      </p>
-      <p class="gallery-subguide">지난 짤에도 언제든 제목을 달 수 있어요. 아래 갤러리에서 마음에 드는 사진을 골라보세요.</p>
-
-      <div class="random-cta">
-        <button class="random-cta-button" id="randomEntryButton" type="button" aria-label="랜덤 사진 한 장 뽑아서 제목 짓기">
-          <span class="random-cta-dice" aria-hidden="true">🎲</span>
-          <span class="random-cta-copy">
-            <strong>랜덤 사진으로 시작하기</strong>
-            <span>무엇을 고를지 고민될 땐, 무작위 사진 한 장으로!</span>
-          </span>
-          <span class="random-cta-arrow" aria-hidden="true">→</span>
-        </button>
-      </div>
-
-      <div class="gallery-grid" id="galleryGrid"></div>
+          <div class="gallery-grid" id="galleryGrid"></div>
         </div>
       </div>
-
-      <section class="home-content" aria-label="제목 학원 이용 안내">
-        <article class="home-content-hero" id="what-is-title-academy">
-          <p class="view-kicker">제목 학원이란?</p>
-          <h1>사진을 보고 어울리는 제목을 직접 만들어보는 공간</h1>
-          <p>
-            제목 학원은 사진 한 장에서 느껴지는 분위기, 상황, 표정, 반전을 짧은 제목으로 표현해보는 참여형 사이트입니다.
-            사용자는 마음에 드는 사진을 고르고 떠오르는 제목을 남길 수 있으며, 다른 사람이 남긴 제목과 반응도 함께 확인할 수 있습니다.
-            단순히 제목을 입력하는 기능에 그치지 않고, 어떤 제목이 사진을 더 잘 설명하는지 비교하며 감각을 기를 수 있도록 구성했습니다.
-          </p>
-        </article>
-
-        <div class="home-content-grid">
-          <article class="home-info-card">
-            <h2>이 사이트를 사용하는 방법</h2>
-            <p>
-              먼저 메인 화면에서 제목을 붙이고 싶은 사진을 선택합니다. 사진을 자세히 살펴본 뒤 가장 먼저 떠오르는 장면, 감정, 상황을 짧은 문장으로 정리해 제목 입력칸에 작성하면 됩니다.
-              제목을 제출하면 같은 사진에 대해 다른 사용자가 만든 제목과 랭킹을 볼 수 있어, 한 장의 사진이 얼마나 다양한 방식으로 해석될 수 있는지 확인할 수 있습니다.
-            </p>
-            <p>
-              로그인하지 않아도 기본 참여가 가능하지만, 회원으로 이용하면 프로필과 참여 내역을 더 편하게 관리할 수 있습니다.
-              부적절한 제목이나 이미지가 보이면 신고 기능을 통해 운영자에게 알려주세요.
-            </p>
-          </article>
-
-          <article class="home-info-card">
-            <h2>사진 제목을 잘 만드는 팁</h2>
-            <p>
-              제목이 잘 안 떠오를 땐 감으로 붙잡고 있기보다 정리된 순서를 따라가는 편이 빠릅니다.
-              문장을 다듬는 원칙과 예시는 <a href="/blog/photo-title-tips/">글쓰기 칼럼</a>에,
-              사이트에서 실제로 제목을 등록하는 방법은 <a href="/guide/">이용 가이드</a>에서 확인할 수 있습니다.
-            </p>
-          </article>
-
-          <article class="home-info-card">
-            <h2>이런 사람에게 추천</h2>
-            <p>
-              사진을 보고 짧은 문장을 만드는 연습을 하고 싶은 사람, 콘텐츠 제목이나 썸네일 문구를 더 자연스럽게 떠올리고 싶은 사람에게 잘 맞습니다.
-              친구들과 같은 사진을 다르게 해석해보거나, 온라인 글쓰기 감각을 가볍게 연습하고 싶은 사용자에게도 유용합니다.
-            </p>
-            <p>
-              제목 학원은 전문 카피라이팅 도구라기보다, 사진을 관찰하고 표현을 다듬는 작은 연습장에 가깝습니다.
-              그래서 정답을 맞히는 방식이 아니라 각자의 해석을 비교하며 즐기는 방식으로 이용하면 좋습니다.
-            </p>
-          </article>
-
-          <article class="home-info-card">
-            <h2>자주 묻는 질문 FAQ</h2>
-            <dl class="faq-list">
-              <dt>제목은 어떤 기준으로 쓰면 되나요?</dt>
-              <dd>사진의 상황을 설명하거나, 사진에서 느껴지는 감정을 짧게 표현하면 됩니다. 다른 사람을 공격하거나 개인정보를 드러내는 내용은 피해주세요.</dd>
-              <dt>제가 원하는 사진을 올릴 수 있나요?</dt>
-              <dd>직접 업로드 기능 대신 문의를 통해 이미지 제안을 받고 있습니다.</dd>
-              <dt>부적절한 제목이나 이미지가 보이면 어떻게 하나요?</dt>
-              <dd>제목, 댓글, 이미지 신고 기능이나 문의 페이지를 통해 알려주세요. 운영 기준에 따라 숨김, 삭제, 랭킹 제외 등의 조치가 적용될 수 있습니다.</dd>
-            </dl>
-          </article>
-
-          <article class="home-info-card">
-            <h2>사진별 큐레이션을 제공하는 이유</h2>
-            <p>
-              같은 사진이라도 어떤 단서를 먼저 보는지에 따라 제목의 방향이 달라집니다.
-              제목 학원은 단순히 이미지를 나열하지 않고, 각 사진에서 볼 수 있는 표정, 배경, 동작, 색감, 거리감 같은 관찰 포인트를 함께 정리합니다.
-            </p>
-            <p>
-              예시 제목은 정답이 아니라 출발점입니다. 사용자는 예시를 참고하되 그대로 따라 쓰기보다,
-              자신이 본 장면을 더 짧고 선명한 문장으로 바꾸는 방식으로 참여할 수 있습니다.
-            </p>
-          </article>
-
-          <article class="home-info-card">
-            <h2>이미지와 커뮤니티 운영 기준</h2>
-            <p>
-              제목 학원에는 AI 생성 이미지, 이용 허가를 확인한 자산, 운영 검토를 거친 사용자 제공 이미지가 포함될 수 있습니다.
-              갤러리 이미지는 운영자가 출처와 사용 가능성을 확인한 뒤 제목 연습에 맞는 자료만 공개합니다.
-              사용자가 제안한 이미지는 바로 게시하지 않고, 저작권과 초상권, 부적절한 표현 여부를 검토합니다.
-            </p>
-            <p>
-              제목과 댓글은 신고 기능과 관리자 검토를 통해 관리됩니다.
-              욕설, 혐오, 개인정보 노출, 광고성 문구, 권리 침해가 의심되는 콘텐츠는 숨김 처리되거나 랭킹에서 제외될 수 있습니다.
-            </p>
-          </article>
-
-        </div>
-      </section>
     </section>
 
     <section class="view upload-view" id="uploadView" hidden aria-label="이미지 제안">
@@ -780,6 +707,6 @@
     </div>
   </section>
 
-  <script type="module" src="main.js?v=39"></script>
+  <script type="module" src="main.js?v=42"></script>
 </body>
 </html>

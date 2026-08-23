@@ -22,6 +22,7 @@ const contactLink = document.querySelector("#contactLink");
 const uploadNavButton = document.querySelector("#uploadNavButton");
 const adminNavButton = document.querySelector("#adminNavButton");
 const homeView = document.querySelector("#homeView");
+const galleryView = document.querySelector("#galleryView");
 const uploadView = document.querySelector("#uploadView");
 const titleView = document.querySelector("#titleView");
 const guestView = document.querySelector("#guestView");
@@ -32,6 +33,13 @@ const profileView = document.querySelector("#profileView");
 const adminView = document.querySelector("#adminView");
 const topSiteNav = document.querySelector(".top-site-nav");
 const galleryGrid = document.querySelector("#galleryGrid");
+const feedTabsEl = document.querySelector("#feedTabs");
+const pastGalleryLink = document.querySelector("#pastGalleryLink");
+const feedTitleCtaButton = document.querySelector("#feedTitleCtaButton");
+const feedListEl = document.querySelector("#feedList");
+const feedEmptyEl = document.querySelector("#feedEmpty");
+const feedMoreButtonEl = document.querySelector("#feedMoreButton");
+const sideHofButton = document.querySelector("#sideHofButton");
 const selectedPhoto = document.querySelector("#selectedPhoto");
 const rankingPhoto = document.querySelector("#rankingPhoto");
 const randomPhoto = document.querySelector("#randomPhoto");
@@ -787,6 +795,13 @@ let activeMessageRecipient = null;
 let visibleGalleryCount = Math.min(galleryInitialCount, galleryImages.length);
 let analyticsScriptsLoaded = false;
 
+const FEED_WINDOW_ORDER = ["12h", "today", "week", "all"];
+const FEED_PAGE_SIZE = 20;
+let activeFeedWindow = "12h";
+let feedOffset = 0;
+let feedItems = [];
+let feedLoading = false;
+
 function createId(prefix) {
   if (globalThis.crypto?.randomUUID) {
     return `${prefix}-${globalThis.crypto.randomUUID()}`;
@@ -802,10 +817,31 @@ function getGalleryDetailPath(image, index) {
   return `/gallery/${safeSlug}/`;
 }
 
+function getSystemTheme() {
+  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+// 우선순위: 사용자가 토글로 고른 값 > 시스템 설정 > 라이트.
+// 명시적 선택이 없으면 data-theme을 비워 CSS 미디어쿼리가 시스템을 따르게 한다.
 function initializeTheme() {
   const storedTheme = localStorage.getItem(themeStorageKey);
-  activeTheme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : "light";
-  document.documentElement.dataset.theme = activeTheme;
+
+  if (storedTheme === "light" || storedTheme === "dark") {
+    activeTheme = storedTheme;
+    document.documentElement.dataset.theme = activeTheme;
+  } else {
+    activeTheme = getSystemTheme();
+    delete document.documentElement.dataset.theme;
+
+    const media = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)");
+    media?.addEventListener?.("change", (event) => {
+      if (!localStorage.getItem(themeStorageKey)) {
+        activeTheme = event.matches ? "dark" : "light";
+        updateThemeToggle();
+      }
+    });
+  }
+
   updateThemeToggle();
 }
 
@@ -1255,14 +1291,14 @@ function renderTodayPopular(items) {
   list.append(fragment);
 }
 
-// 세 블록이 모두 숨겨지면 사이드바를 감추고 갤러리를 전체 폭으로.
+// 두 블록(이달의 랭킹·오늘의 인기)이 모두 숨겨지면 지난 짤 사이드바를 감추고 갤러리를 전체 폭으로.
+// 주간 랭킹은 홈 피드 사이드바(#feedSidebar)에 따로 있어 이 계산에 포함하지 않는다.
 function updateSidebarLayout() {
-  const weekly = document.querySelector("#weeklyRankBlock");
   const monthly = document.querySelector("#monthlyRankBlock");
   const today = document.querySelector("#todayPopularBlock");
   const sidebar = document.querySelector("#gallerySidebar");
   const layout = document.querySelector("#galleryLayout");
-  const allHidden = (!weekly || weekly.hidden) && (!monthly || monthly.hidden) && (!today || today.hidden);
+  const allHidden = (!monthly || monthly.hidden) && (!today || today.hidden);
   if (sidebar) {
     sidebar.hidden = allHidden;
   }
@@ -1283,7 +1319,6 @@ function renderWeeklyRanking(items) {
 
   if (!items.length) {
     block.hidden = true;
-    updateSidebarLayout();
     return;
   }
   block.hidden = false;
@@ -1314,7 +1349,6 @@ function renderWeeklyRanking(items) {
   });
 
   list.append(fragment);
-  updateSidebarLayout();
 }
 
 let dailyTodayImageKey = null;
@@ -1459,17 +1493,242 @@ if (todayPopularListEl) {
   });
 }
 
+// 오늘의 짤 사이드 카드 버튼과 상단바 "제목 달기" CTA가 공유하는 진입점.
+function goToTodayTitleEntry() {
+  const index = dailyTodayImageKey ? findImageIndexByKey(dailyTodayImageKey) : -1;
+  if (index < 0) {
+    showToast("해당 사진을 찾지 못했습니다.");
+    return;
+  }
+  startTitleEntry(index);
+}
+
 const dailyHeroButtonEl = document.querySelector("#dailyHeroButton");
-if (dailyHeroButtonEl) {
-  dailyHeroButtonEl.addEventListener("click", () => {
-    const index = dailyTodayImageKey ? findImageIndexByKey(dailyTodayImageKey) : -1;
-    if (index < 0) {
-      showToast("해당 사진을 찾지 못했습니다.");
-      return;
-    }
-    startTitleEntry(index);
+dailyHeroButtonEl?.addEventListener("click", goToTodayTitleEntry);
+feedTitleCtaButton?.addEventListener("click", goToTodayTitleEntry);
+
+// ===================== FEED (홈 "유머 피드") =====================
+
+function parseServerTimestamp(value) {
+  const text = String(value || "");
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(text)) {
+    return Date.parse(`${text.replace(" ", "T")}Z`);
+  }
+  return Date.parse(text);
+}
+
+// "N분 전"/"N시간 전" 상대 시간. 일주일이 넘으면 formatDate(절대 날짜)로 넘어간다.
+function formatRelativeTime(value) {
+  const timestamp = parseServerTimestamp(value);
+  if (!Number.isFinite(timestamp)) {
+    return "";
+  }
+
+  const diffMs = Date.now() - timestamp;
+  const diffMinutes = Math.floor(diffMs / 60000);
+
+  if (diffMinutes < 1) {
+    return "방금 전";
+  }
+  if (diffMinutes < 60) {
+    return `${diffMinutes}분 전`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) {
+    return `${diffHours}시간 전`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) {
+    return `${diffDays}일 전`;
+  }
+
+  return formatDate(value);
+}
+
+function setFeedTabActive(windowKey) {
+  document.querySelectorAll("#feedTabs [data-feed-window]").forEach((tabButton) => {
+    const isActive = tabButton.dataset.feedWindow === windowKey;
+    tabButton.classList.toggle("is-active", isActive);
+    tabButton.setAttribute("aria-selected", String(isActive));
   });
 }
+
+function updateFeedEmptyState() {
+  if (feedEmptyEl) {
+    feedEmptyEl.hidden = feedItems.length > 0;
+  }
+}
+
+function buildFeedRow(item, showTopBadge) {
+  const li = document.createElement("li");
+  li.className = "feed-row-item";
+
+  const row = document.createElement("button");
+  row.type = "button";
+  row.className = "feed-row";
+  row.dataset.imageKey = item.imageKey;
+  row.setAttribute("aria-label", `${item.title} — ${item.author} 작성, 하트 ${item.likeCount}개`);
+
+  const hearts = document.createElement("span");
+  hearts.className = "feed-row-hearts";
+  const heartIcon = document.createElement("span");
+  heartIcon.className = "heart-icon";
+  heartIcon.setAttribute("aria-hidden", "true");
+  const heartCount = document.createElement("span");
+  heartCount.className = "feed-row-heart-count";
+  heartCount.textContent = String(item.likeCount);
+  hearts.append(heartIcon, heartCount);
+
+  const thumb = document.createElement("span");
+  thumb.className = "feed-row-thumb";
+  const thumbImage = document.createElement("img");
+  thumbImage.src = item.imageWebpSrc || item.imageSrc;
+  thumbImage.alt = "";
+  thumbImage.loading = "lazy";
+  thumbImage.decoding = "async";
+  thumb.append(thumbImage);
+
+  const body = document.createElement("span");
+  body.className = "feed-row-body";
+
+  const title = document.createElement("strong");
+  title.className = "feed-row-title";
+  title.textContent = item.title;
+
+  const meta = document.createElement("span");
+  meta.className = "feed-row-meta";
+  const metaParts = [item.author, formatRelativeTime(item.createdAt)];
+  if (item.commentCount > 0) {
+    metaParts.push(`댓글 ${item.commentCount}`);
+  }
+  meta.textContent = metaParts.filter(Boolean).join(" · ");
+  body.append(title, meta);
+
+  if (showTopBadge && item.likeCount > 0) {
+    const badge = document.createElement("span");
+    badge.className = "feed-row-badge";
+    badge.textContent = "1위";
+    body.append(badge);
+  }
+
+  row.append(hearts, thumb, body);
+  li.append(row);
+  return li;
+}
+
+function renderFeedRows(items, append) {
+  if (!feedListEl) {
+    return;
+  }
+
+  if (!append) {
+    feedListEl.replaceChildren();
+  }
+
+  const fragment = document.createDocumentFragment();
+  items.forEach((item, index) => {
+    fragment.append(buildFeedRow(item, !append && index === 0));
+  });
+  feedListEl.append(fragment);
+  updateFeedEmptyState();
+}
+
+// 탭 전환·더 보기·초기 로드가 모두 이 함수를 쓴다. 선택한 창(window)이 비어 있으면
+// 급상승 12h → 오늘 → 주간 → 전당 순으로 데이터가 나올 때까지 자동으로 넓혀간다.
+async function loadFeed(windowKey, options = {}) {
+  const append = Boolean(options.append);
+
+  if (feedLoading) {
+    return;
+  }
+  feedLoading = true;
+
+  const offset = append ? feedOffset : 0;
+
+  try {
+    const data = await requestJson(`/api/feed?window=${encodeURIComponent(windowKey)}&offset=${offset}`, {
+      method: "GET",
+      headers: {},
+    });
+    const items = Array.isArray(data.items) ? data.items : [];
+
+    // 자동 폴백은 초기 로드에서만. 사용자가 직접 누른 탭은 비어 있으면
+    // 그대로 빈 상태 메시지를 보여준다 (말없이 다른 탭으로 점프하면 클릭이 무시된 것처럼 보인다).
+    if (!append && items.length === 0 && options.allowFallback !== false) {
+      const nextWindow = FEED_WINDOW_ORDER[FEED_WINDOW_ORDER.indexOf(windowKey) + 1];
+      if (nextWindow) {
+        feedLoading = false;
+        await loadFeed(nextWindow);
+        return;
+      }
+    }
+
+    activeFeedWindow = windowKey;
+    setFeedTabActive(windowKey);
+
+    if (append) {
+      feedItems = feedItems.concat(items);
+      feedOffset += items.length;
+      renderFeedRows(items, true);
+    } else {
+      feedItems = items;
+      feedOffset = items.length;
+      renderFeedRows(items, false);
+    }
+
+    if (feedMoreButtonEl) {
+      feedMoreButtonEl.hidden = items.length < FEED_PAGE_SIZE;
+    }
+  } catch {
+    if (!append) {
+      feedItems = [];
+      renderFeedRows([], false);
+    }
+    showToast("피드를 불러오지 못했습니다.");
+  } finally {
+    feedLoading = false;
+  }
+}
+
+feedTabsEl?.addEventListener("click", (event) => {
+  const tabButton = event.target.closest("[data-feed-window]");
+  if (!tabButton) {
+    return;
+  }
+  // 지난 짤 등 다른 뷰에서 탭을 누르면 홈(피드)으로 돌아온 뒤 해당 창을 로드한다.
+  if (homeView?.hidden) {
+    navigateTo({ view: "home" });
+  }
+  loadFeed(tabButton.dataset.feedWindow, { allowFallback: false });
+});
+
+feedListEl?.addEventListener("click", (event) => {
+  const row = event.target.closest(".feed-row");
+  if (!row) {
+    return;
+  }
+  const index = findImageIndexByKey(row.dataset.imageKey);
+  if (index < 0) {
+    showToast("해당 사진을 찾지 못했습니다.");
+    return;
+  }
+  showRanking(index);
+});
+
+feedMoreButtonEl?.addEventListener("click", () => {
+  loadFeed(activeFeedWindow, { append: true });
+});
+
+sideHofButton?.addEventListener("click", () => {
+  loadFeed("all");
+});
+
+pastGalleryLink?.addEventListener("click", (event) => {
+  event.preventDefault();
+  goGallery();
+});
 
 async function login(loginId, password) {
   const data = await requestAuth("/api/auth/login", {
@@ -1633,6 +1892,10 @@ function routeToHash(state) {
     return "#upload";
   }
 
+  if (state.view === "gallery") {
+    return "#gallery";
+  }
+
   if (["title", "guest", "ranking", "random"].includes(state.view)) {
     const image = galleryImages[state.imageIndex];
     return `#${state.view}/key/${encodeURIComponent(getImageKey(image, state.imageIndex))}`;
@@ -1694,6 +1957,10 @@ function parseRouteFromHash(hash) {
     return { view: "upload" };
   }
 
+  if (cleanHash === "gallery") {
+    return { view: "gallery" };
+  }
+
   if (cleanHash === "admin") {
     return { view: "admin" };
   }
@@ -1731,6 +1998,10 @@ function getValidRoute(state) {
     return { view: "upload" };
   }
 
+  if (state.view === "gallery") {
+    return { view: "gallery" };
+  }
+
   if (state.view === "admin") {
     return { view: "admin" };
   }
@@ -1756,7 +2027,7 @@ function getValidRoute(state) {
 }
 
 function showView(viewToShow) {
-  [homeView, uploadView, titleView, guestView, rankingView, randomView, contactView, profileView, adminView].forEach((view) => {
+  [homeView, galleryView, uploadView, titleView, guestView, rankingView, randomView, contactView, profileView, adminView].forEach((view) => {
     view.hidden = view !== viewToShow;
   });
   window.scrollTo({ top: 0, behavior: "auto" });
@@ -1826,6 +2097,13 @@ function applyRoute(state) {
     showView(uploadView);
     imageUploadMessage.textContent = "이미지는 문의를 통해 제안할 수 있습니다. 관리자가 확인한 뒤 갤러리 게시 여부를 검토합니다.";
     imageSuggestionButton.focus();
+    return;
+  }
+
+  if (route.view === "gallery") {
+    selectedImageIndex = null;
+    pendingTitle = "";
+    showView(galleryView);
     return;
   }
 
@@ -1910,6 +2188,10 @@ function goContact() {
 
 function goUpload() {
   navigateTo({ view: "upload" });
+}
+
+function goGallery() {
+  navigateTo({ view: "gallery" });
 }
 
 function goImageSuggestionContact() {
@@ -6224,6 +6506,7 @@ async function initializeApp() {
   await restoreSession();
   await loadGalleryImages();
   await loadDaily();
+  await loadFeed(activeFeedWindow);
   await initializeAuthProviders();
   initializeRoute();
 }
