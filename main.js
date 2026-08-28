@@ -1588,6 +1588,26 @@ function setFeedTabActive(windowKey) {
   });
 }
 
+function syncFeedNavigationState(view) {
+  const isFeedView = view === "home";
+
+  document.querySelectorAll("#feedTabs [data-feed-window]").forEach((tabButton) => {
+    const isActive = isFeedView && tabButton.dataset.feedWindow === activeFeedWindow;
+    tabButton.classList.toggle("is-active", isActive);
+    tabButton.setAttribute("aria-selected", String(isActive));
+  });
+
+  const isGalleryView = view === "gallery";
+  pastGalleryLink?.classList.toggle("is-active", isGalleryView);
+  pastGalleryLink?.setAttribute("aria-selected", String(isGalleryView));
+
+  if (isGalleryView) {
+    pastGalleryLink?.setAttribute("aria-current", "page");
+  } else {
+    pastGalleryLink?.removeAttribute("aria-current");
+  }
+}
+
 function updateFeedEmptyState() {
   if (feedEmptyEl) {
     feedEmptyEl.hidden = feedItems.length > 0;
@@ -1950,7 +1970,7 @@ function routeToHash(state) {
     return state.partyCode ? `#party/${encodeURIComponent(state.partyCode)}` : "#party";
   }
 
-  return "#home";
+  return "#feed";
 }
 
 function routeToUrl(state) {
@@ -1958,7 +1978,7 @@ function routeToUrl(state) {
     return "/admin";
   }
 
-  if (state.view === "home") {
+  if (state.view === "gallery") {
     return "/";
   }
 
@@ -1978,7 +1998,11 @@ function parseRouteFromLocation() {
 function parseRouteFromHash(hash) {
   const cleanHash = hash.replace(/^#/, "");
 
-  if (!cleanHash || cleanHash === "home") {
+  if (!cleanHash) {
+    return { view: "gallery" };
+  }
+
+  if (cleanHash === "home" || cleanHash === "feed") {
     return { view: "home" };
   }
 
@@ -2115,10 +2139,12 @@ function applyRoute(state) {
   const route = getValidRoute(state);
 
   if (!route) {
-    history.replaceState({ view: "home" }, "", routeToUrl({ view: "home" }));
-    applyRoute({ view: "home" });
+    history.replaceState({ view: "gallery" }, "", routeToUrl({ view: "gallery" }));
+    applyRoute({ view: "gallery" });
     return;
   }
+
+  syncFeedNavigationState(route.view);
 
   // 사진 작업 흐름(제목 입력·댓글·랭킹·랜덤·파티 모드)에서는 상단 칼럼 메뉴를 숨겨 집중을 돕는다.
   if (topSiteNav) {
@@ -2227,7 +2253,7 @@ function applyRoute(state) {
 }
 
 function navigateTo(state, options = {}) {
-  const route = getValidRoute(state) || { view: "home" };
+  const route = getValidRoute(state) || { view: "gallery" };
   const method = options.replace ? "replaceState" : "pushState";
 
   history[method](route, "", routeToUrl(route));
@@ -2235,14 +2261,14 @@ function navigateTo(state, options = {}) {
 }
 
 function initializeRoute() {
-  const route = getValidRoute(parseRouteFromLocation()) || { view: "home" };
+  const route = getValidRoute(parseRouteFromLocation()) || { view: "gallery" };
 
   history.replaceState(route, "", routeToUrl(route));
   applyRoute(route);
 }
 
 function goHome() {
-  navigateTo({ view: "home" });
+  navigateTo({ view: "gallery" });
 }
 
 function goContact() {

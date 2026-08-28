@@ -264,6 +264,12 @@ img { max-width:100%; }
 .feed-tab.is-active { background:var(--primary); color:var(--text-onpop); }
 .feed-tab-link { color:var(--text-faint); margin-left:2px; border-left:1px solid var(--border-soft); border-radius:0; padding-left:15px; }
 .feed-tab-link:hover { color:var(--text-strong); background:transparent; }
+.feed-tab-link.is-active,
+.feed-tab-link.is-active:hover,
+.feed-tab-link.is-active:focus-visible {
+  border-left-color:transparent; border-radius:var(--radius-sm); background:var(--primary-soft);
+  color:var(--primary); box-shadow:inset 0 0 0 2px var(--primary);
+}
 .feed-title-cta { flex:0 0 auto; }
 
 /* ===================== BUTTONS ===================== */
