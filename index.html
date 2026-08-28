@@ -27,7 +27,7 @@
   <meta name="twitter:image:alt" content="제목 학원 로고" />
 
   <title>제목 학원 - 레전드 짤 보고 제목 짓기</title>
-  <link href="style.css?v=31" rel="stylesheet" />
+  <link href="style.css?v=32" rel="stylesheet" />
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -113,6 +113,15 @@
     <section class="view feed-view" id="homeView" aria-label="유머 피드">
       <div class="feed-layout" id="feedLayout">
         <div class="feed-main">
+          <a class="party-promo-card" id="partyPromoCard" href="/#party">
+            <span class="party-promo-emoji" aria-hidden="true">🎉</span>
+            <span class="party-promo-body">
+              <strong>파티 모드</strong>
+              <span>친구들과 실시간 제목 대결 — 초대 코드로 바로 참가!</span>
+            </span>
+            <span class="party-promo-arrow" aria-hidden="true">→</span>
+          </a>
+
           <ol class="feed-list" id="feedList" aria-label="제출된 제목 목록"></ol>
           <p class="feed-empty" id="feedEmpty" hidden>아직 등록된 제목이 없어요. 첫 제목을 남겨보세요!</p>
           <button class="auth-button ghost full feed-more-button" id="feedMoreButton" type="button" hidden>더 보기</button>
@@ -416,6 +425,114 @@
         <p class="my-title-empty">관리자 데이터를 불러오는 중입니다.</p>
       </div>
     </section>
+
+    <section class="view party-view" id="partyView" hidden aria-label="파티 모드">
+      <div class="page-head">
+        <p class="view-kicker">파티 모드</p>
+        <h2 class="view-title">친구들과 실시간 제목 대결</h2>
+      </div>
+
+      <p class="party-connection-badge" id="partyConnectionBadge" hidden role="status">연결이 불안정해요. 계속 시도하는 중…</p>
+
+      <section class="party-panel party-entry-panel" id="partyEntryPanel" aria-label="파티 시작">
+        <div class="party-entry-grid">
+          <form class="party-entry-card" id="partyCreateForm">
+            <h3>방 만들기</h3>
+            <label for="partyCreateNickname">닉네임</label>
+            <input id="partyCreateNickname" type="text" maxlength="12" autocomplete="off" placeholder="닉네임 (최대 12자)" required />
+            <div class="party-entry-row">
+              <label for="partyTotalRounds">라운드 수</label>
+              <select id="partyTotalRounds">
+                <option value="3">3라운드</option>
+                <option value="5" selected>5라운드</option>
+                <option value="7">7라운드</option>
+                <option value="10">10라운드</option>
+              </select>
+            </div>
+            <div class="party-entry-row">
+              <label for="partyRoundSeconds">제한시간</label>
+              <select id="partyRoundSeconds">
+                <option value="30">30초</option>
+                <option value="60" selected>60초</option>
+                <option value="90">90초</option>
+                <option value="120">120초</option>
+              </select>
+            </div>
+            <p class="profile-edit-message" id="partyCreateMessage" aria-live="polite"></p>
+            <button class="auth-button solid full" type="submit">방 만들기</button>
+          </form>
+
+          <form class="party-entry-card" id="partyJoinForm">
+            <h3>참가하기</h3>
+            <label for="partyJoinNickname">닉네임</label>
+            <input id="partyJoinNickname" type="text" maxlength="12" autocomplete="off" placeholder="닉네임 (최대 12자)" required />
+            <label for="partyJoinCode">초대 코드</label>
+            <input id="partyJoinCode" class="party-code-input-field" type="text" maxlength="6" autocomplete="off" placeholder="예: AB3C9K" />
+            <p class="profile-edit-message" id="partyJoinMessage" aria-live="polite"></p>
+            <button class="auth-button ghost full" type="submit">참가하기</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="party-panel party-lobby-panel" id="partyLobbyPanel" hidden aria-label="대기실">
+        <div class="party-code-block">
+          <p class="party-code-label">초대 코드</p>
+          <p class="party-code-display" id="partyLobbyCode"></p>
+          <div class="party-code-actions">
+            <button class="auth-button ghost small" id="partyCopyCodeButton" type="button">코드 복사</button>
+            <button class="auth-button ghost small" id="partyCopyLinkButton" type="button">초대 링크 복사</button>
+          </div>
+        </div>
+
+        <div class="party-players-block">
+          <h3>참가자 <span id="partyPlayerCount"></span></h3>
+          <ul class="party-player-list" id="partyLobbyPlayerList"></ul>
+        </div>
+
+        <button class="auth-button solid full" id="partyStartButton" type="button" hidden>게임 시작</button>
+        <p class="party-wait-message" id="partyWaitMessage" hidden>호스트가 시작하기를 기다리는 중…</p>
+      </section>
+
+      <section class="party-panel party-round-panel" id="partyRoundPanel" hidden aria-label="라운드 진행">
+        <div class="party-round-head">
+          <span class="party-round-progress" id="partyRoundProgress"></span>
+          <span class="party-round-timer" id="partyRoundTimer"></span>
+        </div>
+
+        <div class="selected-photo-frame party-photo-frame">
+          <img class="selected-photo" id="partyRoundPhoto" alt="" decoding="async" />
+        </div>
+
+        <form class="entry-form party-title-form" id="partyTitleForm">
+          <label for="partyTitleInput">제목</label>
+          <div class="entry-row">
+            <input id="partyTitleInput" type="text" maxlength="40" autocomplete="off" placeholder="이 사진의 제목을 입력하세요" />
+            <button class="auth-button solid" type="submit" id="partyTitleSubmitButton">제출</button>
+          </div>
+          <p class="party-submit-hint" id="partySubmitHint" aria-live="polite"></p>
+        </form>
+
+        <p class="party-submit-count" id="partySubmitCount"></p>
+      </section>
+
+      <section class="party-panel party-reveal-panel" id="partyRevealPanel" hidden aria-label="공개">
+        <div class="party-round-head">
+          <span class="party-round-progress" id="partyRevealProgress"></span>
+        </div>
+
+        <div class="selected-photo-frame party-photo-frame">
+          <img class="selected-photo" id="partyRevealPhoto" alt="" decoding="async" />
+        </div>
+
+        <ul class="party-reveal-list" id="partyRevealList"></ul>
+
+        <div class="party-reveal-actions">
+          <button class="auth-button solid full" id="partyAdvanceButton" type="button" hidden>다음 라운드</button>
+          <p class="party-wait-message" id="partyRevealWaitMessage" hidden>호스트가 다음 라운드를 준비하는 중…</p>
+          <button class="auth-button ghost full" id="partyNewGameButton" type="button" hidden>새 게임 만들기</button>
+        </div>
+      </section>
+    </section>
   </main>
 
   <footer class="site-footer" aria-label="사이트 하단 링크">
@@ -711,6 +828,6 @@
     </div>
   </section>
 
-  <script type="module" src="main.js?v=43"></script>
+  <script type="module" src="main.js?v=44"></script>
 </body>
 </html>

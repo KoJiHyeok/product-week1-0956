@@ -31,6 +31,7 @@ const randomView = document.querySelector("#randomView");
 const contactView = document.querySelector("#contactView");
 const profileView = document.querySelector("#profileView");
 const adminView = document.querySelector("#adminView");
+const partyView = document.querySelector("#partyView");
 const topSiteNav = document.querySelector(".top-site-nav");
 const galleryGrid = document.querySelector("#galleryGrid");
 const feedTabsEl = document.querySelector("#feedTabs");
@@ -1945,6 +1946,10 @@ function routeToHash(state) {
     return "#admin";
   }
 
+  if (state.view === "party") {
+    return state.partyCode ? `#party/${encodeURIComponent(state.partyCode)}` : "#party";
+  }
+
   return "#home";
 }
 
@@ -1997,6 +2002,14 @@ function parseRouteFromHash(hash) {
     return { view: "admin" };
   }
 
+  if (cleanHash === "party") {
+    return { view: "party" };
+  }
+
+  if (cleanHash.startsWith("party/")) {
+    return { view: "party", partyCode: decodeURIComponent(cleanHash.slice("party/".length)) };
+  }
+
   const [view, locator, rawValue] = cleanHash.split("/");
   const imageIndex = locator === "key"
     ? findImageIndexByKey(decodeRouteImageKey(rawValue))
@@ -2038,6 +2051,10 @@ function getValidRoute(state) {
     return { view: "admin" };
   }
 
+  if (state.view === "party") {
+    return { view: "party", partyCode: typeof state.partyCode === "string" ? state.partyCode : "" };
+  }
+
   if (!["title", "guest", "ranking", "random"].includes(state.view) || !Number.isInteger(state.imageIndex)) {
     return null;
   }
@@ -2059,7 +2076,7 @@ function getValidRoute(state) {
 }
 
 function showView(viewToShow) {
-  [homeView, galleryView, uploadView, titleView, guestView, rankingView, randomView, contactView, profileView, adminView].forEach((view) => {
+  [homeView, galleryView, uploadView, titleView, guestView, rankingView, randomView, contactView, profileView, adminView, partyView].forEach((view) => {
     view.hidden = view !== viewToShow;
   });
   window.scrollTo({ top: 0, behavior: "auto" });
@@ -2072,6 +2089,11 @@ function showView(viewToShow) {
   } else if (dailyCountdownIntervalId) {
     clearInterval(dailyCountdownIntervalId);
     dailyCountdownIntervalId = null;
+  }
+
+  if (viewToShow !== partyView) {
+    stopPartyPolling();
+    stopPartyCountdown();
   }
 }
 
@@ -2098,9 +2120,9 @@ function applyRoute(state) {
     return;
   }
 
-  // 사진 작업 흐름(제목 입력·댓글·랭킹·랜덤)에서는 상단 칼럼 메뉴를 숨겨 집중을 돕는다.
+  // 사진 작업 흐름(제목 입력·댓글·랭킹·랜덤·파티 모드)에서는 상단 칼럼 메뉴를 숨겨 집중을 돕는다.
   if (topSiteNav) {
-    topSiteNav.hidden = ["title", "guest", "ranking", "random"].includes(route.view);
+    topSiteNav.hidden = ["title", "guest", "ranking", "random", "party"].includes(route.view);
   }
 
   if (route.view === "home") {
@@ -2160,6 +2182,14 @@ function applyRoute(state) {
     pendingTitle = "";
     showView(adminView);
     loadAdminImages();
+    return;
+  }
+
+  if (route.view === "party") {
+    selectedImageIndex = null;
+    pendingTitle = "";
+    showView(partyView);
+    enterPartyView(route.partyCode || "");
     return;
   }
 
@@ -2225,6 +2255,10 @@ function goUpload() {
 
 function goGallery() {
   navigateTo({ view: "gallery" });
+}
+
+function goParty(code) {
+  navigateTo({ view: "party", partyCode: code || "" });
 }
 
 function goImageSuggestionContact() {
@@ -6464,6 +6498,531 @@ avatarEditButton.addEventListener("click", () => {
 });
 avatarInput.addEventListener("change", () => {
   uploadAvatar(avatarInput.files?.[0]);
+});
+
+/* ===================== 파티 모드 ===================== */
+
+const partyPromoCard = document.querySelector("#partyPromoCard");
+const partyConnectionBadge = document.querySelector("#partyConnectionBadge");
+const partyEntryPanel = document.querySelector("#partyEntryPanel");
+const partyCreateForm = document.querySelector("#partyCreateForm");
+const partyCreateNicknameInput = document.querySelector("#partyCreateNickname");
+const partyTotalRoundsSelect = document.querySelector("#partyTotalRounds");
+const partyRoundSecondsSelect = document.querySelector("#partyRoundSeconds");
+const partyCreateMessage = document.querySelector("#partyCreateMessage");
+const partyJoinForm = document.querySelector("#partyJoinForm");
+const partyJoinNicknameInput = document.querySelector("#partyJoinNickname");
+const partyJoinCodeInput = document.querySelector("#partyJoinCode");
+const partyJoinMessage = document.querySelector("#partyJoinMessage");
+const partyLobbyPanel = document.querySelector("#partyLobbyPanel");
+const partyLobbyCode = document.querySelector("#partyLobbyCode");
+const partyPlayerCount = document.querySelector("#partyPlayerCount");
+const partyLobbyPlayerList = document.querySelector("#partyLobbyPlayerList");
+const partyStartButton = document.querySelector("#partyStartButton");
+const partyWaitMessage = document.querySelector("#partyWaitMessage");
+const partyCopyCodeButton = document.querySelector("#partyCopyCodeButton");
+const partyCopyLinkButton = document.querySelector("#partyCopyLinkButton");
+const partyRoundPanel = document.querySelector("#partyRoundPanel");
+const partyRoundProgress = document.querySelector("#partyRoundProgress");
+const partyRoundTimer = document.querySelector("#partyRoundTimer");
+const partyRoundPhoto = document.querySelector("#partyRoundPhoto");
+const partyTitleForm = document.querySelector("#partyTitleForm");
+const partyTitleInput = document.querySelector("#partyTitleInput");
+const partyTitleSubmitButton = document.querySelector("#partyTitleSubmitButton");
+const partySubmitHint = document.querySelector("#partySubmitHint");
+const partySubmitCount = document.querySelector("#partySubmitCount");
+const partyRevealPanel = document.querySelector("#partyRevealPanel");
+const partyRevealProgress = document.querySelector("#partyRevealProgress");
+const partyRevealPhoto = document.querySelector("#partyRevealPhoto");
+const partyRevealList = document.querySelector("#partyRevealList");
+const partyAdvanceButton = document.querySelector("#partyAdvanceButton");
+const partyRevealWaitMessage = document.querySelector("#partyRevealWaitMessage");
+const partyNewGameButton = document.querySelector("#partyNewGameButton");
+
+const partyStorageKey = "title-academy-party";
+const partyPollMs = 2000;
+const partyCountdownTickMs = 250;
+
+let partyPollIntervalId = null;
+let partyCountdownIntervalId = null;
+let partyServerOffsetMs = 0;
+let partyCurrentRoundKey = "";
+let partyRevealedRoundKey = "";
+
+const partyState = {
+  code: "",
+  playerToken: "",
+  nickname: "",
+};
+
+function loadPartyStorage() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(partyStorageKey) || "null");
+    if (!parsed || typeof parsed !== "object" || !parsed.code || !parsed.playerToken) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function savePartyStorage() {
+  try {
+    localStorage.setItem(
+      partyStorageKey,
+      JSON.stringify({ code: partyState.code, playerToken: partyState.playerToken, nickname: partyState.nickname })
+    );
+  } catch {
+    // localStorage를 쓸 수 없어도 게임 진행 자체엔 지장 없음(새로고침 복귀만 안 됨)
+  }
+}
+
+function clearPartyStorage() {
+  try {
+    localStorage.removeItem(partyStorageKey);
+  } catch {
+    // ignore
+  }
+}
+
+function setPartyUrl(code) {
+  const route = { view: "party", partyCode: code || "" };
+  history.replaceState(route, "", routeToUrl(route));
+}
+
+async function partyApi(path, body) {
+  return requestAuth(path, { method: "POST", body: JSON.stringify(body) });
+}
+
+async function fetchPartyState() {
+  const url = `/api/party/state?code=${encodeURIComponent(partyState.code)}&token=${encodeURIComponent(partyState.playerToken)}`;
+  return requestAuth(url);
+}
+
+function showPartyPanel(panelName) {
+  const panels = {
+    entry: partyEntryPanel,
+    lobby: partyLobbyPanel,
+    round: partyRoundPanel,
+    reveal: partyRevealPanel,
+  };
+  Object.entries(panels).forEach(([name, panel]) => {
+    if (panel) {
+      panel.hidden = name !== panelName;
+    }
+  });
+}
+
+function applyPartyPhoto(imgEl, seed, fallbackImage) {
+  imgEl.dataset.fallbackSrc = fallbackImage?.src || "";
+  imgEl.dataset.fallbackApplied = "";
+  imgEl.alt = fallbackImage?.alt || "파티 라운드 사진";
+  imgEl.src = `https://picsum.photos/seed/${encodeURIComponent(seed || partyState.code)}/900/600`;
+}
+
+function setupPartyImageFallback(imgEl) {
+  imgEl.addEventListener("error", () => {
+    const fallback = imgEl.dataset.fallbackSrc || "";
+    if (!fallback || imgEl.dataset.fallbackApplied === "1") {
+      return;
+    }
+    imgEl.dataset.fallbackApplied = "1";
+    imgEl.src = fallback;
+  });
+}
+
+setupPartyImageFallback(partyRoundPhoto);
+setupPartyImageFallback(partyRevealPhoto);
+
+function stopPartyCountdown() {
+  if (partyCountdownIntervalId) {
+    window.clearInterval(partyCountdownIntervalId);
+    partyCountdownIntervalId = null;
+  }
+}
+
+function startPartyCountdown(deadlineAt) {
+  stopPartyCountdown();
+
+  if (!deadlineAt) {
+    partyRoundTimer.textContent = "";
+    return;
+  }
+
+  const tick = () => {
+    const remainingMs = deadlineAt - (Date.now() + partyServerOffsetMs);
+    const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+    partyRoundTimer.textContent = `${remainingSeconds}초`;
+    partyRoundTimer.classList.toggle("is-urgent", remainingSeconds <= 10);
+  };
+
+  tick();
+  partyCountdownIntervalId = window.setInterval(tick, partyCountdownTickMs);
+}
+
+function renderPartyLobby(room, players, isHost) {
+  partyLobbyCode.textContent = room.code;
+  partyPlayerCount.textContent = `(${players.length}/12)`;
+  partyLobbyPlayerList.innerHTML = "";
+
+  players.forEach((player) => {
+    const item = document.createElement("li");
+    item.className = "party-player-item";
+    if (!player.isActive) {
+      item.classList.add("is-inactive");
+    }
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "party-player-name";
+    nameSpan.textContent = player.nickname;
+    item.appendChild(nameSpan);
+
+    if (player.isHost) {
+      const hostBadge = document.createElement("span");
+      hostBadge.className = "party-player-badge";
+      hostBadge.textContent = "호스트";
+      item.appendChild(hostBadge);
+    }
+
+    if (player.isMe) {
+      const meBadge = document.createElement("span");
+      meBadge.className = "party-player-badge party-player-badge-me";
+      meBadge.textContent = "나";
+      item.appendChild(meBadge);
+    }
+
+    partyLobbyPlayerList.appendChild(item);
+  });
+
+  partyStartButton.hidden = !isHost;
+  partyWaitMessage.hidden = isHost;
+}
+
+function renderPartyRound(room, players, me) {
+  const roundKey = `${room.code}:${room.roundNumber}`;
+  if (roundKey !== partyCurrentRoundKey) {
+    partyCurrentRoundKey = roundKey;
+    partyTitleInput.value = "";
+    applyPartyPhoto(partyRoundPhoto, room.photoSeed, room.fallbackImage);
+  }
+
+  partyRoundProgress.textContent = `라운드 ${room.roundNumber} / ${room.totalRounds}`;
+
+  const submittedCount = players.filter((player) => player.hasSubmitted).length;
+  partySubmitCount.textContent = `제출 ${submittedCount}/${players.length}`;
+  partySubmitHint.textContent = me?.hasSubmitted ? "제출 완료! 마감 전까지 수정할 수 있어요." : "";
+  partyTitleSubmitButton.textContent = me?.hasSubmitted ? "수정" : "제출";
+
+  startPartyCountdown(room.roundDeadlineAt);
+}
+
+function renderPartyReveal(room, players, titles, isHost) {
+  stopPartyCountdown();
+
+  const roundKey = `${room.code}:${room.roundNumber}:${room.status}`;
+  const isNewReveal = roundKey !== partyRevealedRoundKey;
+  partyRevealedRoundKey = roundKey;
+
+  partyRevealProgress.textContent =
+    room.status === "ended" ? "게임 종료" : `라운드 ${room.roundNumber} / ${room.totalRounds} 공개`;
+
+  if (isNewReveal) {
+    applyPartyPhoto(partyRevealPhoto, room.photoSeed, room.fallbackImage);
+  }
+
+  partyRevealList.innerHTML = "";
+
+  titles.forEach((entry, index) => {
+    const item = document.createElement("li");
+    item.className = "party-reveal-item";
+    if (isNewReveal) {
+      item.classList.add("is-entering");
+      item.style.animationDelay = `${index * 200}ms`;
+    }
+
+    const titleSpan = document.createElement("span");
+    titleSpan.className = "party-reveal-title";
+    titleSpan.textContent = entry.title;
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "party-reveal-name";
+    nameSpan.textContent = entry.nickname;
+
+    item.appendChild(titleSpan);
+    item.appendChild(nameSpan);
+    partyRevealList.appendChild(item);
+  });
+
+  if (!titles.length) {
+    const empty = document.createElement("li");
+    empty.className = "party-reveal-empty";
+    empty.textContent = "제출된 제목이 없어요.";
+    partyRevealList.appendChild(empty);
+  }
+
+  const isLastRound = room.roundNumber >= room.totalRounds;
+
+  if (room.status === "ended") {
+    partyAdvanceButton.hidden = true;
+    partyRevealWaitMessage.hidden = true;
+    partyNewGameButton.hidden = false;
+  } else {
+    partyNewGameButton.hidden = true;
+    partyAdvanceButton.hidden = !isHost;
+    partyAdvanceButton.textContent = isLastRound ? "게임 종료" : "다음 라운드";
+    partyRevealWaitMessage.hidden = isHost;
+  }
+}
+
+function renderPartyState(state) {
+  if (!state?.room) {
+    return;
+  }
+
+  const { room, players = [], titles = [] } = state;
+  partyServerOffsetMs = room.serverNow - Date.now();
+
+  const me = players.find((player) => player.isMe);
+  const isHost = Boolean(me?.isHost);
+
+  if (room.status === "lobby") {
+    renderPartyLobby(room, players, isHost);
+    showPartyPanel("lobby");
+  } else if (room.status === "round") {
+    renderPartyRound(room, players, me);
+    showPartyPanel("round");
+  } else {
+    renderPartyReveal(room, players, titles, isHost);
+    showPartyPanel("reveal");
+  }
+}
+
+async function refreshPartyState({ silent = false } = {}) {
+  if (!partyState.code || !partyState.playerToken) {
+    return false;
+  }
+
+  try {
+    const state = await fetchPartyState();
+    partyConnectionBadge.hidden = true;
+    renderPartyState(state);
+    return true;
+  } catch {
+    if (!silent) {
+      partyConnectionBadge.hidden = false;
+    }
+    return false;
+  }
+}
+
+function stopPartyPolling() {
+  if (partyPollIntervalId) {
+    window.clearInterval(partyPollIntervalId);
+    partyPollIntervalId = null;
+  }
+}
+
+function startPartyPolling() {
+  stopPartyPolling();
+  partyPollIntervalId = window.setInterval(() => {
+    refreshPartyState();
+  }, partyPollMs);
+}
+
+async function enterPartyView(routeCode) {
+  const saved = loadPartyStorage();
+
+  if (saved && (!routeCode || routeCode === saved.code)) {
+    partyState.code = saved.code;
+    partyState.playerToken = saved.playerToken;
+    partyState.nickname = saved.nickname || "";
+
+    const resumed = await refreshPartyState({ silent: true });
+    if (resumed) {
+      startPartyPolling();
+      return;
+    }
+
+    clearPartyStorage();
+  }
+
+  stopPartyPolling();
+  stopPartyCountdown();
+  partyState.code = "";
+  partyState.playerToken = "";
+  partyState.nickname = "";
+  partyCreateMessage.textContent = "";
+  partyJoinMessage.textContent = "";
+  partyJoinCodeInput.value = routeCode || "";
+  showPartyPanel("entry");
+}
+
+async function runPartyAdvance(button) {
+  if (!partyState.code || !partyState.playerToken) {
+    return;
+  }
+
+  button.disabled = true;
+  try {
+    const data = await partyApi("/api/party/advance", { code: partyState.code, token: partyState.playerToken });
+    renderPartyState(data.state);
+  } catch (error) {
+    showToast(error?.message || "라운드를 진행하지 못했습니다.");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+partyPromoCard?.addEventListener("click", (event) => {
+  event.preventDefault();
+  goParty();
+});
+
+partyCreateForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const nickname = partyCreateNicknameInput.value.trim();
+
+  if (!nickname) {
+    partyCreateMessage.textContent = "닉네임을 입력해주세요.";
+    return;
+  }
+
+  partyCreateMessage.textContent = "";
+  const submitButton = partyCreateForm.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+
+  try {
+    const data = await partyApi("/api/party/create", {
+      nickname,
+      totalRounds: Number(partyTotalRoundsSelect.value),
+      roundSeconds: Number(partyRoundSecondsSelect.value),
+    });
+    partyState.code = data.code;
+    partyState.playerToken = data.playerToken;
+    partyState.nickname = nickname;
+    savePartyStorage();
+    setPartyUrl(data.code);
+    renderPartyState(data.state);
+    startPartyPolling();
+  } catch (error) {
+    partyCreateMessage.textContent = error?.message || "방을 만들지 못했습니다.";
+  } finally {
+    submitButton.disabled = false;
+  }
+});
+
+partyJoinForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const nickname = partyJoinNicknameInput.value.trim();
+  const code = partyJoinCodeInput.value.trim().toUpperCase();
+
+  if (!nickname) {
+    partyJoinMessage.textContent = "닉네임을 입력해주세요.";
+    return;
+  }
+  if (!code) {
+    partyJoinMessage.textContent = "초대 코드를 입력해주세요.";
+    return;
+  }
+
+  partyJoinMessage.textContent = "";
+  const submitButton = partyJoinForm.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+
+  try {
+    const data = await partyApi("/api/party/join", { code, nickname });
+    partyState.code = data.code;
+    partyState.playerToken = data.playerToken;
+    partyState.nickname = nickname;
+    savePartyStorage();
+    setPartyUrl(data.code);
+    renderPartyState(data.state);
+    startPartyPolling();
+  } catch (error) {
+    partyJoinMessage.textContent = error?.message || "참가에 실패했습니다.";
+  } finally {
+    submitButton.disabled = false;
+  }
+});
+
+partyStartButton.addEventListener("click", () => runPartyAdvance(partyStartButton));
+partyAdvanceButton.addEventListener("click", () => runPartyAdvance(partyAdvanceButton));
+
+partyTitleForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const title = partyTitleInput.value.trim();
+
+  if (!title || !partyState.code || !partyState.playerToken) {
+    return;
+  }
+
+  partyTitleSubmitButton.disabled = true;
+  try {
+    const data = await partyApi("/api/party/submit", {
+      code: partyState.code,
+      token: partyState.playerToken,
+      title,
+    });
+    renderPartyState(data.state);
+    showToast("제목을 제출했어요!");
+  } catch (error) {
+    showToast(error?.message || "제출에 실패했습니다.");
+  } finally {
+    partyTitleSubmitButton.disabled = false;
+  }
+});
+
+partyNewGameButton.addEventListener("click", () => {
+  stopPartyPolling();
+  stopPartyCountdown();
+  clearPartyStorage();
+  partyState.code = "";
+  partyState.playerToken = "";
+  partyState.nickname = "";
+  partyCurrentRoundKey = "";
+  partyRevealedRoundKey = "";
+  partyCreateNicknameInput.value = "";
+  partyJoinNicknameInput.value = "";
+  partyJoinCodeInput.value = "";
+  navigateTo({ view: "party" });
+});
+
+partyCopyCodeButton.addEventListener("click", async () => {
+  if (!partyState.code) {
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(partyState.code);
+    showToast("초대 코드를 복사했어요.");
+  } catch {
+    showToast(partyState.code);
+  }
+});
+
+partyCopyLinkButton.addEventListener("click", async () => {
+  if (!partyState.code) {
+    return;
+  }
+  const url = `${location.origin}${routeToUrl({ view: "party", partyCode: partyState.code })}`;
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast("초대 링크를 복사했어요.");
+  } catch {
+    showToast(url);
+  }
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    stopPartyPolling();
+    return;
+  }
+
+  if (partyView && !partyView.hidden && partyState.code && partyState.playerToken) {
+    refreshPartyState();
+    startPartyPolling();
+  }
 });
 
 window.addEventListener("popstate", (event) => {
