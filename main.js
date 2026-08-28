@@ -165,6 +165,9 @@ const contactAttachmentSize = document.querySelector("#contactAttachmentSize");
 const contactAttachmentRemoveButton = document.querySelector("#contactAttachmentRemoveButton");
 const contactMessage = document.querySelector("#contactMessage");
 const contactSubmitButton = document.querySelector("#contactSubmitButton");
+const contactAccessNotice = document.querySelector("#contactAccessNotice");
+const contactAccessMessage = document.querySelector("#contactAccessMessage");
+const contactAccessLoginButton = document.querySelector("#contactAccessLoginButton");
 const imageSuggestionButton = document.querySelector("#imageSuggestionButton");
 const imageUploadMessage = document.querySelector("#imageUploadMessage");
 const uploadCancelButton = document.querySelector("#uploadCancelButton");
@@ -1055,9 +1058,38 @@ function getUserDisplayName() {
   return currentUser?.username || "";
 }
 
+function canSubmitContact() {
+  return Boolean(currentUser && currentUser.authProvider === "password" && currentUser.emailVerified);
+}
+
+function getContactAccessMessage() {
+  if (!currentUser) {
+    return "문의는 이메일 가입 회원만 이용할 수 있습니다. 로그인 또는 회원가입 후 이메일 인증을 완료해주세요.";
+  }
+
+  if (currentUser.authProvider !== "password") {
+    return "문의는 이메일로 가입한 회원만 이용할 수 있습니다. 이메일 가입 계정으로 로그인해주세요.";
+  }
+
+  if (!currentUser.emailVerified) {
+    return "문의 제출은 이메일 인증 후 가능합니다. 가입 이메일의 인증 링크를 확인해주세요.";
+  }
+
+  return "";
+}
+
+function renderContactAccessState() {
+  const allowed = canSubmitContact();
+
+  contactAccessNotice.hidden = allowed;
+  contactAccessMessage.textContent = getContactAccessMessage();
+  contactSubmitButton.disabled = !allowed;
+}
+
 function setCurrentUser(user) {
   currentUser = user || null;
   renderUser();
+  renderContactAccessState();
   closeUserPopover();
   closeNotificationPanel();
 
@@ -2084,6 +2116,7 @@ function applyRoute(state) {
     selectedImageIndex = null;
     pendingTitle = "";
     showView(contactView);
+    renderContactAccessState();
     if (currentUser?.email && !contactReplyEmailInput.value.trim()) {
       contactReplyEmailInput.value = currentUser.email;
     }
@@ -5898,6 +5931,10 @@ signupButton.addEventListener("click", () => {
   openAuthModal("signup");
 });
 
+contactAccessLoginButton.addEventListener("click", () => {
+  openAuthModal("login");
+});
+
 googleAuthButton.addEventListener("click", () => {
   window.location.href = "/api/auth/google";
 });
@@ -6115,6 +6152,12 @@ contactForm.addEventListener("submit", async (event) => {
   contactMessage.textContent = "";
   contactMessage.classList.remove("is-success");
 
+  if (!canSubmitContact()) {
+    renderContactAccessState();
+    contactAccessLoginButton.focus();
+    return;
+  }
+
   const type = contactTypeInput.value.trim();
   const title = contactTitleInput.value.trim();
   const replyEmail = contactReplyEmailInput.value.trim();
@@ -6190,7 +6233,7 @@ contactForm.addEventListener("submit", async (event) => {
   } catch (error) {
     contactMessage.textContent = error.message;
   } finally {
-    contactSubmitButton.disabled = false;
+    contactSubmitButton.disabled = !canSubmitContact();
     contactSubmitButton.textContent = "문의 제출";
   }
 });

@@ -742,6 +742,8 @@ select { appearance:none; background-image:linear-gradient(45deg,transparent 50%
 .contact-notice h2 { font-size:var(--fs-h4); margin:0 0 12px; }
 .contact-notice ul { margin:0; padding-left:18px; color:var(--text-muted); font-size:var(--fs-sm); line-height:var(--lh-relaxed); }
 .contact-form { background:var(--surface-card); border-radius:var(--radius-xl); padding:var(--space-8); box-shadow:var(--shadow-1); }
+.contact-access-notice { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; background:var(--primary-soft); border-radius:var(--radius-lg); padding:14px 16px; }
+.contact-access-notice p { flex:1 1 260px; color:var(--text-strong); font-size:var(--fs-sm); line-height:var(--lh-normal); margin:0; }
 .contact-attachment-field { margin-top:8px; }
 .contact-attachment-label { font-weight:var(--fw-bold); font-size:var(--fs-sm); color:var(--text-strong); }
 .contact-attachment-dropzone {

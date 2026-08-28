@@ -20,6 +20,20 @@ export async function onRequestPost(context) {
 }
 
 async function handleContact(context) {
+  const user = await getCurrentUser(context);
+
+  if (!user) {
+    return json({ message: "문의는 이메일 가입 회원만 이용할 수 있습니다. 로그인 또는 회원가입 후 이용해주세요." }, 401);
+  }
+
+  if (user.auth_provider !== "password") {
+    return json({ message: "문의는 이메일로 가입한 회원만 이용할 수 있습니다. 이메일 가입 계정으로 로그인해주세요." }, 403);
+  }
+
+  if (!user.email_verified_at) {
+    return json({ message: "문의 제출 전 가입 이메일 인증이 필요합니다. 이메일 인증 링크를 확인해주세요." }, 403);
+  }
+
   const payload = await readContactPayload(context.request);
 
   if (!payload) {
@@ -30,14 +44,11 @@ async function handleContact(context) {
   const title = normalizeText(payload.title);
   const message = normalizeText(payload.body);
   const replyEmail = normalizeText(payload.replyEmail).toLowerCase();
-  const user = await getCurrentUser(context);
 
-  if (user) {
-    const restrictionResponse = await ensureUserCanWrite(context, user, type === IMAGE_SUGGESTION_TYPE ? "upload" : "write");
+  const restrictionResponse = await ensureUserCanWrite(context, user, type === IMAGE_SUGGESTION_TYPE ? "upload" : "write");
 
-    if (restrictionResponse) {
-      return restrictionResponse;
-    }
+  if (restrictionResponse) {
+    return restrictionResponse;
   }
 
   if (!ALLOWED_TYPES.has(type)) {
