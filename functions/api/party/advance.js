@@ -5,7 +5,7 @@ import {
   getRoomByCode,
   json,
   normalizeRoomCode,
-  pickFallbackImage,
+  pickRoundImage,
   readJson,
 } from "./_shared.js";
 
@@ -40,8 +40,9 @@ export async function onRequestPost(context) {
         .bind(now, room.id)
         .run();
     } else {
+      // 사진은 우리 갤러리에서 방 코드 기반 셔플 순서로 출제한다(외부 API 미사용).
       const seed = generatePhotoSeed();
-      const fallback = pickFallbackImage(seed);
+      const fallback = pickRoundImage(room.code, nextRoundNumber);
       const deadline = now + room.round_seconds * 1000;
 
       await db

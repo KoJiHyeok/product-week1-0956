@@ -97,6 +97,29 @@ export function pickFallbackImage(seed) {
   return { key: String(image.imageKey), src: image.src, alt: image.alt || image.title || "" };
 }
 
+// 방 코드를 시드로 갤러리 전체를 섞은 순서에서 라운드별 이미지를 고른다.
+// 같은 방에서는 갤러리 크기만큼 라운드가 지나기 전까지 사진이 겹치지 않고, 방마다 순서가 다르다.
+export function pickRoundImage(roomCode, roundNumber) {
+  if (!galleryImages.length) {
+    return { key: "", src: "", alt: "" };
+  }
+
+  const order = galleryImages.map((_, index) => index);
+  let state = hashSeed(roomCode) || 1;
+  for (let i = order.length - 1; i > 0; i -= 1) {
+    // xorshift32 — 방 코드마다 결정적인 셔플
+    state ^= state << 13;
+    state ^= state >>> 17;
+    state ^= state << 5;
+    state >>>= 0;
+    const j = state % (i + 1);
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+
+  const image = galleryImages[order[(roundNumber - 1) % order.length]];
+  return { key: String(image.imageKey), src: image.src, alt: image.alt || image.title || "" };
+}
+
 export function resolveFallbackImage(imageKey) {
   if (!imageKey) {
     return null;

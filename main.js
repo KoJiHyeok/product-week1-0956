@@ -6641,10 +6641,11 @@ function showPartyPanel(panelName) {
 }
 
 function applyPartyPhoto(imgEl, seed, fallbackImage) {
-  imgEl.dataset.fallbackSrc = fallbackImage?.src || "";
+  // 라운드 사진은 서버가 고른 우리 갤러리 이미지를 그대로 쓴다(외부 API 미사용).
+  imgEl.dataset.fallbackSrc = "";
   imgEl.dataset.fallbackApplied = "";
   imgEl.alt = fallbackImage?.alt || "파티 라운드 사진";
-  imgEl.src = `https://picsum.photos/seed/${encodeURIComponent(seed || partyState.code)}/900/600`;
+  imgEl.src = fallbackImage?.src || "";
 }
 
 function setupPartyImageFallback(imgEl) {
