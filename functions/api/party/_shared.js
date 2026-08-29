@@ -342,6 +342,12 @@ export async function buildRoomState(db, room, viewerToken) {
     });
   }
 
+  // 게임 종료 화면 전용 집계. 게임 중엔 스포일러 여지를 없애기 위해 계산하지 않는다.
+  let finalStats = null;
+  if (room.status === "ended") {
+    finalStats = await buildPartyFinalStats(db, room, players, scoreByPlayerId, viewerToken);
+  }
+
   const fallback =
     resolveFallbackImage(room.fallback_image_key) || pickFallbackImage(room.photo_seed || room.code);
 
@@ -386,7 +392,7 @@ export async function buildRoomState(db, room, viewerToken) {
     roundPhotoSuggested = Boolean(suggestionRow);
   }
 
-  return {
+  const state = {
     room: {
       code: room.code,
       status: room.status,
@@ -412,4 +418,108 @@ export async function buildRoomState(db, room, viewerToken) {
     titles: titlesOut,
     photos: photosOut,
   };
+
+  if (finalStats) {
+    state.finalStats = finalStats;
+  }
+
+  return state;
+}
+
+// 게임 종료(status='ended') 시에만 호출. 라운드별 득표 집계로 순위·라운드 우승·베스트 제목을 계산한다.
+// scoreByPlayerId는 buildRoomState가 이미 계산한 "전체 라운드 누적 득표"(status='ended'이면 votePhase는
+// 항상 'results'이므로 라운드 제한 없이 전체 집계돼 있다) 맵을 그대로 재사용한다.
+async function buildPartyFinalStats(db, room, players, scoreByPlayerId, viewerToken) {
+  const roundVotesResult = await db
+    .prepare(
+      `SELECT round_number AS roundNumber, target_player_id AS playerId, COUNT(*) AS voteCount
+       FROM party_votes WHERE room_id = ? GROUP BY round_number, target_player_id`
+    )
+    .bind(room.id)
+    .all();
+  const roundVoteRows = roundVotesResult.results || [];
+
+  const titlesResult = await db
+    .prepare(
+      `SELECT party_titles.round_number AS roundNumber, party_titles.player_id AS playerId,
+              party_titles.title AS title, party_players.nickname AS nickname
+       FROM party_titles
+       JOIN party_players ON party_players.id = party_titles.player_id
+       WHERE party_titles.room_id = ?
+       ORDER BY party_titles.round_number ASC, party_titles.created_at ASC, party_titles.id ASC`
+    )
+    .bind(room.id)
+    .all();
+  const titleRows = titlesResult.results || [];
+
+  // 라운드별 득표 맵과 게임 전체 투표 수.
+  const votesByRound = new Map(); // roundNumber -> Map(playerId -> voteCount)
+  let totalVotes = 0;
+  for (const row of roundVoteRows) {
+    const voteCount = Number(row.voteCount) || 0;
+    totalVotes += voteCount;
+    if (!votesByRound.has(row.roundNumber)) {
+      votesByRound.set(row.roundNumber, new Map());
+    }
+    votesByRound.get(row.roundNumber).set(row.playerId, voteCount);
+  }
+
+  // 라운드 우승 — 그 라운드 최다 득표(1표 이상)를 받은 전원에게 1승. 표가 없는 라운드는 우승자 없음.
+  const roundWinsByPlayerId = new Map();
+  for (const playerVotes of votesByRound.values()) {
+    let maxVotes = 0;
+    for (const count of playerVotes.values()) {
+      maxVotes = Math.max(maxVotes, count);
+    }
+    if (maxVotes <= 0) {
+      continue;
+    }
+    for (const [playerId, count] of playerVotes) {
+      if (count === maxVotes) {
+        roundWinsByPlayerId.set(playerId, (roundWinsByPlayerId.get(playerId) || 0) + 1);
+      }
+    }
+  }
+
+  const rankingUnsorted = players.map((player) => ({
+    playerId: player.id,
+    nickname: player.nickname,
+    isMe: player.token === viewerToken,
+    isMember: player.user_id != null,
+    totalVotes: scoreByPlayerId.get(player.id) || 0,
+    roundWins: roundWinsByPlayerId.get(player.id) || 0,
+  }));
+  rankingUnsorted.sort((a, b) => b.totalVotes - a.totalVotes);
+
+  // 경쟁 순위(1,1,3 방식) — 동점이면 같은 순위, 다음 순위는 인원 수만큼 건너뛴다.
+  let rank = 0;
+  let previousVotes = null;
+  const ranking = rankingUnsorted.map((entry, index) => {
+    if (previousVotes === null || entry.totalVotes !== previousVotes) {
+      rank = index + 1;
+      previousVotes = entry.totalVotes;
+    }
+    return { ...entry, rank };
+  });
+
+  // 베스트 제목 — 게임 전체에서 한 라운드 최다 득표를 받은 제목. 동점이면 더 이른 라운드 우선.
+  let bestTitle = null;
+  for (const row of titleRows) {
+    const voteCount = votesByRound.get(row.roundNumber)?.get(row.playerId) || 0;
+    if (voteCount <= 0) {
+      continue;
+    }
+    if (
+      !bestTitle ||
+      voteCount > bestTitle.voteCount ||
+      (voteCount === bestTitle.voteCount && row.roundNumber < bestTitle.roundNumber)
+    ) {
+      bestTitle = { title: row.title, nickname: row.nickname, voteCount, roundNumber: row.roundNumber };
+    }
+  }
+
+  const distinctRounds = new Set(titleRows.map((row) => row.roundNumber));
+  const roundsPlayed = distinctRounds.size > 0 ? distinctRounds.size : Number(room.round_number) || 0;
+
+  return { ranking, bestTitle, roundsPlayed, totalVotes };
 }

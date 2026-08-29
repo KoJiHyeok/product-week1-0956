@@ -27,7 +27,7 @@
   <meta name="twitter:image:alt" content="제목 학원 로고" />
 
   <title>제목 학원 - 레전드 짤 보고 제목 짓기</title>
-  <link href="style.css?v=38" rel="stylesheet" />
+  <link href="style.css?v=39" rel="stylesheet" />
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -647,7 +647,12 @@
           </div>
         </div>
 
-        <ol class="party-scoreboard" id="partyScoreboard" hidden aria-label="최종 점수"></ol>
+        <section class="party-final-section" id="partyFinalSection" hidden aria-label="최종 결과">
+          <div class="party-final-winner" id="partyFinalWinner"></div>
+          <ol class="party-final-ranking" id="partyFinalRanking" aria-label="최종 순위"></ol>
+          <div class="party-final-best" id="partyFinalBest" hidden></div>
+          <p class="party-final-summary" id="partyFinalSummary"></p>
+        </section>
 
         <div class="party-reveal-actions">
           <button class="auth-button solid full" id="partyAdvanceButton" type="button" hidden>다음 라운드</button>
@@ -951,6 +956,6 @@
     </div>
   </section>
 
-  <script type="module" src="main.js?v=51"></script>
+  <script type="module" src="main.js?v=52"></script>
 </body>
 </html>

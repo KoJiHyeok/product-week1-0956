@@ -6605,7 +6605,11 @@ const partySuggestPicker = document.querySelector("#partySuggestPicker");
 const partySuggestOptions = document.querySelector("#partySuggestOptions");
 const partySuggestSendButton = document.querySelector("#partySuggestSendButton");
 const partySuggestCancelButton = document.querySelector("#partySuggestCancelButton");
-const partyScoreboard = document.querySelector("#partyScoreboard");
+const partyFinalSection = document.querySelector("#partyFinalSection");
+const partyFinalWinner = document.querySelector("#partyFinalWinner");
+const partyFinalRanking = document.querySelector("#partyFinalRanking");
+const partyFinalBest = document.querySelector("#partyFinalBest");
+const partyFinalSummary = document.querySelector("#partyFinalSummary");
 const partyAdvanceButton = document.querySelector("#partyAdvanceButton");
 const partyRevealWaitMessage = document.querySelector("#partyRevealWaitMessage");
 const partyNewGameButton = document.querySelector("#partyNewGameButton");
@@ -6625,6 +6629,8 @@ let partyServerOffsetMs = 0;
 let partyCurrentRoundKey = "";
 let partyRevealedRoundKey = "";
 let partyTypedRevealKey = ""; // 이미 타이핑을 재생한 "code:round:revealIndex" — 폴링마다 재생 방지
+let partyFinalStampedKey = ""; // 이미 우승 도장을 재생한 방 코드 — 종료 화면 폴링마다 재생 방지
+let partyResultRenderedKey = ""; // 이미 그린 라운드 결과 "code:round:status" — 도장 재생 방지
 let partyTypingTimeoutId = null;
 let partyStageTypingActive = false;
 let partyLastIsHost = false;
@@ -6948,48 +6954,129 @@ function renderPartySuggestBlock(room, titles) {
   });
 }
 
-function renderPartyScoreboard(room, players) {
-  if (room.status !== "ended") {
-    partyScoreboard.hidden = true;
+// 게임 종료 화면의 최종 결과(우승 발표 + 순위표 + 베스트 제목 + 요약)를 그린다.
+// 종료 화면은 폴링(1~2초)마다 다시 응답이 오지만 결과는 더 이상 바뀌지 않으므로,
+// 타이핑 애니메이션과 같은 방식으로 방 코드당 최초 1회만 실제로 그리고 이후 폴링은 건너뛴다
+// (그렇지 않으면 우승 도장 애니메이션이 폴링마다 재생된다).
+function renderPartyFinal(room, finalStats) {
+  if (room.status !== "ended" || !finalStats) {
+    partyFinalSection.hidden = true;
+    partyFinalStampedKey = "";
     return;
   }
 
-  partyScoreboard.hidden = false;
-  partyScoreboard.innerHTML = "";
+  partyFinalSection.hidden = false;
 
-  const sorted = players.slice().sort((a, b) => b.score - a.score);
-  let rank = 0;
-  let previousScore = null;
+  if (room.code === partyFinalStampedKey) {
+    return;
+  }
+  partyFinalStampedKey = room.code;
 
-  sorted.forEach((player, index) => {
-    if (previousScore === null || player.score !== previousScore) {
-      rank = index + 1;
-      previousScore = player.score;
-    }
+  const { ranking, bestTitle, roundsPlayed, totalVotes } = finalStats;
 
+  // 우승 발표 — 공동 우승이면 전원 나열. 표가 하나도 없으면 도장 없이 안내 문구만.
+  partyFinalWinner.innerHTML = "";
+  const winners = ranking.filter((entry) => entry.rank === 1);
+  const hasAnyVotes = winners.some((entry) => entry.totalVotes > 0);
+
+  if (!winners.length || !hasAnyVotes) {
+    const empty = document.createElement("p");
+    empty.className = "party-final-empty";
+    empty.textContent = "이번 판은 표가 없었어요.";
+    partyFinalWinner.appendChild(empty);
+  } else {
+    const stamp = document.createElement("span");
+    stamp.className = "party-final-stamp";
+    stamp.textContent = "우승";
+    partyFinalWinner.appendChild(stamp);
+
+    winners.forEach((winner) => {
+      const row = document.createElement("div");
+      row.className = "party-final-winner-row";
+
+      const nameEl = document.createElement("p");
+      nameEl.className = "party-final-winner-name";
+      nameEl.textContent = winner.nickname;
+
+      const metaEl = document.createElement("p");
+      metaEl.className = "party-final-winner-meta";
+      metaEl.textContent = `총 ${winner.totalVotes}표`;
+
+      row.appendChild(nameEl);
+      row.appendChild(metaEl);
+      partyFinalWinner.appendChild(row);
+    });
+  }
+
+  // 순위표 — 득표 0인 참가자도 전원 포함, 이모지 대신 "N위" 텍스트.
+  partyFinalRanking.innerHTML = "";
+  ranking.forEach((entry) => {
     const item = document.createElement("li");
-    item.className = "party-score-item";
-    if (rank === 1) {
+    item.className = "party-final-rank-item";
+    if (entry.rank === 1) {
       item.classList.add("is-first");
+    }
+    if (entry.isMe) {
+      item.classList.add("is-me");
     }
 
     const rankSpan = document.createElement("span");
-    rankSpan.className = "party-score-rank";
-    rankSpan.textContent = rank === 1 ? "🏆" : `${rank}위`;
+    rankSpan.className = "party-final-rank-num";
+    rankSpan.textContent = `${entry.rank}위`;
+    item.appendChild(rankSpan);
 
     const nameSpan = document.createElement("span");
-    nameSpan.className = "party-score-name";
-    nameSpan.textContent = player.nickname;
-
-    const valueSpan = document.createElement("span");
-    valueSpan.className = "party-score-value";
-    valueSpan.textContent = `${player.score}표`;
-
-    item.appendChild(rankSpan);
+    nameSpan.className = "party-final-rank-name";
+    nameSpan.textContent = entry.nickname;
     item.appendChild(nameSpan);
-    item.appendChild(valueSpan);
-    partyScoreboard.appendChild(item);
+
+    if (entry.isMember) {
+      const memberBadge = document.createElement("span");
+      memberBadge.className = "party-player-badge";
+      memberBadge.textContent = "회원";
+      item.appendChild(memberBadge);
+    }
+
+    if (entry.isMe) {
+      const meBadge = document.createElement("span");
+      meBadge.className = "party-player-badge party-player-badge-me";
+      meBadge.textContent = "나";
+      item.appendChild(meBadge);
+    }
+
+    const statsSpan = document.createElement("span");
+    statsSpan.className = "party-final-rank-stats";
+    statsSpan.textContent = `총 ${entry.totalVotes}표 · 라운드 우승 ${entry.roundWins}회`;
+    item.appendChild(statsSpan);
+
+    partyFinalRanking.appendChild(item);
   });
+
+  // 베스트 제목 — 없으면(투표가 전혀 없던 게임) 블록 자체를 숨긴다.
+  partyFinalBest.innerHTML = "";
+  if (bestTitle) {
+    partyFinalBest.hidden = false;
+
+    const heading = document.createElement("p");
+    heading.className = "party-final-best-heading";
+    heading.textContent = "이번 판 베스트 제목";
+
+    const titleEl = document.createElement("p");
+    titleEl.className = "party-final-best-title";
+    titleEl.textContent = bestTitle.title;
+
+    const metaEl = document.createElement("p");
+    metaEl.className = "party-final-best-meta";
+    metaEl.textContent = `${bestTitle.nickname} · ${bestTitle.roundNumber}라운드 · ${bestTitle.voteCount}표`;
+
+    partyFinalBest.appendChild(heading);
+    partyFinalBest.appendChild(titleEl);
+    partyFinalBest.appendChild(metaEl);
+  } else {
+    partyFinalBest.hidden = true;
+  }
+
+  partyFinalSummary.textContent = `${roundsPlayed}라운드 · 총 ${totalVotes}표`;
 }
 
 // 남이 올린 사진은 서버가 애초에 내려주지 않는다(비공개) — 여기 오는 photos는 항상 내가 올린 것.
@@ -7230,7 +7317,15 @@ function stopPartyRevealActivity() {
   clearPartyStageTyping();
 }
 
-function renderPartyResultWinner(titles) {
+// 결과 단계의 내용은 투표가 마감된 뒤라 더 바뀌지 않는다. 폴링마다 다시 그리면
+// 도장 애니메이션이 1초마다 재생되므로, 같은 라운드에 대해서는 한 번만 그린다.
+function renderPartyResultWinner(titles, room) {
+  const resultKey = `${room.code}:${room.roundNumber}:${room.status}`;
+  if (resultKey === partyResultRenderedKey) {
+    return;
+  }
+  partyResultRenderedKey = resultKey;
+
   partyResultWinner.innerHTML = "";
 
   const maxVotes = titles.reduce((max, entry) => Math.max(max, entry.voteCount || 0), 0);
@@ -7270,7 +7365,7 @@ function renderPartyResultWinner(titles) {
     });
 }
 
-function renderPartyReveal(room, players, titles, me, isHost) {
+function renderPartyReveal(room, players, titles, me, isHost, finalStats) {
   stopPartyCountdown();
 
   const roundKey = `${room.code}:${room.roundNumber}:${room.status}`;
@@ -7285,6 +7380,7 @@ function renderPartyReveal(room, players, titles, me, isHost) {
     partySuggestPickerOpen = false;
     stopPartyRevealActivity();
     partyTypedRevealKey = "";
+    partyResultRenderedKey = "";
   }
 
   partyLastIsHost = isHost;
@@ -7311,7 +7407,7 @@ function renderPartyReveal(room, players, titles, me, isHost) {
   const showResultSection = votePhase === "results";
   partyResultSection.hidden = !showResultSection;
   if (showResultSection) {
-    renderPartyResultWinner(titles);
+    renderPartyResultWinner(titles, room);
   }
 
   if (showResultSection) {
@@ -7322,7 +7418,7 @@ function renderPartyReveal(room, players, titles, me, isHost) {
     partySuggestPicker.hidden = true;
   }
 
-  renderPartyScoreboard(room, players);
+  renderPartyFinal(room, finalStats);
 
   const isLastRound = room.roundNumber >= room.totalRounds;
 
@@ -7348,7 +7444,7 @@ function renderPartyState(state) {
     return;
   }
 
-  const { room, players = [], titles = [], photos = [] } = state;
+  const { room, players = [], titles = [], photos = [], finalStats = null } = state;
   partyServerOffsetMs = room.serverNow - Date.now();
   partyLastRoom = room;
 
@@ -7372,7 +7468,7 @@ function renderPartyState(state) {
     renderPartyRound(room, players, me);
     showPartyPanel("round");
   } else {
-    renderPartyReveal(room, players, titles, me, isHost);
+    renderPartyReveal(room, players, titles, me, isHost, finalStats);
     showPartyPanel("reveal");
   }
 }
@@ -7801,6 +7897,8 @@ partyNewGameButton.addEventListener("click", () => {
   partyCurrentRoundKey = "";
   partyRevealedRoundKey = "";
   partyTypedRevealKey = "";
+  partyFinalStampedKey = "";
+  partyResultRenderedKey = "";
   partySuggestPickerOpen = false;
   partyLastRoom = null;
   partyCreateNicknameInput.value = "";
