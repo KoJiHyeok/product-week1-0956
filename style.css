@@ -1188,15 +1188,83 @@ select { appearance:none; background-image:linear-gradient(45deg,transparent 50%
   from { opacity:0; transform:translateY(10px); }
   to { opacity:1; transform:translateY(0); }
 }
-.party-reveal-title { font-weight:var(--fw-semibold); color:var(--text-strong); }
+.party-reveal-title { font-weight:var(--fw-semibold); color:var(--text-strong); flex:1; min-width:0; }
 .party-reveal-name { color:var(--text-muted); font-size:var(--fs-sm); flex:none; }
 .party-reveal-empty { color:var(--text-muted); text-align:center; padding:var(--space-4) 0; }
 .party-reveal-actions { display:flex; flex-direction:column; gap:8px; }
+
+/* 공개 방으로 만들기 체크박스 */
+.party-public-toggle { display:flex; align-items:center; gap:8px; font-weight:var(--fw-medium); color:var(--text-strong); margin-top:10px; }
+.party-public-toggle input { width:16px; height:16px; }
+.party-public-hint { color:var(--text-muted); font-size:var(--fs-xs); margin:2px 0 0; }
+
+/* 공개 방 목록 */
+.party-public-rooms { margin-top:var(--space-6); padding-top:var(--space-6); border-top:1px solid var(--border-soft); }
+.party-public-rooms-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--space-4); }
+.party-public-rooms-head h3 { font-size:var(--fs-lg); margin:0; }
+.party-public-room-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.party-public-room-item {
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  background:var(--surface-muted); border-radius:var(--radius-md); padding:10px 14px;
+}
+.party-public-room-info { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.party-public-room-info strong { color:var(--text-strong); font-size:var(--fs-sm); }
+.party-public-room-info span { color:var(--text-muted); font-size:var(--fs-xs); }
+.party-public-rooms-empty { color:var(--text-muted); text-align:center; padding:var(--space-4) 0; margin:0; }
+
+/* 방 안 사진 업로드 */
+.party-photo-upload-panel { margin-top:var(--space-5); }
+.party-photo-upload-panel h3 { font-size:var(--fs-lg); margin:0 0 4px; }
+.party-photo-upload-hint { color:var(--text-muted); font-size:var(--fs-sm); margin:0 0 var(--space-4); }
+.party-photo-upload-dropzone {
+  display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
+  background:var(--surface-muted); border:1px dashed var(--border-strong); border-radius:var(--radius-md);
+  padding:10px 18px; font-weight:var(--fw-semibold); color:var(--primary); margin-bottom:var(--space-4);
+}
+.party-photo-upload-dropzone:hover { background:var(--primary-soft); }
+.party-photo-thumb-list { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:10px; }
+.party-photo-thumb { display:flex; flex-direction:column; gap:4px; width:104px; }
+.party-photo-thumb img { width:104px; height:78px; object-fit:cover; border-radius:var(--radius-md); background:var(--surface-muted); }
+.party-photo-thumb-meta { font-size:var(--fs-2xs); color:var(--text-muted); }
+.party-photo-thumb-used { font-size:var(--fs-2xs); color:var(--primary); }
+
+/* 투표 버튼 */
+.party-vote-button {
+  display:flex; align-items:center; gap:6px; flex:none; background:var(--surface-card);
+  border:1px solid var(--border-soft); border-radius:var(--radius-pill); padding:6px 12px;
+  font-weight:var(--fw-semibold); color:var(--text-strong); cursor:pointer;
+  transition:transform var(--dur-1) var(--ease-out),background var(--dur-1) var(--ease-out);
+}
+.party-vote-button:hover:not(:disabled) { transform:translateY(-1px); background:var(--primary-soft); }
+.party-vote-button.is-selected { background:var(--primary-soft); border-color:var(--primary); color:var(--primary); }
+.party-vote-button.is-self { opacity:0.4; cursor:not-allowed; }
+.party-vote-button:disabled:not(.is-self) { opacity:0.6; cursor:default; }
+.party-vote-count { font-variant-numeric:tabular-nums; }
+
+/* 갤러리 제안 */
+.party-suggest-block { margin:0 0 var(--space-5); }
+.party-suggest-picker { margin-top:10px; background:var(--surface-muted); border-radius:var(--radius-md); padding:var(--space-4); }
+.party-suggest-hint { color:var(--text-muted); font-size:var(--fs-sm); margin:0 0 10px; }
+.party-suggest-options { list-style:none; margin:0 0 10px; padding:0; display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto; }
+.party-suggest-options label { display:flex; align-items:center; gap:6px; font-size:var(--fs-sm); color:var(--text-strong); }
+.party-suggest-actions { display:flex; gap:8px; }
+
+/* 최종 스코어보드 */
+.party-scoreboard { list-style:none; margin:0 0 var(--space-5); padding:0; display:flex; flex-direction:column; gap:8px; }
+.party-score-item {
+  display:flex; align-items:center; gap:10px; background:var(--surface-muted);
+  border-radius:var(--radius-md); padding:10px 16px;
+}
+.party-score-item.is-first { background:var(--primary-soft); border:1px solid var(--primary); }
+.party-score-rank { font-weight:var(--fw-bold); color:var(--text-strong); flex:none; min-width:2.5em; }
+.party-score-name { flex:1; font-weight:var(--fw-medium); color:var(--text-strong); min-width:0; }
+.party-score-value { color:var(--text-muted); font-variant-numeric:tabular-nums; flex:none; }
 
 @media (max-width:640px) {
   .party-entry-grid { grid-template-columns:1fr; }
   .party-panel { padding:var(--space-6); }
   .party-code-display { font-size:32px; }
+  .party-reveal-item { flex-wrap:wrap; }
 }
 
 @media (prefers-reduced-motion:reduce) {

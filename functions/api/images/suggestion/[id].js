@@ -1,4 +1,5 @@
 import { getCurrentUser, getDb, json } from "../../auth/_shared.js";
+import { base64ToBytes } from "../../party/_shared.js";
 import { isAdminUser } from "../_shared.js";
 import { toImageBytes } from "../_suggestions.js";
 
@@ -9,7 +10,9 @@ export async function onRequestGet(context) {
     const db = getDb(context);
     const id = String(context.params.id || "");
     const row = await db
-      .prepare("SELECT id, user_id, status, content_type, image_data FROM image_suggestions WHERE id = ? LIMIT 1")
+      .prepare(
+        "SELECT id, user_id, status, content_type, image_data, source, party_photo_id FROM image_suggestions WHERE id = ? LIMIT 1"
+      )
       .bind(id)
       .first();
 
@@ -28,13 +31,27 @@ export async function onRequestGet(context) {
       }
     }
 
-    const bytes = toImageBytes(row.image_data);
+    let bytes = toImageBytes(row.image_data);
+    let contentType = row.content_type;
+
+    // 파티 모드에서 올라와 아직 승인 전인 제안은 image_data가 비어 있고 party_photos만 참조한다.
+    if ((!bytes || bytes.byteLength === 0) && row.source === "party" && row.party_photo_id) {
+      const photo = await db
+        .prepare("SELECT mime_type, data_base64 FROM party_photos WHERE id = ?")
+        .bind(row.party_photo_id)
+        .first();
+
+      if (photo) {
+        bytes = base64ToBytes(photo.data_base64);
+        contentType = photo.mime_type;
+      }
+    }
 
     if (!bytes || bytes.byteLength === 0) {
       return json({ message: "이미지를 찾을 수 없습니다." }, 404);
     }
 
-    const contentType = ALLOWED_CONTENT_TYPES.has(row.content_type) ? row.content_type : "application/octet-stream";
+    contentType = ALLOWED_CONTENT_TYPES.has(contentType) ? contentType : "application/octet-stream";
 
     return new Response(bytes, {
       headers: {

@@ -12,6 +12,14 @@ const SEED_BYTES = 9;
 export const PARTY_ACTIVE_WINDOW_MS = 15000;
 export const PARTY_MAX_PLAYERS = 12;
 
+// 방 안 사진 업로드(파티 전용, 초대 코드 프라이빗 방만 허용).
+export const PARTY_ALLOWED_PHOTO_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+export const PARTY_PHOTO_MAX_BASE64_LENGTH = 950000; // 원본 약 700KB에 해당하는 base64 문자열 상한
+export const PARTY_PHOTO_MAX_PER_PLAYER = 5;
+export const PARTY_PHOTO_MAX_PER_ROOM = 20;
+// 공개 방 목록에서 "최근 활동"으로 간주하는 창.
+export const PARTY_PUBLIC_ROOM_ACTIVE_WINDOW_MS = 10 * 60 * 1000;
+
 export function generateRoomCode() {
   const bytes = crypto.getRandomValues(new Uint8Array(CODE_LENGTH));
   let code = "";
@@ -76,6 +84,18 @@ export async function getPlayerByToken(db, roomId, token) {
     .prepare("SELECT * FROM party_players WHERE room_id = ? AND token = ?")
     .bind(roomId, token)
     .first();
+}
+
+// party_photos.data_base64 <-> 바이트. 업로드는 클라이언트가 base64 문자열로 보내고,
+// 서빙(photo.js)·갤러리 제안 승인 시 복사(admin approve.js)에서 디코드가 필요하다.
+export function base64ToBytes(base64) {
+  const clean = String(base64 || "").replace(/^data:[^,]*,/, "");
+  const binary = atob(clean);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes;
 }
 
 function hashSeed(seed) {
@@ -144,6 +164,7 @@ export async function buildRoomState(db, room, viewerToken) {
     .bind(room.id)
     .all();
   const players = playersResult.results || [];
+  const viewerPlayer = players.find((player) => player.token === viewerToken) || null;
 
   let submittedPlayerIds = new Set();
   if (room.round_number > 0) {
@@ -154,6 +175,23 @@ export async function buildRoomState(db, room, viewerToken) {
     submittedPlayerIds = new Set((titlesResult.results || []).map((row) => row.player_id));
   }
 
+  // 전체 라운드 누적 득표 — 종료 화면 스코어보드용. 득표 0인 플레이어도 항상 보여야 하므로
+  // 여기서는 맵만 만들고 아래 playersOut에서 전원에 대해 조회한다.
+  const scoreResult = await db
+    .prepare(`SELECT target_player_id AS playerId, COUNT(*) AS voteCount FROM party_votes WHERE room_id = ? GROUP BY target_player_id`)
+    .bind(room.id)
+    .all();
+  const scoreByPlayerId = new Map((scoreResult.results || []).map((row) => [row.playerId, Number(row.voteCount) || 0]));
+
+  let myVoteTargetPlayerId = null;
+  if (viewerPlayer && room.round_number > 0) {
+    const myVoteRow = await db
+      .prepare(`SELECT target_player_id FROM party_votes WHERE room_id = ? AND round_number = ? AND voter_player_id = ?`)
+      .bind(room.id, room.round_number, viewerPlayer.id)
+      .first();
+    myVoteTargetPlayerId = myVoteRow ? myVoteRow.target_player_id : null;
+  }
+
   const playersOut = players.map((player) => ({
     id: player.id,
     nickname: player.nickname,
@@ -161,10 +199,19 @@ export async function buildRoomState(db, room, viewerToken) {
     isActive: now - Number(player.last_seen_at || 0) <= PARTY_ACTIVE_WINDOW_MS,
     hasSubmitted: submittedPlayerIds.has(player.id),
     isMe: player.token === viewerToken,
+    score: scoreByPlayerId.get(player.id) || 0,
   }));
 
   let titlesOut = [];
   if ((room.status === "reveal" || room.status === "ended") && room.round_number > 0) {
+    const roundVotesResult = await db
+      .prepare(`SELECT target_player_id AS playerId, COUNT(*) AS voteCount FROM party_votes WHERE room_id = ? AND round_number = ? GROUP BY target_player_id`)
+      .bind(room.id, room.round_number)
+      .all();
+    const voteCountByPlayerId = new Map(
+      (roundVotesResult.results || []).map((row) => [row.playerId, Number(row.voteCount) || 0])
+    );
+
     const revealResult = await db
       .prepare(
         `SELECT party_titles.player_id AS player_id, party_titles.title AS title, party_players.nickname AS nickname
@@ -179,11 +226,46 @@ export async function buildRoomState(db, room, viewerToken) {
       playerId: row.player_id,
       nickname: row.nickname,
       title: row.title,
+      voteCount: voteCountByPlayerId.get(row.player_id) || 0,
     }));
   }
 
   const fallback =
     resolveFallbackImage(room.fallback_image_key) || pickFallbackImage(room.photo_seed || room.code);
+
+  // 방 안 업로드 사진 목록 — 공개 방은 업로드가 막혀 있으니 조회할 필요가 없다.
+  let photosOut = [];
+  if (!room.is_public) {
+    const photosResult = await db
+      .prepare(
+        `SELECT party_photos.id AS id, party_photos.uploader_player_id AS uploaderPlayerId,
+                party_photos.used_in_round AS usedInRound, party_photos.created_at AS createdAt,
+                party_players.nickname AS uploaderNickname
+         FROM party_photos
+         JOIN party_players ON party_players.id = party_photos.uploader_player_id
+         WHERE party_photos.room_id = ?
+         ORDER BY party_photos.created_at ASC`
+      )
+      .bind(room.id)
+      .all();
+    photosOut = (photosResult.results || []).map((row) => ({
+      id: row.id,
+      uploaderNickname: row.uploaderNickname,
+      isMine: Boolean(viewerPlayer) && row.uploaderPlayerId === viewerPlayer.id,
+      usedInRound: row.usedInRound == null ? null : row.usedInRound,
+      createdAt: row.createdAt,
+    }));
+  }
+
+  // 이번(또는 마지막) 라운드가 업로드 사진 라운드였다면 이미 갤러리에 제안됐는지 확인한다.
+  let roundPhotoSuggested = false;
+  if (room.round_photo_id) {
+    const suggestionRow = await db
+      .prepare(`SELECT id FROM image_suggestions WHERE party_photo_id = ? AND source = 'party' LIMIT 1`)
+      .bind(room.round_photo_id)
+      .first();
+    roundPhotoSuggested = Boolean(suggestionRow);
+  }
 
   return {
     room: {
@@ -194,10 +276,15 @@ export async function buildRoomState(db, room, viewerToken) {
       roundSeconds: room.round_seconds,
       photoSeed: room.photo_seed || "",
       fallbackImage: { src: fallback.src, alt: fallback.alt },
+      roundPhotoId: room.round_photo_id || null,
+      roundPhotoSuggested,
       roundDeadlineAt: room.round_deadline_at || null,
       serverNow: now,
+      isPublic: Boolean(room.is_public),
+      myVoteTargetPlayerId,
     },
     players: playersOut,
     titles: titlesOut,
+    photos: photosOut,
   };
 }

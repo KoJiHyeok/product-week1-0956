@@ -101,12 +101,14 @@ export function buildGalleryFields(input, row) {
 }
 
 export function serializeSuggestion(row) {
+  const isPartySourced = row.source === "party" && row.party_photo_id != null;
+
   return {
     id: String(row.id),
     inquiryId: row.inquiry_id ? String(row.inquiry_id) : "",
     status: row.status || "pending",
-    hasImage: Boolean(row.has_image),
-    src: row.has_image ? getSuggestionImageUrl(row.id) : "",
+    hasImage: Boolean(row.has_image) || isPartySourced,
+    src: row.has_image || isPartySourced ? getSuggestionImageUrl(row.id) : "",
     fileName: row.file_name || "",
     contentType: row.content_type || "",
     byteSize: Number(row.byte_size) || 0,
@@ -124,6 +126,8 @@ export function serializeSuggestion(row) {
     createdAt: row.created_at || "",
     reviewedAt: row.reviewed_at || "",
     publishedAt: row.published_at || "",
+    suggestedTitle: row.suggested_title || "",
+    source: row.source || "contact",
   };
 }
 

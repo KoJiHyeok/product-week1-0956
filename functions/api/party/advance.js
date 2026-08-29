@@ -41,17 +41,35 @@ export async function onRequestPost(context) {
         .run();
     } else {
       // 사진은 우리 갤러리에서 방 코드 기반 셔플 순서로 출제한다(외부 API 미사용).
+      // 단, 이 방에 아직 쓰이지 않은 업로드 사진이 있으면 그것을 먼저 출제한다(가장 오래된 것 우선).
       const seed = generatePhotoSeed();
       const fallback = pickRoundImage(room.code, nextRoundNumber);
       const deadline = now + room.round_seconds * 1000;
 
+      let roundPhotoId = null;
+      if (!room.is_public) {
+        const nextPhoto = await db
+          .prepare(
+            `SELECT id FROM party_photos WHERE room_id = ? AND used_in_round IS NULL ORDER BY created_at ASC LIMIT 1`
+          )
+          .bind(room.id)
+          .first();
+        if (nextPhoto) {
+          roundPhotoId = nextPhoto.id;
+          await db
+            .prepare("UPDATE party_photos SET used_in_round = ? WHERE id = ?")
+            .bind(nextRoundNumber, roundPhotoId)
+            .run();
+        }
+      }
+
       await db
         .prepare(
           `UPDATE party_rooms
-           SET status = 'round', round_number = ?, photo_seed = ?, fallback_image_key = ?, round_deadline_at = ?, updated_at = ?
+           SET status = 'round', round_number = ?, photo_seed = ?, fallback_image_key = ?, round_photo_id = ?, round_deadline_at = ?, updated_at = ?
            WHERE id = ?`
         )
-        .bind(nextRoundNumber, seed, fallback.key, deadline, now, room.id)
+        .bind(nextRoundNumber, seed, fallback.key, roundPhotoId, deadline, now, room.id)
         .run();
     }
 

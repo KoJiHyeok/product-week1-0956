@@ -27,7 +27,7 @@
   <meta name="twitter:image:alt" content="제목 학원 로고" />
 
   <title>제목 학원 - 레전드 짤 보고 제목 짓기</title>
-  <link href="style.css?v=33" rel="stylesheet" />
+  <link href="style.css?v=34" rel="stylesheet" />
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -165,6 +165,15 @@
     </section>
 
     <section class="view gallery-view" id="galleryView" aria-label="전체 사진 갤러리">
+      <a class="party-promo-card" id="galleryPartyPromoCard" href="/#party">
+        <span class="party-promo-emoji" aria-hidden="true">🎉</span>
+        <span class="party-promo-body">
+          <strong>파티 모드</strong>
+          <span>친구들과 실시간 제목 대결 — 초대 코드로 바로 참가!</span>
+        </span>
+        <span class="party-promo-arrow" aria-hidden="true">→</span>
+      </a>
+
       <div class="page-head">
         <p class="view-kicker">전체 사진</p>
         <h2 class="view-title">전체 사진 갤러리</h2>
@@ -458,6 +467,11 @@
                 <option value="120">120초</option>
               </select>
             </div>
+            <label class="party-public-toggle" for="partyPublicInput">
+              <input id="partyPublicInput" type="checkbox" />
+              <span>공개 방으로 만들기</span>
+            </label>
+            <p class="party-public-hint" id="partyPublicHint" hidden>공개 방은 누구나 목록에서 바로 참가할 수 있어요. 대신 사진 업로드는 사용할 수 없습니다.</p>
             <p class="profile-edit-message" id="partyCreateMessage" aria-live="polite"></p>
             <button class="auth-button solid full" type="submit">방 만들기</button>
           </form>
@@ -472,6 +486,15 @@
             <button class="auth-button ghost full" type="submit">참가하기</button>
           </form>
         </div>
+
+        <section class="party-public-rooms" id="partyPublicRoomsSection" aria-label="공개 방 목록">
+          <div class="party-public-rooms-head">
+            <h3>공개 방</h3>
+            <button class="auth-button ghost small" id="partyPublicRoomsRefreshButton" type="button">새로고침</button>
+          </div>
+          <ul class="party-public-room-list" id="partyPublicRoomList"></ul>
+          <p class="party-public-rooms-empty" id="partyPublicRoomsEmpty" hidden>지금 참가할 수 있는 공개 방이 없어요.</p>
+        </section>
       </section>
 
       <section class="party-panel party-lobby-panel" id="partyLobbyPanel" hidden aria-label="대기실">
@@ -491,6 +514,17 @@
 
         <button class="auth-button solid full" id="partyStartButton" type="button" hidden>게임 시작</button>
         <p class="party-wait-message" id="partyWaitMessage" hidden>호스트가 시작하기를 기다리는 중…</p>
+      </section>
+
+      <section class="party-panel party-photo-upload-panel" id="partyPhotoUploadSection" hidden aria-label="우리 사진 추가">
+        <h3>우리 사진 추가</h3>
+        <p class="party-photo-upload-hint">라운드 사진으로 쓸 우리끼리의 사진을 올려보세요. 1인당 5장, 방 전체 20장까지 올릴 수 있어요.</p>
+        <label class="party-photo-upload-dropzone" for="partyPhotoInput">
+          <input id="partyPhotoInput" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" hidden />
+          <span>사진 선택</span>
+        </label>
+        <p class="profile-edit-message" id="partyPhotoUploadMessage" aria-live="polite"></p>
+        <ul class="party-photo-thumb-list" id="partyPhotoThumbList"></ul>
       </section>
 
       <section class="party-panel party-round-panel" id="partyRoundPanel" hidden aria-label="라운드 진행">
@@ -525,6 +559,20 @@
         </div>
 
         <ul class="party-reveal-list" id="partyRevealList"></ul>
+
+        <div class="party-suggest-block" id="partySuggestBlock" hidden>
+          <button class="auth-button ghost full" id="partySuggestButton" type="button">이 사진 갤러리에 제안하기</button>
+          <div class="party-suggest-picker" id="partySuggestPicker" hidden>
+            <p class="party-suggest-hint">제안할 제목을 하나 골라주세요. 관리자 확인 후 갤러리에 실릴 수 있어요.</p>
+            <ul class="party-suggest-options" id="partySuggestOptions"></ul>
+            <div class="party-suggest-actions">
+              <button class="auth-button solid small" id="partySuggestSendButton" type="button">보내기</button>
+              <button class="auth-button ghost small" id="partySuggestCancelButton" type="button">취소</button>
+            </div>
+          </div>
+        </div>
+
+        <ol class="party-scoreboard" id="partyScoreboard" hidden aria-label="최종 점수"></ol>
 
         <div class="party-reveal-actions">
           <button class="auth-button solid full" id="partyAdvanceButton" type="button" hidden>다음 라운드</button>
@@ -828,6 +876,6 @@
     </div>
   </section>
 
-  <script type="module" src="main.js?v=46"></script>
+  <script type="module" src="main.js?v=47"></script>
 </body>
 </html>

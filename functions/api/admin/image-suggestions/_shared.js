@@ -9,7 +9,8 @@ const SUGGESTION_COLUMNS = `image_suggestions.id, image_suggestions.inquiry_id, 
         image_suggestions.gallery_description, image_suggestions.gallery_alt, image_suggestions.gallery_prompt,
         image_suggestions.gallery_observation_points, image_suggestions.gallery_example_titles,
         image_suggestions.moderation_reason, image_suggestions.created_at, image_suggestions.reviewed_at,
-        image_suggestions.published_at,
+        image_suggestions.published_at, image_suggestions.suggested_title, image_suggestions.source,
+        image_suggestions.party_photo_id,
         image_suggestions.image_data IS NOT NULL AS has_image,
         users.username, users.email AS user_email`;
 

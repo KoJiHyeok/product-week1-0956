@@ -299,6 +299,9 @@ CREATE TABLE IF NOT EXISTS image_suggestions (
   reviewed_at TEXT,
   reviewed_by INTEGER,
   published_at TEXT,
+  suggested_title TEXT,
+  source TEXT NOT NULL DEFAULT 'contact',
+  party_photo_id INTEGER,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
   FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL,
   CHECK (status IN ('pending', 'approved', 'rejected', 'deleted'))
@@ -309,6 +312,9 @@ ON image_suggestions(inquiry_id);
 
 CREATE INDEX IF NOT EXISTS idx_image_suggestions_status_created_at
 ON image_suggestions(status, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_image_suggestions_party_photo
+ON image_suggestions(party_photo_id);
 
 -- 일일 방문자 집계. visitor_hash는 KST 날짜별로 로테이트되는 SHA-256(날짜|IP|UA|salt)이라
 -- 원본 IP/UA는 저장되지 않는다.
@@ -339,6 +345,8 @@ CREATE TABLE IF NOT EXISTS party_rooms (
   photo_seed TEXT,
   fallback_image_key TEXT,
   round_deadline_at INTEGER,
+  is_public INTEGER NOT NULL DEFAULT 0,
+  round_photo_id INTEGER,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
@@ -361,3 +369,25 @@ CREATE TABLE IF NOT EXISTS party_titles (
   created_at INTEGER NOT NULL,
   UNIQUE(room_id, round_number, player_id)
 );
+-- 라운드별 투표(파티 모드 v2).
+CREATE TABLE IF NOT EXISTS party_votes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  room_id INTEGER NOT NULL,
+  round_number INTEGER NOT NULL,
+  voter_player_id INTEGER NOT NULL,
+  target_player_id INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  UNIQUE(room_id, round_number, voter_player_id)
+);
+CREATE INDEX IF NOT EXISTS idx_party_votes_room_round ON party_votes(room_id, round_number);
+-- 방 안(프라이빗 방 전용) 사진 업로드(파티 모드 v2).
+CREATE TABLE IF NOT EXISTS party_photos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  room_id INTEGER NOT NULL,
+  uploader_player_id INTEGER NOT NULL,
+  mime_type TEXT NOT NULL,
+  data_base64 TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  used_in_round INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_party_photos_room ON party_photos(room_id);

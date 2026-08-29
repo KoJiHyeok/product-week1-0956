@@ -2118,6 +2118,7 @@ function showView(viewToShow) {
   if (viewToShow !== partyView) {
     stopPartyPolling();
     stopPartyCountdown();
+    stopPublicRoomsPolling();
   }
 }
 
@@ -6529,17 +6530,24 @@ avatarInput.addEventListener("change", () => {
 /* ===================== 파티 모드 ===================== */
 
 const partyPromoCard = document.querySelector("#partyPromoCard");
+const galleryPartyPromoCard = document.querySelector("#galleryPartyPromoCard");
 const partyConnectionBadge = document.querySelector("#partyConnectionBadge");
 const partyEntryPanel = document.querySelector("#partyEntryPanel");
 const partyCreateForm = document.querySelector("#partyCreateForm");
 const partyCreateNicknameInput = document.querySelector("#partyCreateNickname");
 const partyTotalRoundsSelect = document.querySelector("#partyTotalRounds");
 const partyRoundSecondsSelect = document.querySelector("#partyRoundSeconds");
+const partyPublicInput = document.querySelector("#partyPublicInput");
+const partyPublicHint = document.querySelector("#partyPublicHint");
 const partyCreateMessage = document.querySelector("#partyCreateMessage");
 const partyJoinForm = document.querySelector("#partyJoinForm");
 const partyJoinNicknameInput = document.querySelector("#partyJoinNickname");
 const partyJoinCodeInput = document.querySelector("#partyJoinCode");
 const partyJoinMessage = document.querySelector("#partyJoinMessage");
+const partyPublicRoomsSection = document.querySelector("#partyPublicRoomsSection");
+const partyPublicRoomsRefreshButton = document.querySelector("#partyPublicRoomsRefreshButton");
+const partyPublicRoomList = document.querySelector("#partyPublicRoomList");
+const partyPublicRoomsEmpty = document.querySelector("#partyPublicRoomsEmpty");
 const partyLobbyPanel = document.querySelector("#partyLobbyPanel");
 const partyLobbyCode = document.querySelector("#partyLobbyCode");
 const partyPlayerCount = document.querySelector("#partyPlayerCount");
@@ -6548,6 +6556,10 @@ const partyStartButton = document.querySelector("#partyStartButton");
 const partyWaitMessage = document.querySelector("#partyWaitMessage");
 const partyCopyCodeButton = document.querySelector("#partyCopyCodeButton");
 const partyCopyLinkButton = document.querySelector("#partyCopyLinkButton");
+const partyPhotoUploadSection = document.querySelector("#partyPhotoUploadSection");
+const partyPhotoInput = document.querySelector("#partyPhotoInput");
+const partyPhotoUploadMessage = document.querySelector("#partyPhotoUploadMessage");
+const partyPhotoThumbList = document.querySelector("#partyPhotoThumbList");
 const partyRoundPanel = document.querySelector("#partyRoundPanel");
 const partyRoundProgress = document.querySelector("#partyRoundProgress");
 const partyRoundTimer = document.querySelector("#partyRoundTimer");
@@ -6561,6 +6573,13 @@ const partyRevealPanel = document.querySelector("#partyRevealPanel");
 const partyRevealProgress = document.querySelector("#partyRevealProgress");
 const partyRevealPhoto = document.querySelector("#partyRevealPhoto");
 const partyRevealList = document.querySelector("#partyRevealList");
+const partySuggestBlock = document.querySelector("#partySuggestBlock");
+const partySuggestButton = document.querySelector("#partySuggestButton");
+const partySuggestPicker = document.querySelector("#partySuggestPicker");
+const partySuggestOptions = document.querySelector("#partySuggestOptions");
+const partySuggestSendButton = document.querySelector("#partySuggestSendButton");
+const partySuggestCancelButton = document.querySelector("#partySuggestCancelButton");
+const partyScoreboard = document.querySelector("#partyScoreboard");
 const partyAdvanceButton = document.querySelector("#partyAdvanceButton");
 const partyRevealWaitMessage = document.querySelector("#partyRevealWaitMessage");
 const partyNewGameButton = document.querySelector("#partyNewGameButton");
@@ -6571,9 +6590,13 @@ const partyCountdownTickMs = 250;
 
 let partyPollIntervalId = null;
 let partyCountdownIntervalId = null;
+let partyPublicRoomsIntervalId = null;
 let partyServerOffsetMs = 0;
 let partyCurrentRoundKey = "";
 let partyRevealedRoundKey = "";
+const partyPublicRoomsPollMs = 8000;
+let partySuggestPickerOpen = false;
+let partyLastRoom = null;
 
 const partyState = {
   code: "",
@@ -6638,14 +6661,34 @@ function showPartyPanel(panelName) {
       panel.hidden = name !== panelName;
     }
   });
+
+  if (panelName === "entry") {
+    refreshPublicRooms();
+    startPublicRoomsPolling();
+  } else {
+    stopPublicRoomsPolling();
+  }
 }
 
-function applyPartyPhoto(imgEl, seed, fallbackImage) {
-  // 라운드 사진은 서버가 고른 우리 갤러리 이미지를 그대로 쓴다(외부 API 미사용).
-  imgEl.dataset.fallbackSrc = "";
-  imgEl.dataset.fallbackApplied = "";
+function partyPhotoUrl(photoId) {
+  return `/api/party/photo?code=${encodeURIComponent(partyState.code)}&token=${encodeURIComponent(partyState.playerToken)}&id=${encodeURIComponent(photoId)}`;
+}
+
+function applyPartyPhoto(imgEl, room) {
+  // 라운드 사진은 방에서 올린 사진이 있으면 그것을, 없으면 서버가 고른 우리 갤러리 이미지를 쓴다.
+  // 업로드 사진이 실패하면(만료된 세션 등) 갤러리 사진으로 자동 대체된다.
+  const fallbackImage = room?.fallbackImage;
   imgEl.alt = fallbackImage?.alt || "파티 라운드 사진";
-  imgEl.src = fallbackImage?.src || "";
+
+  if (room?.roundPhotoId) {
+    imgEl.dataset.fallbackSrc = fallbackImage?.src || "";
+    imgEl.dataset.fallbackApplied = "";
+    imgEl.src = partyPhotoUrl(room.roundPhotoId);
+  } else {
+    imgEl.dataset.fallbackSrc = "";
+    imgEl.dataset.fallbackApplied = "";
+    imgEl.src = fallbackImage?.src || "";
+  }
 }
 
 function setupPartyImageFallback(imgEl) {
@@ -6731,7 +6774,7 @@ function renderPartyRound(room, players, me) {
   if (roundKey !== partyCurrentRoundKey) {
     partyCurrentRoundKey = roundKey;
     partyTitleInput.value = "";
-    applyPartyPhoto(partyRoundPhoto, room.photoSeed, room.fallbackImage);
+    applyPartyPhoto(partyRoundPhoto, room);
   }
 
   partyRoundProgress.textContent = `라운드 ${room.roundNumber} / ${room.totalRounds}`;
@@ -6744,7 +6787,152 @@ function renderPartyRound(room, players, me) {
   startPartyCountdown(room.roundDeadlineAt);
 }
 
-function renderPartyReveal(room, players, titles, isHost) {
+function renderPartyVoteButton(entry, room, me) {
+  const isSelf = Boolean(me) && entry.playerId === me.id;
+  const isSelected = room.myVoteTargetPlayerId === entry.playerId;
+  const canVote = room.status === "reveal";
+
+  const voteButton = document.createElement("button");
+  voteButton.type = "button";
+  voteButton.className = "party-vote-button";
+  voteButton.dataset.targetPlayerId = String(entry.playerId);
+  voteButton.disabled = isSelf || !canVote;
+  voteButton.classList.toggle("is-selected", isSelected);
+  voteButton.classList.toggle("is-self", isSelf);
+
+  const heart = document.createElement("span");
+  heart.setAttribute("aria-hidden", "true");
+  heart.textContent = "❤️";
+  const count = document.createElement("span");
+  count.className = "party-vote-count";
+  count.textContent = String(entry.voteCount || 0);
+
+  voteButton.appendChild(heart);
+  voteButton.appendChild(count);
+  voteButton.setAttribute(
+    "aria-label",
+    isSelf ? "본인 제목에는 투표할 수 없어요" : `${entry.nickname}의 제목에 투표 (${entry.voteCount || 0}표)`
+  );
+
+  return voteButton;
+}
+
+function renderPartySuggestBlock(room, titles) {
+  if (!room.roundPhotoId) {
+    partySuggestBlock.hidden = true;
+    partySuggestPicker.hidden = true;
+    return;
+  }
+
+  partySuggestBlock.hidden = false;
+
+  if (room.roundPhotoSuggested) {
+    partySuggestButton.textContent = "제안 완료";
+    partySuggestButton.disabled = true;
+    partySuggestPicker.hidden = true;
+    partySuggestPickerOpen = false;
+    return;
+  }
+
+  partySuggestButton.textContent = "이 사진 갤러리에 제안하기";
+  partySuggestButton.disabled = false;
+  partySuggestPicker.hidden = !partySuggestPickerOpen;
+
+  if (!partySuggestPickerOpen) {
+    return;
+  }
+
+  const uniqueTitles = [...new Set(titles.map((entry) => entry.title))];
+  partySuggestOptions.innerHTML = "";
+  uniqueTitles.forEach((title, index) => {
+    const item = document.createElement("li");
+    const label = document.createElement("label");
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "partySuggestTitle";
+    radio.value = title;
+    radio.checked = index === 0;
+    label.appendChild(radio);
+    label.appendChild(document.createTextNode(` ${title}`));
+    item.appendChild(label);
+    partySuggestOptions.appendChild(item);
+  });
+}
+
+function renderPartyScoreboard(room, players) {
+  if (room.status !== "ended") {
+    partyScoreboard.hidden = true;
+    return;
+  }
+
+  partyScoreboard.hidden = false;
+  partyScoreboard.innerHTML = "";
+
+  const sorted = players.slice().sort((a, b) => b.score - a.score);
+  let rank = 0;
+  let previousScore = null;
+
+  sorted.forEach((player, index) => {
+    if (previousScore === null || player.score !== previousScore) {
+      rank = index + 1;
+      previousScore = player.score;
+    }
+
+    const item = document.createElement("li");
+    item.className = "party-score-item";
+    if (rank === 1) {
+      item.classList.add("is-first");
+    }
+
+    const rankSpan = document.createElement("span");
+    rankSpan.className = "party-score-rank";
+    rankSpan.textContent = rank === 1 ? "🏆" : `${rank}위`;
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "party-score-name";
+    nameSpan.textContent = player.nickname;
+
+    const valueSpan = document.createElement("span");
+    valueSpan.className = "party-score-value";
+    valueSpan.textContent = `${player.score}표`;
+
+    item.appendChild(rankSpan);
+    item.appendChild(nameSpan);
+    item.appendChild(valueSpan);
+    partyScoreboard.appendChild(item);
+  });
+}
+
+function renderPartyPhotoThumbs(photos) {
+  partyPhotoThumbList.innerHTML = "";
+
+  photos.forEach((photo) => {
+    const item = document.createElement("li");
+    item.className = "party-photo-thumb";
+
+    const img = document.createElement("img");
+    img.src = partyPhotoUrl(photo.id);
+    img.alt = `${photo.uploaderNickname}님이 올린 사진`;
+    img.loading = "lazy";
+    item.appendChild(img);
+
+    const meta = document.createElement("span");
+    meta.className = "party-photo-thumb-meta";
+    meta.textContent = photo.isMine ? `${photo.uploaderNickname} (나)` : photo.uploaderNickname;
+    item.appendChild(meta);
+
+    if (photo.usedInRound != null) {
+      const used = document.createElement("span");
+      used.className = "party-photo-thumb-used";
+      used.textContent = `라운드 ${photo.usedInRound}에 사용됨`;
+      item.appendChild(used);
+    }
+
+    partyPhotoThumbList.appendChild(item);
+  });
+}
+
+function renderPartyReveal(room, players, titles, me, isHost) {
   stopPartyCountdown();
 
   const roundKey = `${room.code}:${room.roundNumber}:${room.status}`;
@@ -6755,7 +6943,8 @@ function renderPartyReveal(room, players, titles, isHost) {
     room.status === "ended" ? "게임 종료" : `라운드 ${room.roundNumber} / ${room.totalRounds} 공개`;
 
   if (isNewReveal) {
-    applyPartyPhoto(partyRevealPhoto, room.photoSeed, room.fallbackImage);
+    applyPartyPhoto(partyRevealPhoto, room);
+    partySuggestPickerOpen = false;
   }
 
   partyRevealList.innerHTML = "";
@@ -6778,6 +6967,7 @@ function renderPartyReveal(room, players, titles, isHost) {
 
     item.appendChild(titleSpan);
     item.appendChild(nameSpan);
+    item.appendChild(renderPartyVoteButton(entry, room, me));
     partyRevealList.appendChild(item);
   });
 
@@ -6787,6 +6977,9 @@ function renderPartyReveal(room, players, titles, isHost) {
     empty.textContent = "제출된 제목이 없어요.";
     partyRevealList.appendChild(empty);
   }
+
+  renderPartySuggestBlock(room, titles);
+  renderPartyScoreboard(room, players);
 
   const isLastRound = room.roundNumber >= room.totalRounds;
 
@@ -6807,11 +7000,15 @@ function renderPartyState(state) {
     return;
   }
 
-  const { room, players = [], titles = [] } = state;
+  const { room, players = [], titles = [], photos = [] } = state;
   partyServerOffsetMs = room.serverNow - Date.now();
+  partyLastRoom = room;
 
   const me = players.find((player) => player.isMe);
   const isHost = Boolean(me?.isHost);
+
+  partyPhotoUploadSection.hidden = room.isPublic || (room.status !== "lobby" && room.status !== "reveal");
+  renderPartyPhotoThumbs(photos);
 
   if (room.status === "lobby") {
     renderPartyLobby(room, players, isHost);
@@ -6820,7 +7017,7 @@ function renderPartyState(state) {
     renderPartyRound(room, players, me);
     showPartyPanel("round");
   } else {
-    renderPartyReveal(room, players, titles, isHost);
+    renderPartyReveal(room, players, titles, me, isHost);
     showPartyPanel("reveal");
   }
 }
@@ -6857,6 +7054,104 @@ function startPartyPolling() {
   }, partyPollMs);
 }
 
+function stopPublicRoomsPolling() {
+  if (partyPublicRoomsIntervalId) {
+    window.clearInterval(partyPublicRoomsIntervalId);
+    partyPublicRoomsIntervalId = null;
+  }
+}
+
+function startPublicRoomsPolling() {
+  stopPublicRoomsPolling();
+  partyPublicRoomsIntervalId = window.setInterval(refreshPublicRooms, partyPublicRoomsPollMs);
+}
+
+function renderPublicRooms(rooms) {
+  partyPublicRoomList.innerHTML = "";
+  partyPublicRoomsEmpty.hidden = rooms.length > 0;
+
+  rooms.forEach((room) => {
+    const item = document.createElement("li");
+    item.className = "party-public-room-item";
+
+    const info = document.createElement("div");
+    info.className = "party-public-room-info";
+
+    const title = document.createElement("strong");
+    title.textContent = `${room.hostNickname}님의 방`;
+
+    const meta = document.createElement("span");
+    meta.textContent = `${room.playerCount}/${room.maxPlayers}명 · ${room.status === "lobby" ? "대기 중" : "진행 중"}`;
+
+    info.appendChild(title);
+    info.appendChild(meta);
+
+    const joinButton = document.createElement("button");
+    joinButton.type = "button";
+    joinButton.className = "auth-button solid small";
+    joinButton.textContent = "참가";
+    joinButton.addEventListener("click", () => joinPublicRoom(room.code));
+
+    item.appendChild(info);
+    item.appendChild(joinButton);
+    partyPublicRoomList.appendChild(item);
+  });
+}
+
+async function refreshPublicRooms() {
+  try {
+    const data = await requestAuth("/api/party/rooms");
+    renderPublicRooms(data.rooms || []);
+  } catch {
+    // 공개 방 목록은 부가 기능이라 실패해도 토스트로 방해하지 않는다.
+  }
+}
+
+async function joinPublicRoom(code) {
+  const nickname = partyJoinNicknameInput.value.trim();
+
+  if (!nickname) {
+    partyJoinMessage.textContent = "참가할 닉네임을 먼저 입력해주세요.";
+    partyJoinNicknameInput.focus();
+    return;
+  }
+
+  partyJoinMessage.textContent = "";
+
+  try {
+    const data = await partyApi("/api/party/join", { code, nickname });
+    partyState.code = data.code;
+    partyState.playerToken = data.playerToken;
+    partyState.nickname = nickname;
+    savePartyStorage();
+    setPartyUrl(data.code);
+    renderPartyState(data.state);
+    startPartyPolling();
+  } catch (error) {
+    partyJoinMessage.textContent = error?.message || "참가에 실패했습니다.";
+  }
+}
+
+// 방 안 사진 업로드 전, 최대 1280px로 리사이즈하고 JPEG 0.8로 인코딩해 용량을 줄인다.
+async function resizePartyPhoto(file) {
+  const bitmap = await createImageBitmap(file);
+  const maxEdge = 1280;
+  const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+
+  const context = canvas.getContext("2d");
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close?.();
+
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+  const base64 = dataUrl.split(",")[1] || "";
+  return { dataBase64: base64, mimeType: "image/jpeg" };
+}
+
 async function enterPartyView(routeCode) {
   const saved = loadPartyStorage();
 
@@ -6882,6 +7177,10 @@ async function enterPartyView(routeCode) {
   partyCreateMessage.textContent = "";
   partyJoinMessage.textContent = "";
   partyJoinCodeInput.value = routeCode || "";
+  // 해시 이동은 페이지 리로드가 없으므로, 이전 방 화면에서 켜진 요소들을 여기서 직접 리셋한다.
+  partyPhotoUploadSection.hidden = true;
+  partyPhotoThumbList.innerHTML = "";
+  partyConnectionBadge.hidden = true;
   showPartyPanel("entry");
 }
 
@@ -6906,6 +7205,17 @@ partyPromoCard?.addEventListener("click", (event) => {
   goParty();
 });
 
+galleryPartyPromoCard?.addEventListener("click", (event) => {
+  event.preventDefault();
+  goParty();
+});
+
+partyPublicInput?.addEventListener("change", () => {
+  partyPublicHint.hidden = !partyPublicInput.checked;
+});
+
+partyPublicRoomsRefreshButton?.addEventListener("click", () => refreshPublicRooms());
+
 partyCreateForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const nickname = partyCreateNicknameInput.value.trim();
@@ -6924,6 +7234,7 @@ partyCreateForm.addEventListener("submit", async (event) => {
       nickname,
       totalRounds: Number(partyTotalRoundsSelect.value),
       roundSeconds: Number(partyRoundSecondsSelect.value),
+      isPublic: Boolean(partyPublicInput?.checked),
     });
     partyState.code = data.code;
     partyState.playerToken = data.playerToken;
@@ -7000,6 +7311,99 @@ partyTitleForm.addEventListener("submit", async (event) => {
   }
 });
 
+partyPhotoInput?.addEventListener("change", async () => {
+  const file = partyPhotoInput.files?.[0];
+  partyPhotoInput.value = "";
+
+  if (!file || !partyState.code || !partyState.playerToken) {
+    return;
+  }
+
+  partyPhotoUploadMessage.textContent = "";
+
+  let payload;
+  try {
+    payload = await resizePartyPhoto(file);
+  } catch {
+    partyPhotoUploadMessage.textContent = "이미지를 불러오지 못했습니다. 다른 사진으로 시도해주세요.";
+    return;
+  }
+
+  try {
+    const data = await partyApi("/api/party/upload", {
+      code: partyState.code,
+      token: partyState.playerToken,
+      dataBase64: payload.dataBase64,
+      mimeType: payload.mimeType,
+    });
+    renderPartyState(data.state);
+    showToast("사진을 올렸어요!");
+  } catch (error) {
+    partyPhotoUploadMessage.textContent = error?.message || "사진 업로드에 실패했습니다.";
+  }
+});
+
+partyRevealList?.addEventListener("click", async (event) => {
+  const button = event.target.closest(".party-vote-button");
+  if (!button || button.disabled || !partyState.code || !partyState.playerToken) {
+    return;
+  }
+
+  const targetPlayerId = Number(button.dataset.targetPlayerId);
+  button.disabled = true;
+
+  try {
+    const data = await partyApi("/api/party/vote", {
+      code: partyState.code,
+      token: partyState.playerToken,
+      targetPlayerId,
+    });
+    renderPartyState(data.state);
+  } catch (error) {
+    showToast(error?.message || "투표에 실패했습니다.");
+    button.disabled = false;
+  }
+});
+
+partySuggestButton?.addEventListener("click", () => {
+  partySuggestPickerOpen = !partySuggestPickerOpen;
+  partySuggestPicker.hidden = !partySuggestPickerOpen;
+});
+
+partySuggestCancelButton?.addEventListener("click", () => {
+  partySuggestPickerOpen = false;
+  partySuggestPicker.hidden = true;
+});
+
+partySuggestSendButton?.addEventListener("click", async () => {
+  const selected = partySuggestOptions.querySelector('input[name="partySuggestTitle"]:checked');
+
+  if (!selected) {
+    showToast("제안할 제목을 선택해주세요.");
+    return;
+  }
+  if (!partyState.code || !partyState.playerToken || !partyLastRoom) {
+    return;
+  }
+
+  partySuggestSendButton.disabled = true;
+  try {
+    const data = await partyApi("/api/party/suggest", {
+      code: partyState.code,
+      token: partyState.playerToken,
+      roundNumber: partyLastRoom.roundNumber,
+      titleText: selected.value,
+    });
+    partySuggestPickerOpen = false;
+    renderPartyState(data.state);
+    showToast(data.alreadySuggested ? "이미 제안된 사진이에요." : "갤러리 제안을 보냈어요! 관리자 확인 후 실릴 수 있어요.");
+  } catch (error) {
+    showToast(error?.message || "갤러리 제안에 실패했습니다.");
+  } finally {
+    partySuggestSendButton.disabled = false;
+  }
+});
+
 partyNewGameButton.addEventListener("click", () => {
   stopPartyPolling();
   stopPartyCountdown();
@@ -7009,6 +7413,8 @@ partyNewGameButton.addEventListener("click", () => {
   partyState.nickname = "";
   partyCurrentRoundKey = "";
   partyRevealedRoundKey = "";
+  partySuggestPickerOpen = false;
+  partyLastRoom = null;
   partyCreateNicknameInput.value = "";
   partyJoinNicknameInput.value = "";
   partyJoinCodeInput.value = "";
@@ -7043,12 +7449,16 @@ partyCopyLinkButton.addEventListener("click", async () => {
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
     stopPartyPolling();
+    stopPublicRoomsPolling();
     return;
   }
 
   if (partyView && !partyView.hidden && partyState.code && partyState.playerToken) {
     refreshPartyState();
     startPartyPolling();
+  } else if (partyView && !partyView.hidden && partyEntryPanel && !partyEntryPanel.hidden) {
+    refreshPublicRooms();
+    startPublicRoomsPolling();
   }
 });
 

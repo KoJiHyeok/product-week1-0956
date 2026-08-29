@@ -25,6 +25,7 @@ export async function onRequestPost(context) {
 
     const totalRounds = clampTotalRounds(body?.totalRounds);
     const roundSeconds = clampRoundSeconds(body?.roundSeconds);
+    const isPublic = body?.isPublic ? 1 : 0;
 
     let code = "";
     for (let attempt = 0; attempt < CODE_GENERATION_ATTEMPTS; attempt += 1) {
@@ -45,10 +46,10 @@ export async function onRequestPost(context) {
 
     const insertResult = await db
       .prepare(
-        `INSERT INTO party_rooms (code, status, host_token, round_number, total_rounds, round_seconds, created_at, updated_at)
-         VALUES (?, 'lobby', ?, 0, ?, ?, ?, ?)`
+        `INSERT INTO party_rooms (code, status, host_token, round_number, total_rounds, round_seconds, is_public, created_at, updated_at)
+         VALUES (?, 'lobby', ?, 0, ?, ?, ?, ?, ?)`
       )
-      .bind(code, hostToken, totalRounds, roundSeconds, now, now)
+      .bind(code, hostToken, totalRounds, roundSeconds, isPublic, now, now)
       .run();
 
     const roomId = insertResult.meta.last_row_id;
