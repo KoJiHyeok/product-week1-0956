@@ -357,9 +357,11 @@ CREATE TABLE IF NOT EXISTS party_players (
   nickname TEXT NOT NULL,
   is_host INTEGER NOT NULL DEFAULT 0,
   joined_at INTEGER NOT NULL,
-  last_seen_at INTEGER NOT NULL
+  last_seen_at INTEGER NOT NULL,
+  user_id INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_party_players_room ON party_players(room_id);
+CREATE INDEX IF NOT EXISTS idx_party_players_user ON party_players(user_id);
 CREATE TABLE IF NOT EXISTS party_titles (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   room_id INTEGER NOT NULL,

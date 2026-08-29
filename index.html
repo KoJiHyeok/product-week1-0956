@@ -27,7 +27,7 @@
   <meta name="twitter:image:alt" content="제목 학원 로고" />
 
   <title>제목 학원 - 레전드 짤 보고 제목 짓기</title>
-  <link href="style.css?v=34" rel="stylesheet" />
+  <link href="style.css?v=35" rel="stylesheet" />
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -447,8 +447,11 @@
         <div class="party-entry-grid">
           <form class="party-entry-card" id="partyCreateForm">
             <h3>방 만들기</h3>
-            <label for="partyCreateNickname">닉네임</label>
-            <input id="partyCreateNickname" type="text" maxlength="12" autocomplete="off" placeholder="닉네임 (최대 12자)" required />
+            <div class="party-nickname-field" id="partyCreateNicknameField">
+              <label for="partyCreateNickname">닉네임</label>
+              <input id="partyCreateNickname" type="text" maxlength="12" autocomplete="off" placeholder="닉네임 (최대 12자)" required />
+            </div>
+            <p class="party-member-name-note" id="partyCreateMemberNote" hidden></p>
             <div class="party-entry-row">
               <label for="partyTotalRounds">라운드 수</label>
               <select id="partyTotalRounds">
@@ -478,8 +481,11 @@
 
           <form class="party-entry-card" id="partyJoinForm">
             <h3>참가하기</h3>
-            <label for="partyJoinNickname">닉네임</label>
-            <input id="partyJoinNickname" type="text" maxlength="12" autocomplete="off" placeholder="닉네임 (최대 12자)" required />
+            <div class="party-nickname-field" id="partyJoinNicknameField">
+              <label for="partyJoinNickname">닉네임</label>
+              <input id="partyJoinNickname" type="text" maxlength="12" autocomplete="off" placeholder="닉네임 (최대 12자)" required />
+            </div>
+            <p class="party-member-name-note" id="partyJoinMemberNote" hidden></p>
             <label for="partyJoinCode">초대 코드</label>
             <input id="partyJoinCode" class="party-code-input-field" type="text" maxlength="6" autocomplete="off" placeholder="예: AB3C9K" />
             <p class="profile-edit-message" id="partyJoinMessage" aria-live="polite"></p>
@@ -876,6 +882,6 @@
     </div>
   </section>
 
-  <script type="module" src="main.js?v=47"></script>
+  <script type="module" src="main.js?v=48"></script>
 </body>
 </html>

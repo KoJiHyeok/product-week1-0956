@@ -1093,6 +1093,7 @@ function setCurrentUser(user) {
   renderContactAccessState();
   closeUserPopover();
   closeNotificationPanel();
+  syncPartyIdentityFields?.();
 
   if (!profileView.hidden) {
     hydrateProfileForm();
@@ -6534,14 +6535,18 @@ const galleryPartyPromoCard = document.querySelector("#galleryPartyPromoCard");
 const partyConnectionBadge = document.querySelector("#partyConnectionBadge");
 const partyEntryPanel = document.querySelector("#partyEntryPanel");
 const partyCreateForm = document.querySelector("#partyCreateForm");
+const partyCreateNicknameField = document.querySelector("#partyCreateNicknameField");
 const partyCreateNicknameInput = document.querySelector("#partyCreateNickname");
+const partyCreateMemberNote = document.querySelector("#partyCreateMemberNote");
 const partyTotalRoundsSelect = document.querySelector("#partyTotalRounds");
 const partyRoundSecondsSelect = document.querySelector("#partyRoundSeconds");
 const partyPublicInput = document.querySelector("#partyPublicInput");
 const partyPublicHint = document.querySelector("#partyPublicHint");
 const partyCreateMessage = document.querySelector("#partyCreateMessage");
 const partyJoinForm = document.querySelector("#partyJoinForm");
+const partyJoinNicknameField = document.querySelector("#partyJoinNicknameField");
 const partyJoinNicknameInput = document.querySelector("#partyJoinNickname");
+const partyJoinMemberNote = document.querySelector("#partyJoinMemberNote");
 const partyJoinCodeInput = document.querySelector("#partyJoinCode");
 const partyJoinMessage = document.querySelector("#partyJoinMessage");
 const partyPublicRoomsSection = document.querySelector("#partyPublicRoomsSection");
@@ -6603,6 +6608,30 @@ const partyState = {
   playerToken: "",
   nickname: "",
 };
+
+// 로그인 회원은 닉네임을 입력하지 않고 자기 회원 이름으로 참가한다.
+// 로그인/로그아웃 즉시(setCurrentUser)와 파티 뷰 진입 시(enterPartyView) 호출해 입력 필드를 동기화한다.
+function syncPartyIdentityFields() {
+  const isMember = Boolean(currentUser);
+  const memberName = getUserDisplayName() || currentUser?.loginId || "회원";
+
+  [
+    { field: partyCreateNicknameField, input: partyCreateNicknameInput, note: partyCreateMemberNote },
+    { field: partyJoinNicknameField, input: partyJoinNicknameInput, note: partyJoinMemberNote },
+  ].forEach(({ field, input, note }) => {
+    if (field) {
+      field.hidden = isMember;
+    }
+    if (input) {
+      input.required = !isMember;
+      input.disabled = isMember;
+    }
+    if (note) {
+      note.hidden = !isMember;
+      note.textContent = isMember ? `${memberName} 님으로 참가합니다` : "";
+    }
+  });
+}
 
 function loadPartyStorage() {
   try {
@@ -6753,6 +6782,13 @@ function renderPartyLobby(room, players, isHost) {
       hostBadge.className = "party-player-badge";
       hostBadge.textContent = "호스트";
       item.appendChild(hostBadge);
+    }
+
+    if (player.isMember) {
+      const memberBadge = document.createElement("span");
+      memberBadge.className = "party-player-badge";
+      memberBadge.textContent = "회원";
+      item.appendChild(memberBadge);
     }
 
     if (player.isMe) {
@@ -7108,9 +7144,9 @@ async function refreshPublicRooms() {
 }
 
 async function joinPublicRoom(code) {
-  const nickname = partyJoinNicknameInput.value.trim();
+  const nickname = currentUser ? "" : partyJoinNicknameInput.value.trim();
 
-  if (!nickname) {
+  if (!currentUser && !nickname) {
     partyJoinMessage.textContent = "참가할 닉네임을 먼저 입력해주세요.";
     partyJoinNicknameInput.focus();
     return;
@@ -7119,7 +7155,7 @@ async function joinPublicRoom(code) {
   partyJoinMessage.textContent = "";
 
   try {
-    const data = await partyApi("/api/party/join", { code, nickname });
+    const data = await partyApi("/api/party/join", currentUser ? { code } : { code, nickname });
     partyState.code = data.code;
     partyState.playerToken = data.playerToken;
     partyState.nickname = nickname;
@@ -7153,6 +7189,7 @@ async function resizePartyPhoto(file) {
 }
 
 async function enterPartyView(routeCode) {
+  syncPartyIdentityFields();
   const saved = loadPartyStorage();
 
   if (saved && (!routeCode || routeCode === saved.code)) {
@@ -7218,9 +7255,9 @@ partyPublicRoomsRefreshButton?.addEventListener("click", () => refreshPublicRoom
 
 partyCreateForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const nickname = partyCreateNicknameInput.value.trim();
+  const nickname = currentUser ? "" : partyCreateNicknameInput.value.trim();
 
-  if (!nickname) {
+  if (!currentUser && !nickname) {
     partyCreateMessage.textContent = "닉네임을 입력해주세요.";
     return;
   }
@@ -7231,7 +7268,7 @@ partyCreateForm.addEventListener("submit", async (event) => {
 
   try {
     const data = await partyApi("/api/party/create", {
-      nickname,
+      ...(currentUser ? {} : { nickname }),
       totalRounds: Number(partyTotalRoundsSelect.value),
       roundSeconds: Number(partyRoundSecondsSelect.value),
       isPublic: Boolean(partyPublicInput?.checked),
@@ -7252,10 +7289,10 @@ partyCreateForm.addEventListener("submit", async (event) => {
 
 partyJoinForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const nickname = partyJoinNicknameInput.value.trim();
+  const nickname = currentUser ? "" : partyJoinNicknameInput.value.trim();
   const code = partyJoinCodeInput.value.trim().toUpperCase();
 
-  if (!nickname) {
+  if (!currentUser && !nickname) {
     partyJoinMessage.textContent = "닉네임을 입력해주세요.";
     return;
   }
@@ -7269,7 +7306,7 @@ partyJoinForm.addEventListener("submit", async (event) => {
   submitButton.disabled = true;
 
   try {
-    const data = await partyApi("/api/party/join", { code, nickname });
+    const data = await partyApi("/api/party/join", currentUser ? { code } : { code, nickname });
     partyState.code = data.code;
     partyState.playerToken = data.playerToken;
     partyState.nickname = nickname;

@@ -1,7 +1,11 @@
-import { getDb, json, readJson } from "../auth/_shared.js";
+import { getCurrentUser, getDb, json, normalizeLoginId, normalizeUsername, readJson } from "../auth/_shared.js";
 import { galleryImages } from "../images/gallery-data.js";
 
 export { getDb, json, readJson };
+
+// 회원 표시 이름 상한. 게스트 닉네임(normalizeNickname)의 12자 제한과 별개로,
+// 기존에 등록된 회원 username이 더 길 수 있어 넉넉히 24자에서만 자른다.
+const MEMBER_NICKNAME_MAX_LENGTH = 24;
 
 // 혼동되기 쉬운 문자(I, O, 0, 1)는 초대 코드에서 제외한다.
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -51,6 +55,52 @@ export function normalizeNickname(nickname) {
 
 export function normalizeRoomCode(code) {
   return typeof code === "string" ? code.trim().toUpperCase() : "";
+}
+
+// 같은 방 안에서 닉네임이 겹치면 " (2)", " (3)" ... 접미사를 붙여 유일하게 만든다.
+// 회원·게스트 공통. roomId가 없으면(방 생성 이전) 호출하지 않는다.
+async function ensureUniqueRoomNickname(db, roomId, nickname) {
+  const existingResult = await db
+    .prepare(`SELECT nickname FROM party_players WHERE room_id = ?`)
+    .bind(roomId)
+    .all();
+  const existingNames = new Set((existingResult.results || []).map((row) => row.nickname));
+
+  if (!existingNames.has(nickname)) {
+    return nickname;
+  }
+
+  let suffix = 2;
+  let candidate = `${nickname} (${suffix})`;
+  while (existingNames.has(candidate)) {
+    suffix += 1;
+    candidate = `${nickname} (${suffix})`;
+  }
+  return candidate;
+}
+
+// 파티 참가자의 이름·회원 여부를 결정한다.
+// 로그인 회원이면 body의 nickname은 무시하고 세션의 username(사칭 방지)을 쓴다.
+// 비로그인이면 rawNickname을 normalizeNickname으로 검증한다(실패 시 ok:false, 호출부가 400 처리).
+export async function resolvePartyIdentity(context, db, roomId, rawNickname) {
+  const user = await getCurrentUser(context);
+
+  if (user) {
+    let nickname = normalizeUsername(user.username) || normalizeLoginId(user.login_id) || "회원";
+    nickname = nickname.slice(0, MEMBER_NICKNAME_MAX_LENGTH);
+    if (roomId) {
+      nickname = await ensureUniqueRoomNickname(db, roomId, nickname);
+    }
+    return { ok: true, nickname, userId: user.id };
+  }
+
+  const nickname = normalizeNickname(rawNickname);
+  if (!nickname) {
+    return { ok: false, nickname: "", userId: null };
+  }
+
+  const finalNickname = roomId ? await ensureUniqueRoomNickname(db, roomId, nickname) : nickname;
+  return { ok: true, nickname: finalNickname, userId: null };
 }
 
 export function clampTotalRounds(value) {
@@ -156,7 +206,7 @@ export async function buildRoomState(db, room, viewerToken) {
 
   const playersResult = await db
     .prepare(
-      `SELECT id, token, nickname, is_host, last_seen_at
+      `SELECT id, token, nickname, is_host, last_seen_at, user_id
        FROM party_players
        WHERE room_id = ?
        ORDER BY joined_at ASC`
@@ -200,6 +250,7 @@ export async function buildRoomState(db, room, viewerToken) {
     hasSubmitted: submittedPlayerIds.has(player.id),
     isMe: player.token === viewerToken,
     score: scoreByPlayerId.get(player.id) || 0,
+    isMember: player.user_id != null,
   }));
 
   let titlesOut = [];

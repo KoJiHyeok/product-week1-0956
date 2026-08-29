@@ -1146,6 +1146,8 @@ select { appearance:none; background-image:linear-gradient(45deg,transparent 50%
 .party-entry-row label { margin-top:0; }
 .party-entry-row select { flex:0 0 auto; min-width:120px; }
 .party-code-input-field { font-family:var(--font-mono); letter-spacing:var(--ls-wide); text-transform:uppercase; }
+.party-nickname-field { display:flex; flex-direction:column; gap:10px; }
+.party-member-name-note { color:var(--text-muted); font-size:var(--fs-sm); margin:0; }
 
 .party-code-block { text-align:center; padding-bottom:var(--space-6); border-bottom:1px solid var(--border-soft); margin-bottom:var(--space-6); }
 .party-code-label { color:var(--text-muted); font-size:var(--fs-sm); margin:0 0 6px; }

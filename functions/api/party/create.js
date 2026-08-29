@@ -7,8 +7,8 @@ import {
   getDb,
   getRoomByCode,
   json,
-  normalizeNickname,
   readJson,
+  resolvePartyIdentity,
 } from "./_shared.js";
 
 const CODE_GENERATION_ATTEMPTS = 8;
@@ -17,11 +17,12 @@ export async function onRequestPost(context) {
   try {
     const db = getDb(context);
     const body = await readJson(context.request);
-    const nickname = normalizeNickname(body?.nickname);
+    const identity = await resolvePartyIdentity(context, db, null, body?.nickname);
 
-    if (!nickname) {
+    if (!identity.ok) {
       return json({ message: "닉네임을 1~12자로 입력해주세요." }, 400);
     }
+    const { nickname, userId } = identity;
 
     const totalRounds = clampTotalRounds(body?.totalRounds);
     const roundSeconds = clampRoundSeconds(body?.roundSeconds);
@@ -56,10 +57,10 @@ export async function onRequestPost(context) {
 
     await db
       .prepare(
-        `INSERT INTO party_players (room_id, token, nickname, is_host, joined_at, last_seen_at)
-         VALUES (?, ?, ?, 1, ?, ?)`
+        `INSERT INTO party_players (room_id, token, nickname, is_host, joined_at, last_seen_at, user_id)
+         VALUES (?, ?, ?, 1, ?, ?, ?)`
       )
-      .bind(roomId, hostToken, nickname, now, now)
+      .bind(roomId, hostToken, nickname, now, now, userId)
       .run();
 
     const room = await getRoomByCode(db, code);
