@@ -391,3 +391,18 @@ CREATE TABLE IF NOT EXISTS party_photos (
   used_in_round INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_party_photos_room ON party_photos(room_id);
+-- 디스코드 일일 갤러리 후보 이미지(Openverse 큐레이션) 기록.
+CREATE TABLE IF NOT EXISTS daily_image_candidates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  candidate_date TEXT NOT NULL,
+  slot INTEGER NOT NULL,
+  openverse_id TEXT NOT NULL UNIQUE,
+  image_url TEXT NOT NULL,
+  landing_url TEXT NOT NULL DEFAULT '',
+  license TEXT NOT NULL DEFAULT '',
+  creator TEXT NOT NULL DEFAULT '',
+  title TEXT NOT NULL DEFAULT '',
+  query TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+);
+CREATE INDEX IF NOT EXISTS idx_daily_image_candidates_date ON daily_image_candidates(candidate_date);

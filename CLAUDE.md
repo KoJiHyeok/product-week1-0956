@@ -92,6 +92,10 @@ npx wrangler pages dev . --port 9000   # Functions + 로컬 D1 포함. 첫 실�
 4. **랭킹·하트·댓글·신고 버튼은 카드 UI가 모든 항목에 자동 렌더** → 별도 작업 없음.
 5. `node --check`(수정한 파일들: `main.js`, `functions/api/images/gallery-data.js`) → 두 목록의 `id`·`imageKey` 일치와 키 중복 확인(`node scripts/validate.mjs`) → 1건만 추가해 사용자에게 보여주고 확인 → `index.html`의 `main.js?v=N` 올림 → 커밋·푸시(자동 배포). (함정: 기존 `imageKey`를 배열 인덱스에 맞춰 재번호하면 저장된 제출이 엉뚱한 사진에 붙는다)
 
+### 일일 갤러리 후보 발송
+
+`workers/daily-summary.js`(매일 07:00 KST)가 기존 지표 요약과 별도로 Openverse(CC 라이선스 이미지 검색 API, 무료·키 불필요, `functions/api/admin/daily-summary/candidates.js`)에서 cc0/pdm/by 라이선스 이미지 6장을 큐레이션해 같은 디스코드 웹훅으로 보낸다. 발송 기록은 D1 `daily_image_candidates`(migration `0023_daily_image_candidates.sql`)에 남으며, 같은 날짜에 이미 보낸 후보가 있으면 재발송하지 않는다. 수동 테스트는 `POST /api/admin/daily-summary/send-candidates-test`에 `{ "dryRun": true }`. 라이선스가 `by`인 후보를 승인할 때는 아래 워크플로에서 저작자(creator) 표기를 함께 등록해야 한다.
+
 ### 일일 후보 승인 후 자동 반영
 
 - 사용자가 Discord 일일 후보에 대해 `N번 승인`처럼 최종 승인을 명시하면 추가 확인을 요구하지 않는다.

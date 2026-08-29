@@ -177,7 +177,7 @@ function buildSummaryText({ coveredDate, metrics, reportNew, inquiryNew }) {
   ].join("\n");
 }
 
-async function postDiscordWebhook(env, payload) {
+export async function postDiscordWebhook(env, payload) {
   const url = env.DISCORD_WEBHOOK_URL;
 
   if (!url) {
