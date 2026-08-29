@@ -114,7 +114,7 @@ export function clampTotalRounds(value) {
 export function clampRoundSeconds(value) {
   const num = Number(value);
   if (!Number.isFinite(num)) {
-    return 60;
+    return 30;
   }
   return Math.min(120, Math.max(30, Math.round(num)));
 }
