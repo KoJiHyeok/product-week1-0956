@@ -2120,6 +2120,7 @@ function showView(viewToShow) {
     stopPartyPolling();
     stopPartyCountdown();
     stopPublicRoomsPolling();
+    stopPartyRevealActivity();
   }
 }
 
@@ -6540,6 +6541,7 @@ const partyCreateNicknameInput = document.querySelector("#partyCreateNickname");
 const partyCreateMemberNote = document.querySelector("#partyCreateMemberNote");
 const partyTotalRoundsSelect = document.querySelector("#partyTotalRounds");
 const partyRoundSecondsSelect = document.querySelector("#partyRoundSeconds");
+const partyCreateVoteSecondsSelect = document.querySelector("#partyCreateVoteSeconds");
 const partyPublicInput = document.querySelector("#partyPublicInput");
 const partyPublicHint = document.querySelector("#partyPublicHint");
 const partyCreateMessage = document.querySelector("#partyCreateMessage");
@@ -6561,9 +6563,17 @@ const partyStartButton = document.querySelector("#partyStartButton");
 const partyWaitMessage = document.querySelector("#partyWaitMessage");
 const partyCopyCodeButton = document.querySelector("#partyCopyCodeButton");
 const partyCopyLinkButton = document.querySelector("#partyCopyLinkButton");
+const partySettingsHost = document.querySelector("#partySettingsHost");
+const partySettingsReadonly = document.querySelector("#partySettingsReadonly");
+const partyLobbyTotalRoundsSelect = document.querySelector("#partyLobbyTotalRounds");
+const partyLobbyRoundSecondsSelect = document.querySelector("#partyLobbyRoundSeconds");
+const partyLobbyVoteSecondsSelect = document.querySelector("#partyLobbyVoteSeconds");
+const partySettingsMessage = document.querySelector("#partySettingsMessage");
 const partyPhotoUploadSection = document.querySelector("#partyPhotoUploadSection");
 const partyPhotoInput = document.querySelector("#partyPhotoInput");
 const partyPhotoUploadMessage = document.querySelector("#partyPhotoUploadMessage");
+const partyPhotoCount = document.querySelector("#partyPhotoCount");
+const partyPhotoThumbHeading = document.querySelector("#partyPhotoThumbHeading");
 const partyPhotoThumbList = document.querySelector("#partyPhotoThumbList");
 const partyRoundPanel = document.querySelector("#partyRoundPanel");
 const partyRoundProgress = document.querySelector("#partyRoundProgress");
@@ -6577,7 +6587,18 @@ const partySubmitCount = document.querySelector("#partySubmitCount");
 const partyRevealPanel = document.querySelector("#partyRevealPanel");
 const partyRevealProgress = document.querySelector("#partyRevealProgress");
 const partyRevealPhoto = document.querySelector("#partyRevealPhoto");
-const partyRevealList = document.querySelector("#partyRevealList");
+const partyStage = document.querySelector("#partyStage");
+const partyStageCounter = document.querySelector("#partyStageCounter");
+const partyStageIdle = document.querySelector("#partyStageIdle");
+const partyStageBubbleWrap = document.querySelector("#partyStageBubbleWrap");
+const partyRevealNextButton = document.querySelector("#partyRevealNextButton");
+const partyRevealWaitNote = document.querySelector("#partyRevealWaitNote");
+const partyVoteSection = document.querySelector("#partyVoteSection");
+const partyVoteHeading = document.querySelector("#partyVoteHeading");
+const partyVoteTimer = document.querySelector("#partyVoteTimer");
+const partyVoteGrid = document.querySelector("#partyVoteGrid");
+const partyResultSection = document.querySelector("#partyResultSection");
+const partyResultWinner = document.querySelector("#partyResultWinner");
 const partySuggestBlock = document.querySelector("#partySuggestBlock");
 const partySuggestButton = document.querySelector("#partySuggestButton");
 const partySuggestPicker = document.querySelector("#partySuggestPicker");
@@ -6591,17 +6612,27 @@ const partyNewGameButton = document.querySelector("#partyNewGameButton");
 
 const partyStorageKey = "title-academy-party";
 const partyPollMs = 2000;
+const partyRevealPollMs = 1000; // status='reveal'일 때는 방장이 넘긴 걸 더 빨리 반영
 const partyCountdownTickMs = 250;
+const partyTypeMs = 100; // 말풍선 타이핑 속도(글자당)
 
 let partyPollIntervalId = null;
+let partyPollCurrentMs = null;
 let partyCountdownIntervalId = null;
 let partyPublicRoomsIntervalId = null;
+let partyVoteTimerIntervalId = null;
 let partyServerOffsetMs = 0;
 let partyCurrentRoundKey = "";
 let partyRevealedRoundKey = "";
+let partyTypedRevealKey = ""; // 이미 타이핑을 재생한 "code:round:revealIndex" — 폴링마다 재생 방지
+let partyTypingTimeoutId = null;
+let partyStageTypingActive = false;
+let partyLastIsHost = false;
 const partyPublicRoomsPollMs = 8000;
 let partySuggestPickerOpen = false;
 let partyLastRoom = null;
+// 설정을 방금 바꾼 직후엔 그 이전에 날아간(레이스 상태) 폴링 응답이 값을 덮어쓰지 않게 잠깐 억제한다.
+let partySettingsSuppressUntil = 0;
 
 const partyState = {
   code: "",
@@ -6696,6 +6727,10 @@ function showPartyPanel(panelName) {
     startPublicRoomsPolling();
   } else {
     stopPublicRoomsPolling();
+  }
+
+  if (panelName !== "reveal") {
+    stopPartyRevealActivity();
   }
 }
 
@@ -6803,7 +6838,55 @@ function renderPartyLobby(room, players, isHost) {
 
   partyStartButton.hidden = !isHost;
   partyWaitMessage.hidden = isHost;
+
+  renderPartySettings(room, isHost);
 }
+
+// 방장에게는 조작 가능한 select 3개, 비방장에게는 읽기 전용 한 줄을 보여준다.
+// 방장이 select를 조작 중이거나(포커스 중) 방금 변경한 직후에는 폴링으로 값을 덮어쓰지 않는다.
+function renderPartySettings(room, isHost) {
+  partySettingsHost.hidden = !isHost;
+  partySettingsReadonly.hidden = isHost;
+
+  if (!isHost) {
+    partySettingsReadonly.textContent = `${room.totalRounds}라운드 · 제목 ${room.roundSeconds}초 · 투표 ${room.voteSeconds}초`;
+    return;
+  }
+
+  const settingsSelects = [partyLobbyTotalRoundsSelect, partyLobbyRoundSecondsSelect, partyLobbyVoteSecondsSelect];
+  const isEditingSettings = settingsSelects.includes(document.activeElement);
+  if (isEditingSettings || Date.now() < partySettingsSuppressUntil) {
+    return;
+  }
+
+  partyLobbyTotalRoundsSelect.value = String(room.totalRounds);
+  partyLobbyRoundSecondsSelect.value = String(room.roundSeconds);
+  partyLobbyVoteSecondsSelect.value = String(room.voteSeconds);
+}
+
+async function submitPartySettings() {
+  if (!partyState.code || !partyState.playerToken) {
+    return;
+  }
+  partySettingsMessage.textContent = "";
+  try {
+    const data = await partyApi("/api/party/settings", {
+      code: partyState.code,
+      token: partyState.playerToken,
+      totalRounds: Number(partyLobbyTotalRoundsSelect.value),
+      roundSeconds: Number(partyLobbyRoundSecondsSelect.value),
+      voteSeconds: Number(partyLobbyVoteSecondsSelect.value),
+    });
+    partySettingsSuppressUntil = Date.now() + 3000;
+    renderPartyState(data.state);
+  } catch (error) {
+    partySettingsMessage.textContent = error?.message || "설정을 바꾸지 못했습니다.";
+  }
+}
+
+[partyLobbyTotalRoundsSelect, partyLobbyRoundSecondsSelect, partyLobbyVoteSecondsSelect].forEach((select) => {
+  select?.addEventListener("change", submitPartySettings);
+});
 
 function renderPartyRound(room, players, me) {
   const roundKey = `${room.code}:${room.roundNumber}`;
@@ -6821,36 +6904,6 @@ function renderPartyRound(room, players, me) {
   partyTitleSubmitButton.textContent = me?.hasSubmitted ? "수정" : "제출";
 
   startPartyCountdown(room.roundDeadlineAt);
-}
-
-function renderPartyVoteButton(entry, room, me) {
-  const isSelf = Boolean(me) && entry.playerId === me.id;
-  const isSelected = room.myVoteTargetPlayerId === entry.playerId;
-  const canVote = room.status === "reveal";
-
-  const voteButton = document.createElement("button");
-  voteButton.type = "button";
-  voteButton.className = "party-vote-button";
-  voteButton.dataset.targetPlayerId = String(entry.playerId);
-  voteButton.disabled = isSelf || !canVote;
-  voteButton.classList.toggle("is-selected", isSelected);
-  voteButton.classList.toggle("is-self", isSelf);
-
-  const heart = document.createElement("span");
-  heart.setAttribute("aria-hidden", "true");
-  heart.textContent = "❤️";
-  const count = document.createElement("span");
-  count.className = "party-vote-count";
-  count.textContent = String(entry.voteCount || 0);
-
-  voteButton.appendChild(heart);
-  voteButton.appendChild(count);
-  voteButton.setAttribute(
-    "aria-label",
-    isSelf ? "본인 제목에는 투표할 수 없어요" : `${entry.nickname}의 제목에 투표 (${entry.voteCount || 0}표)`
-  );
-
-  return voteButton;
 }
 
 function renderPartySuggestBlock(room, titles) {
@@ -6939,8 +6992,10 @@ function renderPartyScoreboard(room, players) {
   });
 }
 
+// 남이 올린 사진은 서버가 애초에 내려주지 않는다(비공개) — 여기 오는 photos는 항상 내가 올린 것.
 function renderPartyPhotoThumbs(photos) {
   partyPhotoThumbList.innerHTML = "";
+  partyPhotoThumbHeading.hidden = photos.length === 0;
 
   photos.forEach((photo) => {
     const item = document.createElement("li");
@@ -6948,14 +7003,9 @@ function renderPartyPhotoThumbs(photos) {
 
     const img = document.createElement("img");
     img.src = partyPhotoUrl(photo.id);
-    img.alt = `${photo.uploaderNickname}님이 올린 사진`;
+    img.alt = "내가 올린 사진";
     img.loading = "lazy";
     item.appendChild(img);
-
-    const meta = document.createElement("span");
-    meta.className = "party-photo-thumb-meta";
-    meta.textContent = photo.isMine ? `${photo.uploaderNickname} (나)` : photo.uploaderNickname;
-    item.appendChild(meta);
 
     if (photo.usedInRound != null) {
       const used = document.createElement("span");
@@ -6968,53 +7018,310 @@ function renderPartyPhotoThumbs(photos) {
   });
 }
 
+// 말풍선 타이핑 타이머 정리(라운드/패널 이탈 시 호출).
+function clearPartyStageTyping() {
+  if (partyTypingTimeoutId) {
+    window.clearTimeout(partyTypingTimeoutId);
+    partyTypingTimeoutId = null;
+  }
+  partyStageTypingActive = false;
+}
+
+function typePartyBubbleText(textEl, caretEl, text, onDone) {
+  let index = 0;
+
+  const step = () => {
+    index += 1;
+    textEl.textContent = text.slice(0, index);
+
+    if (index >= text.length) {
+      caretEl.classList.add("is-done");
+      partyTypingTimeoutId = null;
+      onDone?.();
+      return;
+    }
+
+    partyTypingTimeoutId = window.setTimeout(step, partyTypeMs);
+  };
+
+  step();
+}
+
+// 말풍선을 새로 띄우고 제목을 한 글자씩 타이핑한다. 완료되면 방장 버튼을 다시 활성화한다.
+function mountPartyBubble(entry) {
+  clearPartyStageTyping();
+  partyStageBubbleWrap.innerHTML = "";
+
+  const bubble = document.createElement("div");
+  bubble.className = "party-bubble party-bubble-pop";
+
+  const titleEl = document.createElement("p");
+  titleEl.className = "party-bubble-title";
+
+  const textSpan = document.createElement("span");
+  textSpan.className = "party-bubble-text";
+
+  const caret = document.createElement("span");
+  caret.className = "party-bubble-caret";
+
+  titleEl.appendChild(textSpan);
+  titleEl.appendChild(caret);
+  bubble.appendChild(titleEl);
+
+  const nameEl = document.createElement("p");
+  nameEl.className = "party-bubble-name";
+  nameEl.textContent = entry.nickname;
+  bubble.appendChild(nameEl);
+
+  partyStageBubbleWrap.appendChild(bubble);
+
+  partyStageTypingActive = true;
+  refreshPartyHostControlDisabled();
+
+  typePartyBubbleText(textSpan, caret, entry.title, () => {
+    partyStageTypingActive = false;
+    refreshPartyHostControlDisabled();
+  });
+}
+
+// 무대: 사진 아래에 마지막으로 공개된 제목 1개만 말풍선으로 띄운다.
+// 폴링마다 다시 타이핑되지 않도록 이미 재생한 revealIndex를 partyTypedRevealKey로 기억한다.
+function renderPartyStage(room, titles) {
+  if (room.titlesTotal > 0) {
+    partyStageCounter.hidden = false;
+    partyStageCounter.textContent = `${room.revealIndex} / ${room.titlesTotal}`;
+  } else {
+    partyStageCounter.hidden = true;
+    partyStageCounter.textContent = "";
+  }
+
+  if (room.revealIndex <= 0 || !titles.length) {
+    partyStageIdle.hidden = false;
+    partyStageBubbleWrap.innerHTML = "";
+    clearPartyStageTyping();
+    return;
+  }
+
+  partyStageIdle.hidden = true;
+
+  const revealKey = `${room.code}:${room.roundNumber}:${room.revealIndex}`;
+  if (revealKey === partyTypedRevealKey) {
+    // 이미 이 revealIndex를 타이핑했음 — 완성된 상태 그대로 두고 재생하지 않는다.
+    return;
+  }
+  partyTypedRevealKey = revealKey;
+
+  const latest = titles[titles.length - 1];
+  mountPartyBubble(latest);
+}
+
+// 방장 컨트롤: revealing 단계에서만 노출한다. 타이핑 중에는 disabled.
+function renderPartyHostControl(room, isHost) {
+  if (room.votePhase !== "revealing") {
+    partyRevealNextButton.hidden = true;
+    partyRevealWaitNote.hidden = true;
+    return;
+  }
+
+  if (!isHost) {
+    partyRevealNextButton.hidden = true;
+    partyRevealWaitNote.hidden = false;
+    return;
+  }
+
+  partyRevealWaitNote.hidden = true;
+  partyRevealNextButton.hidden = false;
+  partyRevealNextButton.disabled = partyStageTypingActive;
+  partyRevealNextButton.textContent =
+    room.revealIndex === 0 ? "첫 제목 공개" : `다음 제목 (${room.revealIndex + 1}/${room.titlesTotal})`;
+}
+
+// 타이핑 완료 콜백 등에서 버튼 텍스트를 다시 계산할 필요 없이 disabled만 갱신할 때 사용.
+function refreshPartyHostControlDisabled() {
+  if (partyLastRoom) {
+    renderPartyHostControl(partyLastRoom, partyLastIsHost);
+  }
+}
+
+// 투표 카드 하나(투표 중엔 클릭 가능한 버튼, 결과 단계엔 득표 배지가 붙는 읽기 전용 카드).
+function buildPartyVoteCard(entry, room, me, votePhase) {
+  const item = document.createElement("li");
+  item.className = "party-vote-card-item";
+
+  const isSelf = Boolean(me) && entry.playerId === me.id;
+  const isSelected = room.myVoteTargetPlayerId === entry.playerId;
+
+  const card = document.createElement("button");
+  card.type = "button";
+  card.className = "party-vote-card";
+  card.dataset.targetPlayerId = String(entry.playerId);
+  card.disabled = isSelf || votePhase !== "voting";
+  card.classList.toggle("is-self", isSelf);
+  card.classList.toggle("is-voted", isSelected);
+  if (votePhase === "results" && entry.isWinner) {
+    card.classList.add("is-winner");
+  }
+
+  const titleEl = document.createElement("p");
+  titleEl.className = "party-vote-card-title";
+  titleEl.textContent = entry.title;
+  card.appendChild(titleEl);
+
+  const nameEl = document.createElement("span");
+  nameEl.className = "party-vote-card-name";
+  nameEl.textContent = isSelf ? "내 제목" : entry.nickname;
+  card.appendChild(nameEl);
+
+  if (votePhase === "results") {
+    const badge = document.createElement("span");
+    badge.className = "party-vote-card-badge";
+    badge.textContent = `${entry.voteCount || 0}표`;
+    card.appendChild(badge);
+  }
+
+  item.appendChild(card);
+  return item;
+}
+
+function renderPartyVoteGrid(room, titles, me, votePhase) {
+  partyVoteGrid.innerHTML = "";
+
+  let maxVotes = 0;
+  if (votePhase === "results") {
+    titles.forEach((entry) => {
+      maxVotes = Math.max(maxVotes, entry.voteCount || 0);
+    });
+  }
+
+  titles.forEach((entry) => {
+    const isWinner = votePhase === "results" && maxVotes > 0 && (entry.voteCount || 0) === maxVotes;
+    partyVoteGrid.appendChild(buildPartyVoteCard({ ...entry, isWinner }, room, me, votePhase));
+  });
+}
+
+function stopPartyVoteTimer() {
+  if (partyVoteTimerIntervalId) {
+    window.clearInterval(partyVoteTimerIntervalId);
+    partyVoteTimerIntervalId = null;
+  }
+}
+
+function startPartyVoteTimer(deadlineAt) {
+  stopPartyVoteTimer();
+
+  if (!deadlineAt) {
+    partyVoteTimer.textContent = "";
+    return;
+  }
+
+  const tick = () => {
+    const remainingMs = deadlineAt - (Date.now() + partyServerOffsetMs);
+    const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+    partyVoteTimer.textContent = `${remainingSeconds}초`;
+  };
+
+  tick();
+  partyVoteTimerIntervalId = window.setInterval(tick, partyCountdownTickMs);
+}
+
+// 라운드/패널 이탈 시 정리(투표 타이머 + 말풍선 타이핑).
+function stopPartyRevealActivity() {
+  stopPartyVoteTimer();
+  clearPartyStageTyping();
+}
+
+function renderPartyResultWinner(titles) {
+  partyResultWinner.innerHTML = "";
+
+  const maxVotes = titles.reduce((max, entry) => Math.max(max, entry.voteCount || 0), 0);
+
+  if (!titles.length || maxVotes <= 0) {
+    const empty = document.createElement("p");
+    empty.className = "party-result-empty";
+    empty.textContent = "이번 라운드는 표가 없네요.";
+    partyResultWinner.appendChild(empty);
+    return;
+  }
+
+  // 채점 도장이 비스듬히 찍히는 연출(이모지 대신). 발표 카드 위에 겹쳐 얹는다.
+  const stamp = document.createElement("span");
+  stamp.className = "party-result-stamp";
+  stamp.textContent = "1등";
+  partyResultWinner.appendChild(stamp);
+
+  // 동점이면 공동 1등 전원을 표시한다.
+  titles
+    .filter((entry) => (entry.voteCount || 0) === maxVotes)
+    .forEach((winner) => {
+      const row = document.createElement("div");
+      row.className = "party-result-row";
+
+      const titleEl = document.createElement("p");
+      titleEl.className = "party-result-title";
+      titleEl.textContent = winner.title;
+
+      const metaEl = document.createElement("p");
+      metaEl.className = "party-result-meta";
+      metaEl.textContent = `${winner.nickname} · ${winner.voteCount}표`;
+
+      row.appendChild(titleEl);
+      row.appendChild(metaEl);
+      partyResultWinner.appendChild(row);
+    });
+}
+
 function renderPartyReveal(room, players, titles, me, isHost) {
   stopPartyCountdown();
 
   const roundKey = `${room.code}:${room.roundNumber}:${room.status}`;
-  const isNewReveal = roundKey !== partyRevealedRoundKey;
+  const isNewRound = roundKey !== partyRevealedRoundKey;
   partyRevealedRoundKey = roundKey;
 
   partyRevealProgress.textContent =
     room.status === "ended" ? "게임 종료" : `라운드 ${room.roundNumber} / ${room.totalRounds} 공개`;
 
-  if (isNewReveal) {
+  if (isNewRound) {
     applyPartyPhoto(partyRevealPhoto, room);
     partySuggestPickerOpen = false;
+    stopPartyRevealActivity();
+    partyTypedRevealKey = "";
   }
 
-  partyRevealList.innerHTML = "";
+  partyLastIsHost = isHost;
 
-  titles.forEach((entry, index) => {
-    const item = document.createElement("li");
-    item.className = "party-reveal-item";
-    if (isNewReveal) {
-      item.classList.add("is-entering");
-      item.style.animationDelay = `${index * 200}ms`;
-    }
+  renderPartyStage(room, titles);
+  renderPartyHostControl(room, isHost);
 
-    const titleSpan = document.createElement("span");
-    titleSpan.className = "party-reveal-title";
-    titleSpan.textContent = entry.title;
+  const votePhase = room.votePhase;
+  const showVoteSection = votePhase === "voting" || votePhase === "results";
+  partyVoteSection.hidden = !showVoteSection;
 
-    const nameSpan = document.createElement("span");
-    nameSpan.className = "party-reveal-name";
-    nameSpan.textContent = entry.nickname;
-
-    item.appendChild(titleSpan);
-    item.appendChild(nameSpan);
-    item.appendChild(renderPartyVoteButton(entry, room, me));
-    partyRevealList.appendChild(item);
-  });
-
-  if (!titles.length) {
-    const empty = document.createElement("li");
-    empty.className = "party-reveal-empty";
-    empty.textContent = "제출된 제목이 없어요.";
-    partyRevealList.appendChild(empty);
+  if (showVoteSection) {
+    partyVoteHeading.textContent = votePhase === "results" ? "투표 결과" : "가장 웃긴 제목은?";
+    renderPartyVoteGrid(room, titles, me, votePhase);
   }
 
-  renderPartySuggestBlock(room, titles);
+  if (votePhase === "voting") {
+    startPartyVoteTimer(room.voteDeadlineAt);
+  } else {
+    stopPartyVoteTimer();
+    partyVoteTimer.textContent = "";
+  }
+
+  const showResultSection = votePhase === "results";
+  partyResultSection.hidden = !showResultSection;
+  if (showResultSection) {
+    renderPartyResultWinner(titles);
+  }
+
+  if (showResultSection) {
+    // 갤러리 제안은 스포일러 걱정이 없는 결과 단계에서만 노출한다.
+    renderPartySuggestBlock(room, titles);
+  } else {
+    partySuggestBlock.hidden = true;
+    partySuggestPicker.hidden = true;
+  }
+
   renderPartyScoreboard(room, players);
 
   const isLastRound = room.roundNumber >= room.totalRounds;
@@ -7023,11 +7330,16 @@ function renderPartyReveal(room, players, titles, me, isHost) {
     partyAdvanceButton.hidden = true;
     partyRevealWaitMessage.hidden = true;
     partyNewGameButton.hidden = false;
-  } else {
+  } else if (showResultSection) {
     partyNewGameButton.hidden = true;
     partyAdvanceButton.hidden = !isHost;
     partyAdvanceButton.textContent = isLastRound ? "게임 종료" : "다음 라운드";
     partyRevealWaitMessage.hidden = isHost;
+  } else {
+    // 공개 중·투표 중에는 다음 라운드로 넘어갈 수 없다(서버도 409로 막는다).
+    partyNewGameButton.hidden = true;
+    partyAdvanceButton.hidden = true;
+    partyRevealWaitMessage.hidden = true;
   }
 }
 
@@ -7043,7 +7355,14 @@ function renderPartyState(state) {
   const me = players.find((player) => player.isMe);
   const isHost = Boolean(me?.isHost);
 
+  // 방장이 다음 제목을 넘기면 다른 참가자가 최대 2초 뒤에야 보는 건 굼뜨다 —
+  // status='reveal'인 동안에는 폴링 간격을 좁힌다. 상태 변화 시에만 재설정한다.
+  ensurePartyPollInterval(room.status === "reveal" ? partyRevealPollMs : partyPollMs);
+
   partyPhotoUploadSection.hidden = room.isPublic || (room.status !== "lobby" && room.status !== "reveal");
+  partyPhotoCount.textContent = room.isPublic
+    ? ""
+    : `우리 사진 ${room.photoCountTotal || 0}장이 모였어요. 누가 올렸는지는 라운드에서도 공개되지 않아요.`;
   renderPartyPhotoThumbs(photos);
 
   if (room.status === "lobby") {
@@ -7081,13 +7400,23 @@ function stopPartyPolling() {
     window.clearInterval(partyPollIntervalId);
     partyPollIntervalId = null;
   }
+  partyPollCurrentMs = null;
 }
 
-function startPartyPolling() {
+function startPartyPolling(intervalMs = partyPollMs) {
   stopPartyPolling();
+  partyPollCurrentMs = intervalMs;
   partyPollIntervalId = window.setInterval(() => {
     refreshPartyState();
-  }, partyPollMs);
+  }, intervalMs);
+}
+
+// 이미 같은 간격으로 폴링 중이면 그대로 두고, 다르면(또는 아직 시작 전이면) 다시 시작한다.
+// 매 렌더마다 clear/set을 반복하지 않기 위한 헬퍼.
+function ensurePartyPollInterval(intervalMs) {
+  if (!partyPollIntervalId || partyPollCurrentMs !== intervalMs) {
+    startPartyPolling(intervalMs);
+  }
 }
 
 function stopPublicRoomsPolling() {
@@ -7162,7 +7491,6 @@ async function joinPublicRoom(code) {
     savePartyStorage();
     setPartyUrl(data.code);
     renderPartyState(data.state);
-    startPartyPolling();
   } catch (error) {
     partyJoinMessage.textContent = error?.message || "참가에 실패했습니다.";
   }
@@ -7199,7 +7527,6 @@ async function enterPartyView(routeCode) {
 
     const resumed = await refreshPartyState({ silent: true });
     if (resumed) {
-      startPartyPolling();
       return;
     }
 
@@ -7208,6 +7535,7 @@ async function enterPartyView(routeCode) {
 
   stopPartyPolling();
   stopPartyCountdown();
+  stopPartyRevealActivity();
   partyState.code = "";
   partyState.playerToken = "";
   partyState.nickname = "";
@@ -7217,6 +7545,8 @@ async function enterPartyView(routeCode) {
   // 해시 이동은 페이지 리로드가 없으므로, 이전 방 화면에서 켜진 요소들을 여기서 직접 리셋한다.
   partyPhotoUploadSection.hidden = true;
   partyPhotoThumbList.innerHTML = "";
+  partyPhotoThumbHeading.hidden = true;
+  partyPhotoCount.textContent = "";
   partyConnectionBadge.hidden = true;
   showPartyPanel("entry");
 }
@@ -7271,6 +7601,7 @@ partyCreateForm.addEventListener("submit", async (event) => {
       ...(currentUser ? {} : { nickname }),
       totalRounds: Number(partyTotalRoundsSelect.value),
       roundSeconds: Number(partyRoundSecondsSelect.value),
+      voteSeconds: Number(partyCreateVoteSecondsSelect.value),
       isPublic: Boolean(partyPublicInput?.checked),
     });
     partyState.code = data.code;
@@ -7279,7 +7610,6 @@ partyCreateForm.addEventListener("submit", async (event) => {
     savePartyStorage();
     setPartyUrl(data.code);
     renderPartyState(data.state);
-    startPartyPolling();
   } catch (error) {
     partyCreateMessage.textContent = error?.message || "방을 만들지 못했습니다.";
   } finally {
@@ -7313,7 +7643,6 @@ partyJoinForm.addEventListener("submit", async (event) => {
     savePartyStorage();
     setPartyUrl(data.code);
     renderPartyState(data.state);
-    startPartyPolling();
   } catch (error) {
     partyJoinMessage.textContent = error?.message || "참가에 실패했습니다.";
   } finally {
@@ -7380,8 +7709,8 @@ partyPhotoInput?.addEventListener("change", async () => {
   }
 });
 
-partyRevealList?.addEventListener("click", async (event) => {
-  const button = event.target.closest(".party-vote-button");
+partyVoteGrid?.addEventListener("click", async (event) => {
+  const button = event.target.closest(".party-vote-card");
   if (!button || button.disabled || !partyState.code || !partyState.playerToken) {
     return;
   }
@@ -7399,6 +7728,26 @@ partyRevealList?.addEventListener("click", async (event) => {
   } catch (error) {
     showToast(error?.message || "투표에 실패했습니다.");
     button.disabled = false;
+  }
+});
+
+partyRevealNextButton?.addEventListener("click", async () => {
+  if (!partyState.code || !partyState.playerToken) {
+    return;
+  }
+
+  partyRevealNextButton.disabled = true;
+  try {
+    const data = await partyApi("/api/party/reveal-next", {
+      code: partyState.code,
+      token: partyState.playerToken,
+    });
+    renderPartyState(data.state);
+  } catch (error) {
+    showToast(error?.message || "제목 공개에 실패했습니다.");
+    if (!partyStageTypingActive) {
+      partyRevealNextButton.disabled = false;
+    }
   }
 });
 
@@ -7444,12 +7793,14 @@ partySuggestSendButton?.addEventListener("click", async () => {
 partyNewGameButton.addEventListener("click", () => {
   stopPartyPolling();
   stopPartyCountdown();
+  stopPartyRevealActivity();
   clearPartyStorage();
   partyState.code = "";
   partyState.playerToken = "";
   partyState.nickname = "";
   partyCurrentRoundKey = "";
   partyRevealedRoundKey = "";
+  partyTypedRevealKey = "";
   partySuggestPickerOpen = false;
   partyLastRoom = null;
   partyCreateNicknameInput.value = "";
@@ -7492,7 +7843,6 @@ document.addEventListener("visibilitychange", () => {
 
   if (partyView && !partyView.hidden && partyState.code && partyState.playerToken) {
     refreshPartyState();
-    startPartyPolling();
   } else if (partyView && !partyView.hidden && partyEntryPanel && !partyEntryPanel.hidden) {
     refreshPublicRooms();
     startPublicRoomsPolling();

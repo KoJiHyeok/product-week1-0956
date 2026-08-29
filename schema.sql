@@ -342,13 +342,17 @@ CREATE TABLE IF NOT EXISTS party_rooms (
   round_number INTEGER NOT NULL DEFAULT 0,
   total_rounds INTEGER NOT NULL DEFAULT 5,
   round_seconds INTEGER NOT NULL DEFAULT 60,
+  vote_seconds INTEGER NOT NULL DEFAULT 15,
   photo_seed TEXT,
   fallback_image_key TEXT,
   round_deadline_at INTEGER,
   is_public INTEGER NOT NULL DEFAULT 0,
   round_photo_id INTEGER,
   created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
+  updated_at INTEGER NOT NULL,
+  reveal_started_at INTEGER,
+  reveal_index INTEGER NOT NULL DEFAULT 0,
+  vote_deadline_at INTEGER
 );
 CREATE TABLE IF NOT EXISTS party_players (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

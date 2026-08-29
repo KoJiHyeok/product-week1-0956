@@ -119,6 +119,14 @@ export function clampRoundSeconds(value) {
   return Math.min(120, Math.max(30, Math.round(num)));
 }
 
+export function clampVoteSeconds(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) {
+    return 15;
+  }
+  return Math.min(60, Math.max(5, Math.round(num)));
+}
+
 export async function getRoomByCode(db, code) {
   if (!code) {
     return null;
@@ -134,6 +142,39 @@ export async function getPlayerByToken(db, roomId, token) {
     .prepare("SELECT * FROM party_players WHERE room_id = ? AND token = ?")
     .bind(roomId, token)
     .first();
+}
+
+// 현재(또는 마지막) 라운드에 제출된 제목 수. reveal_index와 비교해 공개·투표·결과 단계를 가른다.
+export async function countRoundTitles(db, roomId, roundNumber) {
+  if (!roundNumber || roundNumber < 1) {
+    return 0;
+  }
+  const row = await db
+    .prepare(`SELECT COUNT(*) AS count FROM party_titles WHERE room_id = ? AND round_number = ?`)
+    .bind(roomId, roundNumber)
+    .first();
+  return Number(row?.count || 0);
+}
+
+// status='reveal' 안의 3단계(방장이 넘기는 방식)를 하나로 판정한다.
+// - revealing: 아직 전원 공개가 끝나지 않음
+// - voting: 전원 공개 후 15초 투표 창
+// - results: 투표 마감(또는 status='ended') — 득표 공개 가능
+export function computeVotePhase(room, titlesTotal, now) {
+  if (room.status === "ended") {
+    return "results";
+  }
+  if (room.status !== "reveal") {
+    return null;
+  }
+  const revealIndex = Math.min(room.reveal_index || 0, titlesTotal);
+  if (revealIndex < titlesTotal) {
+    return "revealing";
+  }
+  if (room.vote_deadline_at && now < room.vote_deadline_at) {
+    return "voting";
+  }
+  return "results";
 }
 
 // party_photos.data_base64 <-> 바이트. 업로드는 클라이언트가 base64 문자열로 보내고,
@@ -225,12 +266,24 @@ export async function buildRoomState(db, room, viewerToken) {
     submittedPlayerIds = new Set((titlesResult.results || []).map((row) => row.player_id));
   }
 
-  // 전체 라운드 누적 득표 — 종료 화면 스코어보드용. 득표 0인 플레이어도 항상 보여야 하므로
-  // 여기서는 맵만 만들고 아래 playersOut에서 전원에 대해 조회한다.
-  const scoreResult = await db
-    .prepare(`SELECT target_player_id AS playerId, COUNT(*) AS voteCount FROM party_votes WHERE room_id = ? GROUP BY target_player_id`)
-    .bind(room.id)
-    .all();
+  const titlesTotal = await countRoundTitles(db, room.id, room.round_number);
+  const votePhase = computeVotePhase(room, titlesTotal, now);
+  const revealIndex = Math.min(room.reveal_index || 0, titlesTotal);
+
+  // 누적 득표 — 결과 단계가 아니면 이번 라운드 표는 빼고 계산한다(스코어보드로 스포일러 유출 방지).
+  // 득표 0인 플레이어도 항상 보여야 하므로 여기서는 맵만 만들고 아래 playersOut에서 전원에 대해 조회한다.
+  const scoreResult =
+    votePhase === "results"
+      ? await db
+          .prepare(`SELECT target_player_id AS playerId, COUNT(*) AS voteCount FROM party_votes WHERE room_id = ? GROUP BY target_player_id`)
+          .bind(room.id)
+          .all()
+      : await db
+          .prepare(
+            `SELECT target_player_id AS playerId, COUNT(*) AS voteCount FROM party_votes WHERE room_id = ? AND round_number < ? GROUP BY target_player_id`
+          )
+          .bind(room.id, room.round_number)
+          .all();
   const scoreByPlayerId = new Map((scoreResult.results || []).map((row) => [row.playerId, Number(row.voteCount) || 0]));
 
   let myVoteTargetPlayerId = null;
@@ -253,59 +306,74 @@ export async function buildRoomState(db, room, viewerToken) {
     isMember: player.user_id != null,
   }));
 
+  // 스포일러 차단: 아직 공개되지 않은 제목은 절대 응답에 넣지 않는다(개발자도구로 훔쳐보기 방지).
+  // revealIndex개만큼만 created_at ASC 순으로 담고, 득표수는 결과 단계일 때만 붙인다.
   let titlesOut = [];
-  if ((room.status === "reveal" || room.status === "ended") && room.round_number > 0) {
-    const roundVotesResult = await db
-      .prepare(`SELECT target_player_id AS playerId, COUNT(*) AS voteCount FROM party_votes WHERE room_id = ? AND round_number = ? GROUP BY target_player_id`)
-      .bind(room.id, room.round_number)
-      .all();
-    const voteCountByPlayerId = new Map(
-      (roundVotesResult.results || []).map((row) => [row.playerId, Number(row.voteCount) || 0])
-    );
-
+  if ((room.status === "reveal" || room.status === "ended") && room.round_number > 0 && revealIndex > 0) {
     const revealResult = await db
       .prepare(
         `SELECT party_titles.player_id AS player_id, party_titles.title AS title, party_players.nickname AS nickname
          FROM party_titles
          JOIN party_players ON party_players.id = party_titles.player_id
          WHERE party_titles.room_id = ? AND party_titles.round_number = ?
-         ORDER BY party_titles.created_at ASC`
+         ORDER BY party_titles.created_at ASC
+         LIMIT ?`
       )
-      .bind(room.id, room.round_number)
+      .bind(room.id, room.round_number, revealIndex)
       .all();
-    titlesOut = (revealResult.results || []).map((row) => ({
-      playerId: row.player_id,
-      nickname: row.nickname,
-      title: row.title,
-      voteCount: voteCountByPlayerId.get(row.player_id) || 0,
-    }));
+
+    let voteCountByPlayerId = new Map();
+    if (votePhase === "results") {
+      const roundVotesResult = await db
+        .prepare(`SELECT target_player_id AS playerId, COUNT(*) AS voteCount FROM party_votes WHERE room_id = ? AND round_number = ? GROUP BY target_player_id`)
+        .bind(room.id, room.round_number)
+        .all();
+      voteCountByPlayerId = new Map(
+        (roundVotesResult.results || []).map((row) => [row.playerId, Number(row.voteCount) || 0])
+      );
+    }
+
+    titlesOut = (revealResult.results || []).map((row) => {
+      const entry = { playerId: row.player_id, nickname: row.nickname, title: row.title };
+      if (votePhase === "results") {
+        entry.voteCount = voteCountByPlayerId.get(row.player_id) || 0;
+      }
+      return entry;
+    });
   }
 
   const fallback =
     resolveFallbackImage(room.fallback_image_key) || pickFallbackImage(room.photo_seed || room.code);
 
   // 방 안 업로드 사진 목록 — 공개 방은 업로드가 막혀 있으니 조회할 필요가 없다.
+  // 프라이버시: 남이 올린 사진은 목록에 노출하지 않는다(누가 무엇을 올렸는지 비공개).
+  // 대신 photoCountTotal로 방 전체 업로드 장수만 알려준다.
   let photosOut = [];
+  let photoCountTotal = 0;
   if (!room.is_public) {
-    const photosResult = await db
-      .prepare(
-        `SELECT party_photos.id AS id, party_photos.uploader_player_id AS uploaderPlayerId,
-                party_photos.used_in_round AS usedInRound, party_photos.created_at AS createdAt,
-                party_players.nickname AS uploaderNickname
-         FROM party_photos
-         JOIN party_players ON party_players.id = party_photos.uploader_player_id
-         WHERE party_photos.room_id = ?
-         ORDER BY party_photos.created_at ASC`
-      )
+    const totalCountRow = await db
+      .prepare(`SELECT COUNT(*) AS count FROM party_photos WHERE room_id = ?`)
       .bind(room.id)
-      .all();
-    photosOut = (photosResult.results || []).map((row) => ({
-      id: row.id,
-      uploaderNickname: row.uploaderNickname,
-      isMine: Boolean(viewerPlayer) && row.uploaderPlayerId === viewerPlayer.id,
-      usedInRound: row.usedInRound == null ? null : row.usedInRound,
-      createdAt: row.createdAt,
-    }));
+      .first();
+    photoCountTotal = Number(totalCountRow?.count || 0);
+
+    if (viewerPlayer) {
+      const photosResult = await db
+        .prepare(
+          `SELECT id, used_in_round AS usedInRound, created_at AS createdAt
+           FROM party_photos
+           WHERE room_id = ? AND uploader_player_id = ?
+           ORDER BY created_at ASC`
+        )
+        .bind(room.id, viewerPlayer.id)
+        .all();
+      photosOut = (photosResult.results || []).map((row) => ({
+        id: row.id,
+        isMine: true,
+        usedInRound: row.usedInRound == null ? null : row.usedInRound,
+        createdAt: row.createdAt,
+      }));
+    }
   }
 
   // 이번(또는 마지막) 라운드가 업로드 사진 라운드였다면 이미 갤러리에 제안됐는지 확인한다.
@@ -325,14 +393,20 @@ export async function buildRoomState(db, room, viewerToken) {
       roundNumber: room.round_number,
       totalRounds: room.total_rounds,
       roundSeconds: room.round_seconds,
+      voteSeconds: room.vote_seconds,
       photoSeed: room.photo_seed || "",
       fallbackImage: { src: fallback.src, alt: fallback.alt },
       roundPhotoId: room.round_photo_id || null,
       roundPhotoSuggested,
       roundDeadlineAt: room.round_deadline_at || null,
+      revealIndex,
+      titlesTotal,
+      voteDeadlineAt: room.vote_deadline_at || null,
+      votePhase,
       serverNow: now,
       isPublic: Boolean(room.is_public),
       myVoteTargetPlayerId,
+      photoCountTotal,
     },
     players: playersOut,
     titles: titlesOut,

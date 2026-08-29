@@ -27,7 +27,7 @@
   <meta name="twitter:image:alt" content="제목 학원 로고" />
 
   <title>제목 학원 - 레전드 짤 보고 제목 짓기</title>
-  <link href="style.css?v=35" rel="stylesheet" />
+  <link href="style.css?v=38" rel="stylesheet" />
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -470,6 +470,15 @@
                 <option value="120">120초</option>
               </select>
             </div>
+            <div class="party-entry-row">
+              <label for="partyCreateVoteSeconds">투표 시간</label>
+              <select id="partyCreateVoteSeconds">
+                <option value="10">10초</option>
+                <option value="15" selected>15초</option>
+                <option value="20">20초</option>
+                <option value="30">30초</option>
+              </select>
+            </div>
             <label class="party-public-toggle" for="partyPublicInput">
               <input id="partyPublicInput" type="checkbox" />
               <span>공개 방으로 만들기</span>
@@ -518,6 +527,43 @@
           <ul class="party-player-list" id="partyLobbyPlayerList"></ul>
         </div>
 
+        <section class="party-settings-block" id="partySettingsBlock" aria-label="게임 설정">
+          <h3>게임 설정</h3>
+          <div class="party-settings-host" id="partySettingsHost" hidden>
+            <div class="party-entry-row">
+              <label for="partyLobbyTotalRounds">라운드 수</label>
+              <select id="partyLobbyTotalRounds">
+                <option value="1">1라운드</option>
+                <option value="3">3라운드</option>
+                <option value="5" selected>5라운드</option>
+                <option value="7">7라운드</option>
+                <option value="10">10라운드</option>
+              </select>
+            </div>
+            <div class="party-entry-row">
+              <label for="partyLobbyRoundSeconds">제목 제한시간</label>
+              <select id="partyLobbyRoundSeconds">
+                <option value="30" selected>30초</option>
+                <option value="45">45초</option>
+                <option value="60">60초</option>
+                <option value="90">90초</option>
+                <option value="120">120초</option>
+              </select>
+            </div>
+            <div class="party-entry-row">
+              <label for="partyLobbyVoteSeconds">투표 시간</label>
+              <select id="partyLobbyVoteSeconds">
+                <option value="10">10초</option>
+                <option value="15" selected>15초</option>
+                <option value="20">20초</option>
+                <option value="30">30초</option>
+              </select>
+            </div>
+            <p class="profile-edit-message" id="partySettingsMessage" aria-live="polite"></p>
+          </div>
+          <p class="party-settings-readonly" id="partySettingsReadonly" hidden></p>
+        </section>
+
         <button class="auth-button solid full" id="partyStartButton" type="button" hidden>게임 시작</button>
         <p class="party-wait-message" id="partyWaitMessage" hidden>호스트가 시작하기를 기다리는 중…</p>
       </section>
@@ -525,11 +571,13 @@
       <section class="party-panel party-photo-upload-panel" id="partyPhotoUploadSection" hidden aria-label="우리 사진 추가">
         <h3>우리 사진 추가</h3>
         <p class="party-photo-upload-hint">라운드 사진으로 쓸 우리끼리의 사진을 올려보세요. 1인당 5장, 방 전체 20장까지 올릴 수 있어요.</p>
+        <p class="party-photo-count" id="partyPhotoCount"></p>
         <label class="party-photo-upload-dropzone" for="partyPhotoInput">
           <input id="partyPhotoInput" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" hidden />
           <span>사진 선택</span>
         </label>
         <p class="profile-edit-message" id="partyPhotoUploadMessage" aria-live="polite"></p>
+        <p class="party-photo-thumb-heading" id="partyPhotoThumbHeading" hidden>내가 올린 사진</p>
         <ul class="party-photo-thumb-list" id="partyPhotoThumbList"></ul>
       </section>
 
@@ -564,7 +612,28 @@
           <img class="selected-photo" id="partyRevealPhoto" alt="" decoding="async" />
         </div>
 
-        <ul class="party-reveal-list" id="partyRevealList"></ul>
+        <div class="party-stage" id="partyStage">
+          <span class="party-stage-counter" id="partyStageCounter" hidden></span>
+          <p class="party-stage-idle" id="partyStageIdle">호스트가 첫 제목을 공개하면 여기 나타나요.</p>
+          <div class="party-stage-bubble-wrap" id="partyStageBubbleWrap"></div>
+        </div>
+
+        <div class="party-host-control">
+          <button class="auth-button solid full" id="partyRevealNextButton" type="button" hidden>첫 제목 공개</button>
+          <p class="party-wait-message" id="partyRevealWaitNote" hidden>방장이 제목을 넘기는 중…</p>
+        </div>
+
+        <section class="party-vote-section" id="partyVoteSection" hidden aria-label="투표">
+          <div class="party-vote-head">
+            <h3 class="party-vote-heading" id="partyVoteHeading">가장 웃긴 제목은?</h3>
+            <span class="party-vote-timer" id="partyVoteTimer"></span>
+          </div>
+          <ul class="party-vote-grid" id="partyVoteGrid"></ul>
+        </section>
+
+        <section class="party-result-section" id="partyResultSection" hidden aria-label="결과">
+          <div class="party-result" id="partyResultWinner"></div>
+        </section>
 
         <div class="party-suggest-block" id="partySuggestBlock" hidden>
           <button class="auth-button ghost full" id="partySuggestButton" type="button">이 사진 갤러리에 제안하기</button>
@@ -882,6 +951,6 @@
     </div>
   </section>
 
-  <script type="module" src="main.js?v=48"></script>
+  <script type="module" src="main.js?v=51"></script>
 </body>
 </html>

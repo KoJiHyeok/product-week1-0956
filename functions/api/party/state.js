@@ -59,7 +59,9 @@ export async function onRequestGet(context) {
 
       if (deadlinePassed || allActiveSubmitted) {
         await db
-          .prepare("UPDATE party_rooms SET status = 'reveal', updated_at = ? WHERE id = ? AND status = 'round'")
+          .prepare(
+            "UPDATE party_rooms SET status = 'reveal', reveal_index = 0, vote_deadline_at = NULL, updated_at = ? WHERE id = ? AND status = 'round'"
+          )
           .bind(now, room.id)
           .run();
         room = await getRoomByCode(db, code);

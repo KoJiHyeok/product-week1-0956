@@ -31,9 +31,14 @@ export async function onRequestGet(context) {
       return json({ message: "참가 정보를 찾을 수 없습니다." }, 404);
     }
 
+    // 아직 출제되지 않은 남의 사진은 내려주지 않는다. id가 순번이라 추측이 쉬워서,
+    // 이 가드가 없으면 다음 라운드에 나올 사진을 미리 볼 수 있다(업로드 사진은 비공개 원칙).
     const photo = await db
-      .prepare("SELECT mime_type, data_base64 FROM party_photos WHERE id = ? AND room_id = ?")
-      .bind(id, room.id)
+      .prepare(
+        `SELECT mime_type, data_base64 FROM party_photos
+         WHERE id = ? AND room_id = ? AND (used_in_round IS NOT NULL OR uploader_player_id = ?)`
+      )
+      .bind(id, room.id, player.id)
       .first();
     if (!photo) {
       return json({ message: "사진을 찾을 수 없습니다." }, 404);

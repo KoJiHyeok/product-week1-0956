@@ -1,5 +1,7 @@
 import {
   buildRoomState,
+  computeVotePhase,
+  countRoundTitles,
   getDb,
   getPlayerByToken,
   getRoomByCode,
@@ -30,7 +32,10 @@ export async function onRequestPost(context) {
       return json({ message: "참가 정보를 찾을 수 없습니다." }, 404);
     }
 
-    if (room.status !== "reveal") {
+    const now = Date.now();
+    const titlesTotal = await countRoundTitles(db, room.id, room.round_number);
+    const phase = computeVotePhase(room, titlesTotal, now);
+    if (phase !== "voting") {
       return json({ message: "지금은 투표할 수 있는 시간이 아닙니다." }, 409);
     }
     if (targetPlayerId === player.id) {
@@ -45,7 +50,6 @@ export async function onRequestPost(context) {
       return json({ message: "투표 대상을 찾을 수 없습니다." }, 404);
     }
 
-    const now = Date.now();
     await db
       .prepare(
         `INSERT INTO party_votes (room_id, round_number, voter_player_id, target_player_id, created_at)
