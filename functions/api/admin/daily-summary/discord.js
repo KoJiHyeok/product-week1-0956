@@ -8,12 +8,33 @@ const ADMIN_URL = "https://jemokhakwon.com/admin";
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 const SENT_TO = "discord";
 
-// 변화율 추적 지표. table 값은 아래 고정 리터럴만 들어오므로 인젝션 위험 없음.
+// 변화율 추적 지표. table/timeColumn 값은 아래 고정 리터럴만 들어오므로 인젝션 위험 없음.
+// epochMs: 시각 컬럼이 ISO 문자열이 아니라 Date.now() 밀리초인 테이블(파티 모드).
+// optional: 아직 prod D1에 테이블이 없어도 알림 전체를 죽이지 않고 0으로 처리한다.
 const METRICS = [
   { key: "visitors", label: "방문자", unit: "명", table: "daily_visits", emoji: "👀" },
   { key: "titles", label: "제목", unit: "건", table: "submissions", emoji: "📝" },
   { key: "members", label: "회원", unit: "명", table: "users", emoji: "🙋" },
   { key: "hearts", label: "하트", unit: "개", table: "likes", emoji: "❤️" },
+  {
+    key: "partyPlayers",
+    label: "파티 참가",
+    unit: "명",
+    table: "party_players",
+    timeColumn: "joined_at",
+    epochMs: true,
+    optional: true,
+    emoji: "🎉",
+  },
+  {
+    key: "partyRooms",
+    label: "파티 방",
+    unit: "개",
+    table: "party_rooms",
+    epochMs: true,
+    optional: true,
+    emoji: "🚪",
+  },
 ];
 
 export async function buildDailyChangeSummary(env, scheduledTime = Date.now()) {
@@ -25,13 +46,13 @@ export async function buildDailyChangeSummary(env, scheduledTime = Date.now()) {
 
   const metrics = [];
   for (const metric of METRICS) {
-    const yesterday = await countOnKstDay(db, metric.table, coveredDate);
-    const dayBefore = await countOnKstDay(db, metric.table, dayBeforeDate);
+    const yesterday = await countOnKstDay(db, metric, coveredDate);
+    const dayBefore = await countOnKstDay(db, metric, dayBeforeDate);
     metrics.push({ ...metric, yesterday, dayBefore, ...changeOf(yesterday, dayBefore) });
   }
 
-  const reportNew = await countOnKstDay(db, "reports", coveredDate);
-  const inquiryNew = await countOnKstDay(db, "contact_inquiries", coveredDate);
+  const reportNew = await countOnKstDay(db, { table: "reports" }, coveredDate);
+  const inquiryNew = await countOnKstDay(db, { table: "contact_inquiries" }, coveredDate);
 
   const payload = { coveredDate, metrics, reportNew, inquiryNew };
 
@@ -97,17 +118,31 @@ function shiftKstDate(kstDay, deltaDays) {
   return new Date(base + deltaDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
-async function countOnKstDay(db, table, kstDay) {
-  // table은 위 고정 리터럴(daily_visits/submissions/users/likes/reports/contact_inquiries)만 들어온다.
+async function countOnKstDay(db, metric, kstDay) {
+  const { table, timeColumn = "created_at", epochMs = false, optional = false } = metric;
+
+  // table/timeColumn은 위 고정 리터럴만 들어온다.
   // daily_visits는 created_at이 아니라 이미 KST 문자열인 visit_date 컬럼으로 센다.
-  const row =
-    table === "daily_visits"
-      ? await db.prepare("SELECT COUNT(*) AS cnt FROM daily_visits WHERE visit_date = ?").bind(kstDay).first()
-      : await db
-          .prepare(`SELECT COUNT(*) AS cnt FROM ${table} WHERE date(created_at, '+9 hours') = ?`)
-          .bind(kstDay)
-          .first();
-  return Number(row?.cnt) || 0;
+  // 파티 테이블은 시각이 Date.now() 밀리초라 초 단위로 낮춘 뒤 unixepoch로 해석한다.
+  const dayExpr = epochMs
+    ? `date(${timeColumn} / 1000, 'unixepoch', '+9 hours')`
+    : `date(${timeColumn}, '+9 hours')`;
+
+  try {
+    const row =
+      table === "daily_visits"
+        ? await db.prepare("SELECT COUNT(*) AS cnt FROM daily_visits WHERE visit_date = ?").bind(kstDay).first()
+        : await db.prepare(`SELECT COUNT(*) AS cnt FROM ${table} WHERE ${dayExpr} = ?`).bind(kstDay).first();
+    return Number(row?.cnt) || 0;
+  } catch (error) {
+    if (!optional) {
+      throw error;
+    }
+
+    // 마이그레이션 미적용 등으로 테이블이 없어도 나머지 지표 알림은 계속 보낸다.
+    console.error(`daily discord summary: ${table} count failed`, error instanceof Error ? error.message : error);
+    return 0;
+  }
 }
 
 function changeOf(yesterday, dayBefore) {
