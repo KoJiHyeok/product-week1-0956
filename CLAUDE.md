@@ -94,7 +94,9 @@ npx wrangler pages dev . --port 9000   # Functions + 로컬 D1 포함. 첫 실�
 
 ### 일일 갤러리 후보 발송
 
-`workers/daily-summary.js`(매일 07:00 KST)가 기존 지표 요약과 별도로 Openverse(CC 라이선스 이미지 검색 API, 무료·키 불필요, `functions/api/admin/daily-summary/candidates.js`)에서 cc0/pdm/by 라이선스 이미지 6장을 큐레이션해 같은 디스코드 웹훅으로 보낸다. 발송 기록은 D1 `daily_image_candidates`(migration `0023_daily_image_candidates.sql`)에 남으며, 같은 날짜에 이미 보낸 후보가 있으면 재발송하지 않는다. 수동 테스트는 `POST /api/admin/daily-summary/send-candidates-test`에 `{ "dryRun": true }`. 라이선스가 `by`인 후보를 승인할 때는 아래 워크플로에서 저작자(creator) 표기를 함께 등록해야 한다.
+일일 후보는 **`scripts/daily-image-candidates-prompt.md`의 생성 절차(Claude Code 예약 실행 + `$imagegen`)로만** 받는다. 4장을 만들어 `output/image-candidates/YYYY-MM-DD/`에 저장하고 `node scripts/send-discord-image-candidates.mjs`로 디스코드에 보낸다.
+
+**Openverse 자동 후보 발송은 2026-09-01에 껐다.** `workers/daily-summary.js` 크론에서 `sendDailyCandidates` 호출을 제거했다 — cc0/pdm/by 코퍼스에 제목학원용 결정적 순간 사진이 거의 없어 평범한 동물 도감 사진만 올라왔고(검색어에 따라 결과 0건), 검색어를 바꿔도 코퍼스 한계가 남는다. 되살릴 수 있도록 `functions/api/admin/daily-summary/candidates.js`, D1 `daily_image_candidates`(migration `0023_daily_image_candidates.sql`), 수동 테스트 엔드포인트 `POST /api/admin/daily-summary/send-candidates-test`(`{ "dryRun": true }`)는 모두 남겨뒀다. 크론 변경은 `npx wrangler deploy -c wrangler.daily-summary.toml`를 돌려야 실제로 반영된다(Pages push로는 안 됨).
 
 ### 일일 후보 승인 후 자동 반영
 
