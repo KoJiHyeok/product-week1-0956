@@ -51,16 +51,22 @@ export async function buildDailyChangeSummary(env, scheduledTime = Date.now()) {
     metrics.push({ ...metric, yesterday, dayBefore, ...changeOf(yesterday, dayBefore) });
   }
 
+  const partyCompletion = {
+    yesterday: await countPartyCompletion(db, coveredDate),
+    dayBefore: await countPartyCompletion(db, dayBeforeDate),
+  };
+
   const reportNew = await countOnKstDay(db, { table: "reports" }, coveredDate);
   const inquiryNew = await countOnKstDay(db, { table: "contact_inquiries" }, coveredDate);
 
-  const payload = { coveredDate, metrics, reportNew, inquiryNew };
+  const payload = { coveredDate, metrics, partyCompletion, reportNew, inquiryNew };
 
   return {
     summaryDate: sendDay,
     coveredDate,
     dayBeforeDate,
     metrics,
+    partyCompletion,
     reportNew,
     inquiryNew,
     text: buildSummaryText(payload),
@@ -145,6 +151,61 @@ async function countOnKstDay(db, metric, kstDay) {
   }
 }
 
+// 파티 모드 완주율: 그날(KST) 개설된 방 중 마지막 라운드까지 끝낸 방의 비율.
+// status='ended'는 호스트가 total_rounds를 모두 소진했을 때만 세팅되므로(party/advance.js)
+// 그대로 "완주" 신호로 쓴다. 중간에 버려진 방은 lobby/round/reveal로 남는다.
+// 분모는 라운드를 한 번이라도 시작한 방(round_number >= 1) — 만들고 아무도 안 들어온 빈 방이
+// 완주율을 왜곡하지 않게 한다. 개설 수는 참고용으로 함께 보고한다.
+async function countPartyCompletion(db, kstDay) {
+  try {
+    const row = await db
+      .prepare(
+        `SELECT COUNT(*) AS created,
+                SUM(CASE WHEN round_number >= 1 THEN 1 ELSE 0 END) AS started,
+                SUM(CASE WHEN status = 'ended' THEN 1 ELSE 0 END) AS completed
+           FROM party_rooms
+          WHERE date(created_at / 1000, 'unixepoch', '+9 hours') = ?`
+      )
+      .bind(kstDay)
+      .first();
+
+    const created = Number(row?.created) || 0;
+    const started = Number(row?.started) || 0;
+    const completed = Number(row?.completed) || 0;
+    const rate = started > 0 ? (completed / started) * 100 : null;
+
+    return { created, started, completed, rate };
+  } catch (error) {
+    // party_rooms 미적용(마이그레이션 전)이어도 나머지 알림은 계속 보낸다.
+    console.error("daily discord summary: party completion failed", error instanceof Error ? error.message : error);
+    return { created: 0, started: 0, completed: 0, rate: null };
+  }
+}
+
+function formatRate(rate) {
+  return rate === null ? "—" : `${rate.toFixed(1)}%`;
+}
+
+// 완주율은 비율이므로 증감을 %p(퍼센트포인트)로 표기한다.
+function rateDeltaText(yesterdayRate, dayBeforeRate) {
+  if (yesterdayRate === null || dayBeforeRate === null) return "";
+  const delta = yesterdayRate - dayBeforeRate;
+  const sign = delta > 0 ? "+" : delta < 0 ? "" : "\u00b1";
+  return `${sign}${delta === 0 ? "0.0" : delta.toFixed(1)}%p`;
+}
+
+function partyCompletionLines(partyCompletion) {
+  const today = partyCompletion.yesterday;
+  const before = partyCompletion.dayBefore;
+  const deltaText = rateDeltaText(today.rate, before.rate);
+
+  return {
+    rateText: formatRate(today.rate),
+    detail: `완주 ${today.completed} / 시작 ${today.started}방 (개설 ${today.created}방)`,
+    compare: `그저께 ${formatRate(before.rate)}${deltaText ? ` (${deltaText})` : ""}`,
+  };
+}
+
 function changeOf(yesterday, dayBefore) {
   const delta = yesterday - dayBefore;
   const deltaText = delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : "±0";
@@ -171,12 +232,19 @@ function summaryColor(metrics) {
   return primary.delta > 0 ? 0x57f287 : 0xed4245; // green / red
 }
 
-function buildDiscordEmbed({ coveredDate, metrics, reportNew, inquiryNew }) {
+function buildDiscordEmbed({ coveredDate, metrics, partyCompletion, reportNew, inquiryNew }) {
   const fields = metrics.map((metric) => ({
     name: `${metric.emoji} ${metric.label}`,
     value: `${trendEmoji(metric.delta)} **${metric.yesterday}${metric.unit}**\n그저께 ${metric.dayBefore}${metric.unit}\n${metric.deltaText} (${metric.pctText})`,
     inline: true,
   }));
+
+  const party = partyCompletionLines(partyCompletion);
+  fields.push({
+    name: "🏁 파티 완주율",
+    value: `**${party.rateText}**\n${party.detail}\n${party.compare}`,
+    inline: true,
+  });
 
   fields.push({
     name: "🛡️ 신고 · 문의 (어제 신규)",
@@ -198,7 +266,9 @@ function buildDiscordEmbed({ coveredDate, metrics, reportNew, inquiryNew }) {
   };
 }
 
-function buildSummaryText({ coveredDate, metrics, reportNew, inquiryNew }) {
+function buildSummaryText({ coveredDate, metrics, partyCompletion, reportNew, inquiryNew }) {
+  const party = partyCompletionLines(partyCompletion);
+
   return [
     `${DISCORD_TITLE} — ${coveredDate} (KST), 그저께 대비`,
     "",
@@ -206,6 +276,7 @@ function buildSummaryText({ coveredDate, metrics, reportNew, inquiryNew }) {
       (metric) =>
         `- ${metric.label}: ${metric.yesterday}${metric.unit} (그저께 ${metric.dayBefore}${metric.unit}, ${metric.deltaText}, ${metric.pctText})`
     ),
+    `- 파티 완주율: ${party.rateText} — ${party.detail}, ${party.compare}`,
     "",
     `신고 신규 ${reportNew}건 · 문의 신규 ${inquiryNew}건`,
     `관리자: ${ADMIN_URL}`,

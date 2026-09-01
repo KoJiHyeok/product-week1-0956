@@ -46,6 +46,7 @@ function serializeSummary(summary) {
     coveredDate: summary.coveredDate,
     dayBeforeDate: summary.dayBeforeDate,
     metrics: summary.metrics,
+    partyCompletion: summary.partyCompletion,
     reportNew: summary.reportNew,
     inquiryNew: summary.inquiryNew,
     text: summary.text,
