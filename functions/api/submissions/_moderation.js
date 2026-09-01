@@ -54,6 +54,12 @@ export function containsProfanity(value) {
   return looseProfanityPattern.test(text.toLowerCase());
 }
 
+// 제어문자(NUL 등)는 저장되면 서버렌더 HTML을 invalid하게 만든다. 입력 단계에서 지운다.
+// 이미 저장된 옛 행은 렌더 시점에도 한 번 더 걸러진다(functions/gallery/[slug].js).
+export function stripControlChars(value) {
+  return String(value ?? "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
+}
+
 export function validatePublicText(value, label = "내용") {
   const text = String(value || "").trim();
   const normalized = text.toLowerCase().replace(/\s+/g, "");

@@ -421,6 +421,9 @@ function encodedAssetUrl(value) {
 
 function escapeHtml(value) {
   return String(value ?? "")
+    // 제어문자(특히 NUL)가 섞인 옛 사용자 제목이 있다. 그대로 내보내면 HTML이
+    // invalid가 되어 크롤러 파싱이 깨지므로 렌더 시점에 제거한다(탭·개행은 유지).
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

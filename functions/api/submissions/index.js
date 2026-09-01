@@ -1,5 +1,5 @@
 import { ensureUserCanWrite, getCurrentUser, getDb, json, readJson } from "../auth/_shared.js";
-import { validateDisplayName, validatePublicText } from "./_moderation.js";
+import { validateDisplayName, validatePublicText, stripControlChars } from "./_moderation.js";
 import {
   formatAuthorName,
   isReservedByMember,
@@ -77,7 +77,7 @@ export async function onRequestPost(context) {
     const imageIndex = Number(body?.imageIndex);
     const imageKey = normalizeImageKey(body?.imageKey, body?.imageIndex);
     const imageSrc = typeof body?.imageSrc === "string" ? body.imageSrc.trim() : "";
-    const title = typeof body?.title === "string" ? body.title.trim() : "";
+    const title = typeof body?.title === "string" ? stripControlChars(body.title).trim() : "";
     const guestName = typeof body?.guestName === "string" ? body.guestName.trim() : "";
 
     if (!Number.isInteger(imageIndex) || !imageKey || !imageSrc || !title) {
