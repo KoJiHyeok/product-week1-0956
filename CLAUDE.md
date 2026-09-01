@@ -23,6 +23,8 @@
   - 각 파일은 `onRequestGet` / `onRequestPost` / `onRequestPatch` 등 Cloudflare 핸들러를 export.
   - 공통 헬퍼는 각 폴더의 `_shared.js` (예: `functions/api/auth/_shared.js`의 `getDb`, `json`, `getCurrentUser`).
 - `functions/admin/[[path]].js` — 보호된 admin 페이지 fallback.
+- `functions/gallery/[slug].js` — 사진 상세 페이지 서버렌더(해설 + 실제 사용자 제목 랭킹). `functions/titles/[key].js`는 여기로 301만 한다.
+- `functions/index.js` — 홈(`/`) 정적 HTML의 빈 `#feedList`에 현재 인기 제목을 주입(크롤러용 SSR). 실패 시 원본 자산을 그대로 반환.
 - `migrations/` — D1 스키마 이력(`0002_…` ~ `0014_…`). `schema.sql` = 현재 전체 스키마.
 - `workers/` + `wrangler.daily-summary.toml` — 독립 Cron Worker(일일 요약).
 - `wrangler.toml` — Pages 설정. D1 바인딩 `DB` → 데이터베이스 `product-week1-0956-auth`.
@@ -90,7 +92,9 @@ npx wrangler pages dev . --port 9000   # Functions + 로컬 D1 포함. 첫 실�
    - `functions/api/images/gallery-data.js`의 `galleryImages` — 프런트 항목과 **동일한 `id`·`imageKey`·텍스트·이미지 경로**를 넣는다. (API 갤러리 데이터의 정본은 이 파일이다. `functions/api/images/index.js`는 `import { galleryImages as defaultImages } from "./gallery-data.js"`로 가져다 쓸 뿐이므로 여기서 직접 수정하지 않는다.) 새 `imageKey`는 두 목록 전체의 최대 키보다 1 큰 값을 사용하고, 중복 여부를 확인한다. `id`는 `imm-0NN` 형식, `isUserUpload: false`로 둔다.
 3. `title`/`description`/`alt`/`prompt`/`observationPoints`/`exampleTitles`를 이미지 기반으로 기존 항목 톤에 맞춰 작성. (동물·인물 표정은 사람 대사처럼 바꾼 짧은 예시 제목이 톤에 맞음)
 4. **랭킹·하트·댓글·신고 버튼은 카드 UI가 모든 항목에 자동 렌더** → 별도 작업 없음.
-5. `node --check`(수정한 파일들: `main.js`, `functions/api/images/gallery-data.js`) → 두 목록의 `id`·`imageKey` 일치와 키 중복 확인(`node scripts/validate.mjs`) → 1건만 추가해 사용자에게 보여주고 확인 → `index.html`의 `main.js?v=N` 올림 → 커밋·푸시(자동 배포). (함정: 기존 `imageKey`를 배열 인덱스에 맞춰 재번호하면 저장된 제출이 엉뚱한 사진에 붙는다)
+5. **`content/gallery-copy/*.json`에 해설 원고를 쓴다** — `scene`(2문단)·`analysis`(예시 제목 3개와 1:1 대응)·`composeTip`(2문단)·`extra`(1문단), 합계 1,100자 이상. **원고가 없으면 상세 페이지가 `noindex`가 되고 sitemap에서도 빠진다.**
+6. `node scripts/generate-gallery-pages.js` → `functions/api/images/gallery-copy.js`(생성 모듈)·`gallery/index.html`·`sitemap.xml` 갱신.
+7. `node --check`(수정한 파일들: `main.js`, `functions/api/images/gallery-data.js`) → 두 목록의 `id`·`imageKey` 일치와 키 중복 확인(`node scripts/validate.mjs`) → 1건만 추가해 사용자에게 보여주고 확인 → `index.html`의 `main.js?v=N` 올림 → 커밋·푸시(자동 배포). (함정: 기존 `imageKey`를 배열 인덱스에 맞춰 재번호하면 저장된 제출이 엉뚱한 사진에 붙는다)
 
 ### 일일 갤러리 후보 발송
 
@@ -106,6 +110,16 @@ npx wrangler pages dev . --port 9000   # Functions + 로컬 D1 포함. 첫 실�
 - 갤러리 해설 페이지를 다시 생성하고 `node scripts/validate.mjs`를 통과시킨다.
 - 검증 성공 시 관련 변경만 커밋해 `main`에 push한다. Cloudflare Pages 자동 배포까지 승인 범위에 포함된다.
 - 검증 실패, 이미지 품질 문제, 권리·안전 문제, unrelated 변경과의 충돌이 있으면 배포하지 않고 원인을 보고한다.
+
+## 갤러리 상세 페이지 구조 (2026-09-01 전환)
+
+애드센스 3차 반려("가치가 별로 없는 콘텐츠") 대응으로 **한 사진 = 한 페이지**로 합쳤다.
+
+- 이전: `/gallery/<slug>/`(정적 해설 HTML, 고유 900자) + `/titles/<key>/`(제목 랭킹)가 **같은 사진에 대한 별도 URL**이었다. 같은 `description` 메타를 쓰는 중복 쌍 35개 + 각각 얇은 페이지.
+- 지금: `functions/gallery/[slug].js`가 해설 + 실제 사용자 제목 랭킹을 한 페이지에 렌더한다. `/titles/<key>/`는 쿼리를 보존한 채 301.
+- **정적 `gallery/<slug>/index.html`을 다시 만들지 말 것.** 생성기가 매번 지운다 — 남아 있으면 Pages가 Function 대신 정적 파일을 서빙할 수 있다.
+- 해설 원고 정본은 `content/gallery-copy/*.json`. Pages Function은 런타임에 파일을 못 읽으므로 생성기가 `functions/api/images/gallery-copy.js`로 내보내고, Function은 그 모듈을 import한다. **생성 모듈을 직접 고치지 말 것.**
+- slug 규칙(`photo-001` → `cat-smoke`)은 `functions/api/images/_gallery-slug.js`와 `main.js`의 `GALLERY_SLUG_OVERRIDES` **두 곳에 사본**이 있다. 한쪽만 고치면 공유 링크가 깨진다.
 
 ## 배포
 

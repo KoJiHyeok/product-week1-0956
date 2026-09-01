@@ -1497,7 +1497,7 @@ function renderDailyWinner(yesterday) {
     metaEl.textContent = `${winner.author || "비회원"} · 하트 ${Number(winner.likeCount) || 0}개`;
   }
   if (linkEl) {
-    linkEl.href = `/titles/${encodeURIComponent(imageKey)}/?t=${encodeURIComponent(winner.submissionId)}`;
+    linkEl.href = galleryPageUrl(imageKey, winner.submissionId);
   }
 
   card.hidden = false;
@@ -1920,6 +1920,21 @@ function getSelectedImageKey() {
 
 function findImageIndexByKey(imageKey) {
   return galleryImages.findIndex((image, index) => getImageKey(image, index) === imageKey);
+}
+
+// 사진 한 장의 정식 URL. /gallery/<slug>/ 가 해설과 제목 랭킹을 함께 보여준다.
+// slug 규칙은 functions/api/images/_gallery-slug.js의 사본이다 — 한쪽만 고치지 말 것.
+// 목록에서 사진을 못 찾으면 /titles/<key>/ 로 두고, 서버가 같은 페이지로 301한다.
+const GALLERY_SLUG_OVERRIDES = { "photo-001": "cat-smoke" };
+
+function galleryPageUrl(imageKey, submissionId) {
+  const image = galleryImages[findImageIndexByKey(imageKey)];
+  const slug = image ? GALLERY_SLUG_OVERRIDES[image.id] || image.id : "";
+  const base = slug
+    ? `/gallery/${encodeURIComponent(slug)}/`
+    : `/titles/${encodeURIComponent(imageKey)}/`;
+
+  return submissionId ? `${base}?t=${encodeURIComponent(submissionId)}` : base;
 }
 
 function findLegacyImageIndex(rawIndex) {
@@ -5337,7 +5352,7 @@ function showToast(message) {
 }
 
 async function shareSubmission(imageKey, submission) {
-  const url = `${location.origin}/titles/${encodeURIComponent(imageKey)}/?t=${submission.id}`;
+  const url = `${location.origin}${galleryPageUrl(imageKey, submission.id)}`;
   const text = `"${submission.title}" — 내가 지은 제목인데 평가 좀. 더 웃기게 지을 수 있으면 도전`;
 
   if (navigator.share) {

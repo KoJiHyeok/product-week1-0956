@@ -212,242 +212,6 @@ ${navHtml()}
     </footer>`;
 }
 
-function listItems(items) {
-  return items.map((item) => `          <li>${escapeHtml(item)}</li>`).join("\n");
-}
-
-// 받침 유무로 조사를 고른다(을/를, 이/가, 은/는, 으로/로).
-function hasBatchim(word) {
-  const text = String(word ?? "").trim();
-  if (!text) return false;
-  const code = text.charCodeAt(text.length - 1);
-  if (code < 0xac00 || code > 0xd7a3) return false;
-  return (code - 0xac00) % 28 !== 0;
-}
-
-function josa(word, withBatchim, withoutBatchim) {
-  return hasBatchim(word) ? withBatchim : withoutBatchim;
-}
-
-// 으로/로는 받침 규칙이 다르다: 받침이 없거나 ㄹ받침이면 "로", 그 외엔 "으로".
-function ro(word) {
-  const text = String(word ?? "").trim();
-  if (!text) return "로";
-  const code = text.charCodeAt(text.length - 1);
-  if (code < 0xac00 || code > 0xd7a3) return "로";
-  const jong = (code - 0xac00) % 28;
-  return (jong === 0 || jong === 8) ? "로" : "으로";
-}
-
-function pick(pool, seed) {
-  return pool[((seed % pool.length) + pool.length) % pool.length];
-}
-
-// 페이지마다 연결 문장이 똑같이 반복되면 검색엔진이 양산형(저가치) 콘텐츠로 볼 수 있어,
-// 이미지 인덱스를 시드로 어휘를 결정론적으로 분산시킨다(재생성 시 diff가 안정적).
-const analysisPhrases = [
-  (p) => `${p}${josa(p, "을", "를")} 실마리 삼아 장면의 감정을 한 문장으로 좁힌 제목입니다.`,
-  (p) => `${p}에서 출발해 사진의 분위기를 짧게 붙잡은 표현입니다.`,
-  (p) => `${p}에 초점을 두고 군더더기를 덜어낸 제목 방향입니다.`,
-  (p) => `${p}${josa(p, "이", "가")} 주는 인상을 한 호흡에 눌러 담은 예시입니다.`,
-  (p) => `${p}${josa(p, "을", "를")} 앞세워 보는 사람의 시선을 한곳으로 모은 제목입니다.`,
-  (p) => `${p}${josa(p, "은", "는")} 그대로 두고 해석의 여지를 남긴 표현입니다.`,
-  (p) => `${p}에 담긴 기운을 단정하지 않고 가볍게 건드린 제목입니다.`,
-  (p) => `${p}${ro(p)} 시선을 끌고 나머지는 사진에 맡긴 예시입니다.`,
-];
-
-const pointIntroTemplates = [
-  (first, rest) => `첫 단서는 ${first}입니다.${rest ? ` 이어서 ${rest}까지 천천히 따라가 보세요.` : ""}`,
-  (first, rest) => `가장 먼저 눈에 들어오는 건 ${first}입니다.${rest ? ` 그다음 ${rest} 순으로 시선을 옮겨보세요.` : ""}`,
-  (first, rest) => `시선을 먼저 둘 곳은 ${first}입니다.${rest ? ` 이어 ${rest}까지 확인하면 단서가 모입니다.` : ""}`,
-  (first, rest) => `${first}부터 눈여겨보세요.${rest ? ` ${rest}도 함께 살피면 장면이 더 또렷해집니다.` : ""}`,
-  (first, rest) => `${first}에서 시작하면 좋습니다.${rest ? ` ${rest}까지 읽고 나면 제목의 방향이 잡힙니다.` : ""}`,
-];
-
-const observationIntros = [
-  "제목을 짓기 전에 사진 안의 단서를 세 가지로 나누어 보면 문장이 더 선명해집니다.",
-  "아래 세 단서를 따로 떼어 보면 어디서부터 제목을 시작할지 정하기 쉽습니다.",
-  "사진을 한눈에 보지 말고 다음 세 단서로 끊어 읽으면 표현이 또렷해집니다.",
-  "제목이 막막할 때는 이 세 가지 포인트를 하나씩 짚으며 단서를 모아보세요.",
-];
-
-const composeCards = [
-  {
-    a: "처음에는 사진을 길게 설명해도 됩니다. 그다음 불필요한 수식어를 줄이고, 가장 강한 단서 하나와 감정 하나만 남겨보세요.",
-    b: "인물이나 상황을 사실처럼 단정하기보다 화면에 보이는 표정, 자세, 배경, 거리감에서 출발하는 제목이 안전하고 오래 읽힙니다.",
-  },
-  {
-    a: "떠오르는 문장을 먼저 그대로 적은 뒤 한 단어씩 지워보세요. 지워도 장면이 살아 있다면 그 단어는 없어도 됩니다.",
-    b: "보이지 않는 사연을 지어내기보다 사진에 실제로 있는 단서에서 감정을 끌어오면 보는 사람도 제목과 사진을 쉽게 연결합니다.",
-  },
-  {
-    a: "긴 설명에서 시작해 핵심 명사와 동사만 남겨보세요. 짧아질수록 제목은 또렷해지고 기억에 오래 남습니다.",
-    b: "단정 대신 여지를 남기는 편이 좋습니다. 표정이나 상황을 못 박지 않으면 사람마다 다른 해석이 댓글로 이어집니다.",
-  },
-  {
-    a: "감정을 한 단어로 먼저 정하면 문장의 온도가 따라옵니다. 웃김, 조용함, 긴장처럼 방향부터 잡아보세요.",
-    b: "반전이 있는 사진이라면 가장 재미있는 말을 문장 끝으로 미뤄두세요. 마지막 단어 하나가 제목의 인상을 좌우합니다.",
-  },
-];
-
-function analysisItems(image, pageIndex) {
-  const points = image.observationPoints || [];
-  return (image.exampleTitles || []).map((title, i) => {
-    const point = points[i % Math.max(points.length, 1)] || image.title;
-    const phrase = pick(analysisPhrases, pageIndex * 3 + i)(point);
-    return `          <li><strong>${escapeHtml(title)}</strong> - ${escapeHtml(phrase)}</li>`;
-  }).join("\n");
-}
-
-function copyAnalysisItems(image, copy) {
-  return (image.exampleTitles || []).map((title, i) => {
-    return `          <li><strong>${escapeHtml(title)}</strong> - ${escapeHtml(copy.analysis[i])}</li>`;
-  }).join("\n");
-}
-
-function detailHtml(image, index) {
-  const copy = galleryCopyMap.get(image.id);
-  const canonical = `${siteUrl}/gallery/${image.slug}/`;
-  const imagePath = assetUrl(image.src);
-  const encodedImagePath = encodedAssetUrl(image.src);
-  const webpPath = image.webpSrc ? encodedAssetUrl(image.webpSrc) : "";
-  const imageFullUrl = `${siteUrl}${encodedImagePath}`;
-  const title = `${image.title} - 사진 해설 | 제목 학원`;
-  const isUserProvided = String(image.sourceName || "").startsWith("사용자 제공");
-  const isAiGenerated = String(image.sourceName || "").includes("AI 생성");
-  const sourceSummary = isAiGenerated
-    ? "이 이미지는 사용자가 AI 생성 이미지라고 밝히고 사이트 게시를 위해 제공한 자료입니다."
-    : isUserProvided
-      ? "이 사진은 사이트 게시를 위해 사용자가 직접 제공한 이미지입니다."
-    : "갤러리에는 AI 생성 이미지, 이용 허가를 확인한 자산, 운영 검토를 거친 사용자 제공 이미지가 포함될 수 있습니다.";
-  const sourceReview = isUserProvided
-    ? "운영자는 사용자의 게시 요청과 제목 연습 적합성을 확인한 뒤 공개했습니다."
-    : `이 이미지는 ${image.sourceName || "제목 학원 운영자 검토 갤러리"}에 포함된 자료입니다. 운영자는 제목 연습에 맞는지, 저작권과 초상권 문제가 없는지 확인한 뒤 공개합니다.`;
-  const publicationDates = image.publishedAt
-    ? `      "datePublished": ${JSON.stringify(image.publishedAt)},\n      "dateModified": ${JSON.stringify(image.updatedAt || image.publishedAt)},\n`
-    : "";
-  const firstPoint = image.observationPoints?.[0];
-  const restPoints = image.observationPoints?.slice(1).join(", ");
-  const pointText = firstPoint
-    ? pick(pointIntroTemplates, index)(firstPoint, restPoints || "")
-    : "사진에서 가장 먼저 눈에 들어오는 대상과 배경의 관계를 확인해보세요.";
-  const observationIntro = pick(observationIntros, index);
-  const composeCard = pick(composeCards, index);
-
-  return `<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="google-adsense-account" content="ca-pub-2571483149742375" />
-  <link rel="icon" type="image/png" href="/Logo-image.png">
-  <link rel="apple-touch-icon" href="/Logo-image.png">
-  <meta name="description" content="${escapeHtml(image.description)}" />
-  <meta name="robots" content="${copy ? "index, follow" : "noindex, follow"}" />
-  <link rel="canonical" href="${canonical}" />
-  <meta property="og:type" content="article" />
-  <meta property="og:locale" content="ko_KR" />
-  <meta property="og:site_name" content="제목 학원" />
-  <meta property="og:title" content="${escapeHtml(title)}" />
-  <meta property="og:description" content="${escapeHtml(image.description)}" />
-  <meta property="og:url" content="${canonical}" />
-  <meta property="og:image" content="${imageFullUrl}" />
-  <meta property="og:image:alt" content="${escapeHtml(image.alt)}" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="${escapeHtml(title)}" />
-  <meta name="twitter:description" content="${escapeHtml(image.description)}" />
-  <meta name="twitter:image" content="${imageFullUrl}" />
-  <title>${escapeHtml(title)}</title>
-  <link href="/style.css?v=17" rel="stylesheet" />
-  <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Article",
-      "headline": ${JSON.stringify(image.title)},
-      "description": ${JSON.stringify(image.description)},
-      "inLanguage": "ko-KR",
-      "mainEntityOfPage": "${canonical}",
-      "image": "${imageFullUrl}",
-${publicationDates}      "author": { "@type": "Organization", "name": "제목 학원" },
-      "publisher": {
-        "@type": "Organization",
-        "name": "제목 학원",
-        "url": "${siteUrl}/"
-      }
-    }
-  </script>
-</head>
-<body class="info-page">
-  <main class="info-shell">
-${headerHtml()}
-
-    <section class="info-hero">
-      <p class="info-kicker">사진 해설</p>
-      <h1>${escapeHtml(image.title)}</h1>
-      <p>${escapeHtml(image.description)}</p>
-    </section>
-
-    <section class="info-grid">
-      <article class="info-card info-card-wide">
-        <picture>
-${webpPath ? `          <source srcset="${escapeHtml(webpPath)}" type="image/webp" />\n` : ""}          <img src="${escapeHtml(encodedImagePath)}"
-               alt="${escapeHtml(image.alt)}"
-               loading="lazy" decoding="async"
-               style="width:100%;height:auto;border-radius:12px;display:block;" />
-        </picture>
-      </article>
-
-      <article class="info-card">
-        <h2>이 사진의 핵심 장면</h2>
-${copy
-    ? copy.scene.map((paragraph) => `        <p>${escapeHtml(paragraph)}</p>`).join("\n")
-    : `        <p>${escapeHtml(image.prompt || image.description)}</p>\n        <p>${escapeHtml(pointText)}</p>`}
-      </article>
-
-      <article class="info-card">
-        <h2>관찰 포인트</h2>
-        <p>${escapeHtml(observationIntro)}</p>
-        <ul class="info-link-list">
-${listItems(image.observationPoints || [])}
-        </ul>
-      </article>
-
-      <article class="info-card">
-        <h2>예시 제목과 해석</h2>
-${copy ? "" : `        <p>아래 제목은 정답이 아니라 표현 방향을 보여주는 참고용입니다.</p>\n`}        <ul class="info-link-list">
-${copy ? copyAnalysisItems(image, copy) : analysisItems(image, index)}
-        </ul>
-      </article>
-
-      <article class="info-card">
-        <h2>직접 제목을 만들 때</h2>
-${copy
-    ? copy.composeTip.map((paragraph) => `        <p>${escapeHtml(paragraph)}</p>`).join("\n")
-    : `        <p>${escapeHtml(composeCard.a)}</p>\n        <p>${escapeHtml(composeCard.b)}</p>`}
-      </article>
-${copy ? `      <article class="info-card">\n        <h2>한 걸음 더 관찰하기</h2>\n        <p>${escapeHtml(copy.extra)}</p>\n      </article>\n\n` : ""}
-      <article class="info-card info-card-wide">
-        <h2>이미지 출처와 검토</h2>
-        <p>${escapeHtml(sourceSummary)}</p>
-        <p>${escapeHtml(sourceReview)}</p>
-        <p>권리 침해가 의심되거나 부적절한 내용이 보이면 <a href="/contact/">문의 페이지</a> 또는 사진 신고 기능으로 알려주세요. 검토 중인 이미지는 숨김 처리될 수 있습니다.</p>
-      </article>
-    </section>
-
-    <section class="info-cta">
-      <p class="info-kicker">참여하기</p>
-      <h2>이 사진에 어울리는 제목을 직접 만들어보세요</h2>
-      <p>메인에서 사진을 선택하면 제목을 제출하고 다른 사용자의 제목과 반응을 확인할 수 있습니다.</p>
-      <a class="info-primary-button" href="/#title/key/${encodeURIComponent(String(image.imageKey ?? index))}">제목 달아보기</a>
-${copy ? `      <a class="info-link" href="/titles/${encodeURIComponent(String(image.imageKey ?? index))}/">이 사진에 달린 제목 랭킹 보기</a>\n` : ""}    </section>
-
-${footerHtml()}
-  </main>
-</body>
-</html>
-`;
-}
-
 function galleryIndexHtml(images) {
   const animalTerms = ["고양이", "강아지", "악어", "비둘기", "알파카", "금붕어", "개구리", "두 집게"];
   const personTerms = ["남자", "여자", "남성", "여성", "사람", "아기", "인물", "청년"];
@@ -600,13 +364,52 @@ const normalizedImages = images.map((image, index) => ({
 const newestImages = normalizedImages.slice().reverse();
 
 fs.mkdirSync(galleryRoot, { recursive: true });
-for (const image of normalizedImages) {
-  const directory = path.join(galleryRoot, image.slug);
-  fs.mkdirSync(directory, { recursive: true });
-  fs.writeFileSync(path.join(directory, "index.html"), detailHtml(image, normalizedImages.indexOf(image)), "utf8");
-}
+
+// 상세 페이지는 정적 HTML이 아니라 functions/gallery/[slug].js가 서버렌더한다.
+// (해설 + 실제 사용자 제목 랭킹을 한 페이지에 합치기 위해 2026-09-01에 전환)
+// 예전 생성물이 남아 있으면 Pages가 Function 대신 정적 파일을 서빙할 수 있어 지운다.
+removeStaleDetailPages();
+
+// Pages Function은 런타임에 파일을 못 읽으므로 해설 원고를 ESM 모듈로 내보낸다.
+writeGalleryCopyModule();
 
 fs.writeFileSync(path.join(galleryRoot, "index.html"), galleryIndexHtml(newestImages), "utf8");
 fs.writeFileSync(path.join(root, "sitemap.xml"), sitemapXml(normalizedImages), "utf8");
 
-console.log(`Generated ${normalizedImages.length} gallery detail pages and sitemap.xml`);
+console.log(
+  `Wrote gallery-copy module (${galleryCopyMap.size}편), gallery/index.html, sitemap.xml — ` +
+  `상세 ${normalizedImages.length}장은 functions/gallery/[slug].js가 렌더`
+);
+
+function removeStaleDetailPages() {
+  for (const entry of fs.readdirSync(galleryRoot, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      fs.rmSync(path.join(galleryRoot, entry.name), { recursive: true, force: true });
+    }
+  }
+}
+
+function writeGalleryCopyModule() {
+  const entries = normalizedImages
+    .filter((image) => galleryCopyMap.has(image.id))
+    .map((image) => {
+      const copy = galleryCopyMap.get(image.id);
+      return `  ${JSON.stringify(image.id)}: ${JSON.stringify({
+        scene: copy.scene,
+        analysis: copy.analysis,
+        composeTip: copy.composeTip,
+        extra: copy.extra,
+      }, null, 4).split("\n").join("\n  ")},`;
+    })
+    .join("\n");
+
+  const source = `// 생성 파일 — 직접 고치지 말 것.
+// 원본: content/gallery-copy/*.json → \`node scripts/generate-gallery-pages.js\` 로 재생성.
+// functions/gallery/[slug].js가 런타임에 이 모듈을 읽어 해설을 렌더한다.
+export const galleryCopy = {
+${entries}
+};
+`;
+
+  fs.writeFileSync(path.join(root, "functions/api/images/gallery-copy.js"), source, "utf8");
+}
