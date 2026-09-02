@@ -762,6 +762,24 @@ const defaultGalleryImages = [
     publishedAt: "2026-09-01",
     updatedAt: "2026-09-01",
   },
+  {
+    id: "imm-032",
+    imageKey: "44",
+    src: "assets/gallery/pottery-wheel-collapse.jpg",
+    webpSrc: "assets/gallery/webp/pottery-wheel-collapse.webp",
+    title: "물레 위 도자기가 무너진 순간 엇갈린 두 표정",
+    description: "도예 공방에서 남성이 물레 위로 길게 올린 도자기가 갑자기 한쪽으로 무너지며 흙물을 튀기고, 옆의 여성은 자기 그릇에 손을 둔 채 차분히 바라보는 AI 생성 사진입니다. 한 사람의 절박함과 다른 사람의 태연한 시선을 대비하면 실수, 평가, 팀 작업에 얽힌 제목을 만들기 좋습니다.",
+    alt: "도예 공방에서 남성이 무너지는 도자기를 붙잡으려 놀란 표정을 짓고 옆의 여성은 자기 그릇에 손을 둔 채 차분히 바라보는 모습",
+    prompt: "같은 작업대에서 한 사람에게만 큰일이 난 순간, 옆 사람의 차분한 시선이 어떤 말보다 더 크게 들리는 상황을 상상해보세요.",
+    observationPoints: ["한쪽으로 꺾이며 흙물을 튀기는 긴 도자기", "눈을 크게 뜨고 양손을 뻗은 남성의 표정", "작은 그릇에 손을 둔 채 옆을 보는 여성의 태연한 시선"],
+    exampleTitles: ["진도는 같은데 장르가 다릅니다", "옆자리 실기평가 관람 중", "그렇게 크게 만들라는 뜻은 아니었어요"],
+    ...photoSourcePresets.curated,
+    sourceName: "제목 학원 AI 생성 이미지",
+    author: "제목 학원",
+    license: "사이트 내 제목 연습용으로 생성·검토된 이미지",
+    publishedAt: "2026-09-02",
+    updatedAt: "2026-09-02",
+  },
 ];
 
 // 정적 사진은 목록 끝에 append하는 순서를 게시 순서로 삼는다. 표시용 복사본만

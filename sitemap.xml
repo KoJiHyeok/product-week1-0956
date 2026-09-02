@@ -22,7 +22,7 @@
   </url>
   <url>
     <loc>https://jemokhakwon.com/gallery/</loc>
-    <lastmod>2026-09-01</lastmod>
+    <lastmod>2026-09-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -302,6 +302,12 @@
   <url>
     <loc>https://jemokhakwon.com/gallery/imm-031/</loc>
     <lastmod>2026-09-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://jemokhakwon.com/gallery/imm-032/</loc>
+    <lastmod>2026-09-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
