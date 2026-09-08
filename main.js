@@ -2771,17 +2771,6 @@ function renderGallery() {
 
       actions.append(rankingButton);
 
-      // 승인 직후 게시되는 제안 이미지는 정적 해설 페이지가 없어 링크를 걸지 않는다.
-      if (image.hasDetailPage !== false) {
-        const guideLink = document.createElement("a");
-        guideLink.className = "photo-action photo-guide-action";
-        guideLink.dataset.action = "guide";
-        guideLink.href = getGalleryDetailPath(image, index);
-        guideLink.textContent = "해설 보기";
-        guideLink.setAttribute("aria-label", `${image.title || image.alt} 사진 해설 보기`);
-        actions.append(guideLink);
-      }
-
       const reportButton = document.createElement("button");
       reportButton.className = "photo-action photo-report-action";
       reportButton.type = "button";
