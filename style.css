@@ -698,7 +698,9 @@ select { appearance:none; background-image:linear-gradient(45deg,transparent 50%
 }
 .ranking-item:hover { transform:translateX(2px); box-shadow:var(--shadow-2); border-color:var(--border-strong); }
 .ranking-item.is-mine { box-shadow:inset 0 0 0 2px var(--primary-soft-2),var(--shadow-1); }
-.rank-number { font-family:var(--font-display); font-size:var(--fs-rank); width:42px; text-align:center; color:var(--text-faint); line-height:1; flex:none; }
+.rank-number { font-family:var(--font-display); font-size:var(--fs-rank); min-width:42px; text-align:center; color:var(--text-faint); line-height:1; flex:none; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.rank-number.rank-number-long { font-size:24px; }
+.rank-number.rank-number-xlong { font-size:18px; }
 .ranking-item:first-child .rank-number { color:var(--secondary); }
 .rank-crown { font-size:26px; }
 .rank-crown-gold { color:var(--secondary); }

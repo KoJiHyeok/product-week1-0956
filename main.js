@@ -2851,6 +2851,11 @@ function renderRanking() {
       rank.setAttribute("aria-label", `${rankNumber}위`);
     } else {
       rank.textContent = String(rankNumber);
+      if (rankNumber >= 1000) {
+        rank.classList.add("rank-number-xlong");
+      } else if (rankNumber >= 100) {
+        rank.classList.add("rank-number-long");
+      }
     }
 
     const content = document.createElement("div");
