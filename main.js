@@ -8064,8 +8064,36 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
+const topBar = document.querySelector(".top-bar");
+
+// 고정 헤더: 실제 높이를 --topbar-actual 로 내보내(사이드바 sticky 위치·scroll-margin 계산용)
+// 스크롤 중이면 is-stuck 을 붙여 그림자로 본문과 구분한다.
+function initializeStickyTopBar() {
+  if (!topBar) {
+    return;
+  }
+
+  const syncHeight = () => {
+    const height = Math.round(topBar.getBoundingClientRect().height);
+    document.documentElement.style.setProperty("--topbar-actual", `${height}px`);
+  };
+  const syncStuck = () => {
+    topBar.classList.toggle("is-stuck", window.scrollY > 4);
+  };
+
+  if (typeof ResizeObserver === "function") {
+    new ResizeObserver(syncHeight).observe(topBar);
+  } else {
+    window.addEventListener("resize", syncHeight);
+  }
+  window.addEventListener("scroll", syncStuck, { passive: true });
+  syncHeight();
+  syncStuck();
+}
+
 async function initializeApp() {
   initializeTheme();
+  initializeStickyTopBar();
   initializeTrackingConsent();
   recordDailyVisit();
   renderGallery();

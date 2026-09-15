@@ -156,6 +156,18 @@ img { max-width:100%; }
   display:flex; flex-wrap:wrap; gap:12px 18px; align-items:center;
   min-height:var(--topbar-h); padding:10px 0;
 }
+/* 스크롤해도 상단 메뉴가 보이도록 고정한다. 720px 이하는 헤더가 여러 줄로 접혀
+   화면을 크게 차지하므로 고정하지 않는다. --topbar-actual 은 main.js 가 실제 높이로 채운다. */
+@media (min-width:721px) {
+  .top-bar {
+    position:sticky; top:0; z-index:60; background:var(--bg-page);
+    margin-top:calc(-1 * var(--space-3)); padding-top:calc(10px + var(--space-3));
+    transition:box-shadow var(--dur-2) ease,background var(--dur-3) var(--ease-standard),color var(--dur-3) var(--ease-standard);
+  }
+  .top-bar.is-stuck { box-shadow:0 1px 0 var(--border-soft),0 10px 24px -16px var(--shadow-tint); }
+  .gallery-sidebar,.feed-sidebar,.ranking-photo-stack { top:calc(var(--topbar-actual,var(--topbar-h)) + var(--space-4)); }
+  .ranking-item,.photo-card,.feed-row { scroll-margin-top:calc(var(--topbar-actual,var(--topbar-h)) + var(--space-4)); }
+}
 .brand-cluster { display:inline-flex; flex:1 1 320px; align-items:center; gap:12px; min-width:0; }
 .brand {
   display:inline-flex; align-items:center; gap:11px; text-decoration:none;
