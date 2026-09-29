@@ -70,6 +70,19 @@ node scripts/validate.mjs
 3. **클래스 어휘는 계약이다.** `style.css`는 `index.html`과 `main.js`가 생성하는 마크업의 **기존 클래스명/ID**(`.photo-card`, `.ranking-item`, `.auth-button`, `#authActions` 등)를 타깃한다. 클래스·ID를 바꾸면 JS 셀렉터나 스타일이 조용히 깨진다. 리스타일은 새 클래스 도입이 아니라 기존 클래스 재스킨으로 한다.
 4. **테마: light 기본.** `:root[data-theme="light"|"dark"]`로 토큰을 스위치하고, main.js가 `document.documentElement.dataset.theme`를 항상 설정하며 `localStorage` 키 `title-academy-theme`에 저장한다.
 
+### 모바일 웹 체크리스트
+
+트래픽 대부분이 모바일이다. `style.css`의 반응형 블록은 `980 / 720 / 640 / 390 / 340px` 5단계이고, 실제로 손본 흔적이 있는 부분이므로 **새 뷰·새 컴포넌트를 만들 때 640px 이하 블록을 같이 쓰지 않으면 데스크톱 전용 UI가 그대로 나간다.** 최소한 아래는 지킨다:
+
+1. **이미지는 webp 필수.** 갤러리 항목은 `webpSrc`를 반드시 채운다(위 워크플로 1번). 소비처는 전부 `webpSrc || src` 폴백이라 빠뜨려도 화면은 멀쩡해 보이지만, 모바일 데이터만 조용히 몇 배로 샌다.
+2. **`loading="lazy"`.** 정적 HTML의 `<img>`, `main.js`가 `createElement("img")`로 만드는 이미지 모두. 첫 화면 히어로만 `eager`.
+3. **고정 패널은 `min(px, vw)`.** `position:fixed` 요소의 폭은 `width:min(360px,86vw)` 식으로 잡는다. 고정 px만 쓰면 360px 화면에서 가로 스크롤이 생긴다(`body`의 `overflow-x:hidden`이 가려버려서 발견이 늦다).
+4. **하단 고정 요소는 safe-area를 더한다.** `viewport-fit=cover`를 쓰므로 `bottom:calc(18px + env(safe-area-inset-bottom,0px))` 형태로. 그냥 `bottom:18px`면 아이폰 홈 인디케이터에 물린다. 좌우도 `.app-shell`/`.info-shell`이 `env(safe-area-inset-left/right)`를 더한다.
+5. **입력 폰트는 16px 이상.** `input,select,textarea`의 `font-size`가 16px 미만이면 iOS Safari가 포커스 때 화면을 확대한다. 전역 규칙이 `var(--fs-body)`(16px)로 잡혀 있으니 개별 입력에서 `--fs-sm` 이하로 낮추지 말 것.
+6. **뷰포트 높이는 `dvh`.** 전체 높이 패널(`.profile-drawer`)은 `100vh`가 아니라 `100dvh`. 모바일 주소창 때문에 잘린다.
+7. **가로로 넘치는 줄은 스크롤 컨테이너로.** 탭·랭킹 줄처럼 항목이 늘어나는 가로 나열은 `overflow-x:auto` + `scrollbar-width:none` + `-webkit-overflow-scrolling:touch`로 감싼다(기존 `.feed-tabs` 패턴).
+8. **모바일에서 `display:none`으로 숨긴 액션은 대체 진입점을 만든다.** 예: 헤더의 `.upload-nav-button`은 640px 이하에서 숨기고, 프로필 드로어의 `#drawerSuggestButton` 행이 그 역할을 대신한다. 대체 경로 없이 숨기면 모바일 사용자에게 그 기능이 아예 사라진다.
+
 ### 로컬 미리보기
 
 ```bash
@@ -86,7 +99,7 @@ npx wrangler pages dev . --port 9000   # Functions + 로컬 D1 포함. 첫 실�
 
 절차:
 
-1. 업로드 이미지를 `assets/gallery/`에 저장 (예: `offended-cat.jpg`). 가능하면 `assets/gallery/webp/`에 webp도(선택).
+1. 업로드 이미지를 `assets/gallery/`에 저장 (예: `offended-cat.jpg`). **`assets/gallery/webp/`에 같은 이름·같은 해상도의 webp를 반드시 함께 만든다(선택 아님).** 원본 PNG는 장당 1~3MB이고 모바일에서 그대로 내려간다 — webp가 없으면 셀룰러 사용자에게 수십 MB를 물린다. 파일명이 같아야 `webpSrc` 규칙(`assets/gallery/webp/<basename>.webp`)이 맞는다.
 2. **두 리스트에 동일 항목 추가** (하나만 넣으면 서버↔프런트 불일치):
    - `main.js`의 `defaultGalleryImages` — 운영 데이터 연결을 보존하도록 새 항목에 **명시적이고 고유한 `imageKey`**를 넣는다. 기존 키는 삭제된 사진의 빈 슬롯 때문에 배열 인덱스와 다를 수 있으며 절대 재번호를 매기지 않는다. 항목엔 `...photoSourcePresets.curated` 스프레드와 `description`을 포함한다. webp가 있으면 `webpSrc`도 넣는다.
    - `functions/api/images/gallery-data.js`의 `galleryImages` — 프런트 항목과 **동일한 `id`·`imageKey`·텍스트·이미지 경로**를 넣는다. (API 갤러리 데이터의 정본은 이 파일이다. `functions/api/images/index.js`는 `import { galleryImages as defaultImages } from "./gallery-data.js"`로 가져다 쓸 뿐이므로 여기서 직접 수정하지 않는다.) 새 `imageKey`는 두 목록 전체의 최대 키보다 1 큰 값을 사용하고, 중복 여부를 확인한다. `id`는 `imm-0NN` 형식, `isUserUpload: false`로 둔다.

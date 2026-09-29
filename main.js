@@ -47,6 +47,8 @@ const randomPhoto = document.querySelector("#randomPhoto");
 const selectedImageBrief = document.querySelector("#selectedImageBrief");
 const rankingImageBrief = document.querySelector("#rankingImageBrief");
 const randomImageBrief = document.querySelector("#randomImageBrief");
+const heroRandomButton = document.querySelector("#heroRandomButton");
+const heroBrowseLink = document.querySelector("#heroBrowseLink");
 const randomEntryButton = document.querySelector("#randomEntryButton");
 const randomBackButton = document.querySelector("#randomBackButton");
 const randomShuffleButton = document.querySelector("#randomShuffleButton");
@@ -100,6 +102,7 @@ const guestLoginButton = document.querySelector("#guestLoginButton");
 const guestSignupButton = document.querySelector("#guestSignupButton");
 const themeToggleButton = document.querySelector("#themeToggleButton");
 const cookieSettingsButton = document.querySelector("#cookieSettingsButton");
+const drawerSuggestButton = document.querySelector("#drawerSuggestButton");
 const drawerContactButton = document.querySelector("#drawerContactButton");
 const drawerMenuView = document.querySelector("#drawerMenuView");
 const myTitlesView = document.querySelector("#myTitlesView");
@@ -335,6 +338,7 @@ const defaultGalleryImages = [
     id: "subject-1",
     imageKey: "10",
     src: "assets/gallery/Subject1.jpg",
+    webpSrc: "assets/gallery/webp/Subject1.webp",
     title: "눈가에 눈물이 맺힌 노인의 얼굴",
     description: "가까운 얼굴 사진에서 주름, 눈가의 물기, 아래로 향한 시선이 감정의 밀도를 만듭니다. 직접적인 판단보다 오래 머문 표정의 결을 제목으로 다듬기 좋은 이미지입니다.",
     alt: "눈가에 눈물이 맺힌 노인이 아래를 바라보는 클로즈업",
@@ -347,6 +351,7 @@ const defaultGalleryImages = [
     id: "subject-2",
     imageKey: "11",
     src: "assets/gallery/Subject2.png",
+    webpSrc: "assets/gallery/webp/Subject2.webp",
     title: "개구리 조각상 앞에 모인 사람들",
     description: "붉은 제복의 사람들이 개구리 조각상 앞에서 예를 갖추고, 주변 사람들은 놀란 표정으로 바라보는 익살스러운 장면입니다. 중앙 사물과 주변 반응의 차이를 제목으로 살리기 좋습니다.",
     alt: "붉은 제복을 입은 사람들이 개구리 조각상 앞에 모이고 주변 사람들이 놀라는 장면",
@@ -359,6 +364,7 @@ const defaultGalleryImages = [
     id: "subject-3",
     imageKey: "12",
     src: "assets/gallery/Subject3.png",
+    webpSrc: "assets/gallery/webp/Subject3.webp",
     title: "거대한 무가 날아오는 만화풍 추격 장면",
     description: "속도선, 말풍선, 놀란 표정이 한눈에 들어오는 만화풍 이미지입니다. 과장된 크기와 빠른 움직임을 이용해 짧고 강한 제목을 만들 수 있습니다.",
     alt: "만화풍 배경에서 거대한 무가 날아오고 두 인물이 놀라 달아나는 장면",
@@ -371,6 +377,7 @@ const defaultGalleryImages = [
     id: "subject-4",
     imageKey: "13",
     src: "assets/gallery/Subject4.png",
+    webpSrc: "assets/gallery/webp/Subject4.webp",
     title: "카메라 속 개구리 사진을 함께 보는 사람들",
     description: "카메라 화면 속 사진을 보며 여러 사람이 동시에 웃는 장면입니다. 사진 안의 사진 구조와 사람들의 표정이 제목의 단서가 됩니다.",
     alt: "아이들과 사진가가 카메라 화면 속 웃는 개구리 사진을 보며 웃는 장면",
@@ -383,6 +390,7 @@ const defaultGalleryImages = [
     id: "subject-5",
     imageKey: "14",
     src: "assets/gallery/Subject5.png",
+    webpSrc: "assets/gallery/webp/Subject5.webp",
     title: "진료실 구석에서 팔짱 낀 아기와 난감한 의사",
     description: "작은 아기가 정장을 입고 팔짱을 낀 채 서 있고, 의사는 얼굴을 감싸고 있습니다. 크기와 태도의 반전이 강해 짧은 대사형 제목을 만들기 좋습니다.",
     alt: "진료실에서 정장을 입은 아기가 팔짱을 끼고 서 있고 의사가 고개를 숙인 장면",
@@ -395,6 +403,7 @@ const defaultGalleryImages = [
     id: "subject-6",
     imageKey: "15",
     src: "assets/gallery/Subject6.png",
+    webpSrc: "assets/gallery/webp/Subject6.webp",
     title: "개구리 심사위원 앞에서 걷는 붉은 제복들",
     description: "무대 위 패션 쇼처럼 보이는 장면에서 개구리 캐릭터가 10점 팻말을 들고 있습니다. 심사, 자세, 무대 조명이라는 단서를 묶어 유머러스한 제목을 만들 수 있습니다.",
     alt: "무대에서 붉은 제복을 입은 사람들이 걷고 개구리 심사위원이 10점 팻말을 든 장면",
@@ -407,6 +416,7 @@ const defaultGalleryImages = [
     id: "subject-7",
     imageKey: "16",
     src: "assets/gallery/Subject7.png",
+    webpSrc: "assets/gallery/webp/Subject7.webp",
     title: "사라진 감자튀김 앞에서 우는 조각상과 남자",
     description: "눈물을 폭포처럼 흘리는 조각상, 함께 우는 인물, 바닥의 감자튀김 하나가 과장된 비극을 만듭니다. 사소한 원인과 큰 반응의 대비가 제목 포인트입니다.",
     alt: "감자튀김 하나가 떨어진 테이블 앞에서 조각상과 남자가 크게 우는 만화풍 장면",
@@ -419,6 +429,7 @@ const defaultGalleryImages = [
     id: "subject-9",
     imageKey: "18",
     src: "assets/gallery/Subject9.png",
+    webpSrc: "assets/gallery/webp/Subject9.webp",
     title: "군복 입은 아기 교관과 의자에 앉은 개구리",
     description: "군사 훈련장처럼 꾸며진 공간에서 아기가 막대를 들고 설명하고, 개구리는 편하게 앉아 있습니다. 엄숙한 배경과 작은 교관의 반전이 유머를 만듭니다.",
     alt: "군복을 입은 아기가 지도 위에서 막대를 들고 설명하고 개구리가 의자에 앉은 장면",
@@ -431,6 +442,7 @@ const defaultGalleryImages = [
     id: "subject-10",
     imageKey: "19",
     src: "assets/gallery/Subject10.png",
+    webpSrc: "assets/gallery/webp/Subject10.webp",
     title: "사무실 복도를 질주하는 금붕어 배달원",
     description: "금붕어 얼굴을 한 정장 차림 인물이 작은 스쿠터를 타고 복도를 달리는 초현실적인 장면입니다. 사무실의 딱딱함과 엉뚱한 속도감을 연결하면 재미있는 제목이 됩니다.",
     alt: "어항 같은 헬멧을 쓴 금붕어 얼굴의 정장 인물이 빨간 스쿠터를 타고 사무실 복도를 달리는 장면",
@@ -443,6 +455,7 @@ const defaultGalleryImages = [
     id: "subject-11",
     imageKey: "20",
     src: "assets/gallery/Subject11.png",
+    webpSrc: "assets/gallery/webp/Subject11.webp",
     title: "찜질방에서 휴대폰을 보는 고양이",
     description: "수건을 두른 고양이가 오이팩을 하고 누워 스마트폰을 보고 있습니다. 휴식 공간과 디지털 몰입의 대비가 명확해 생활형 유머 제목에 어울립니다.",
     alt: "찜질방에서 수건을 두르고 오이팩을 한 고양이가 누워 휴대폰을 보는 장면",
@@ -455,6 +468,7 @@ const defaultGalleryImages = [
     id: "subject-12",
     imageKey: "21",
     src: "assets/gallery/Subject12.png",
+    webpSrc: "assets/gallery/webp/Subject12.webp",
     title: "편의점 컵라면 코너에서 장보는 알파카",
     description: "밤의 편의점에서 알파카가 장바구니를 들고 컵라면 진열대를 바라보는 장면입니다. 익숙한 쇼핑 동작과 낯선 주인공의 조합이 제목의 재미를 만듭니다.",
     alt: "편의점 컵라면 진열대 앞에서 장바구니를 든 알파카가 상품을 고르는 장면",
@@ -468,6 +482,7 @@ const defaultGalleryImages = [
     id: "imm-012",
     imageKey: "33",
     src: "assets/gallery/offended-cat.jpg",
+    webpSrc: "assets/gallery/webp/offended-cat.webp",
     title: "주방 조리대 위, 서운함이 가득한 고양이",
     description: "조리대 위에 앉은 고양이가 눈을 가늘게 뜨고 귀를 살짝 젖힌 채 카메라를 바라보는 사진입니다. 표정에서 묘하게 서운함이 읽혀, 사람의 대사처럼 바꾸면 짧고 재미있는 제목을 만들 수 있습니다.",
     alt: "주방 조리대 위에서 눈을 가늘게 뜨고 서운한 표정을 짓는 주황색 고양이",
@@ -480,6 +495,7 @@ const defaultGalleryImages = [
     id: "imm-013",
     imageKey: "23",
     src: "assets/gallery/24-funny-red-polo.jpg",
+    webpSrc: "assets/gallery/webp/24-funny-red-polo.webp",
     title: "빨간 셔츠를 입고 곁눈질로 웃는 남자",
     description: "회색 칠판 같은 배경 앞에서 한 남자가 시선을 옆으로 흘리며 입꼬리를 올린 사진입니다. 표정을 사실로 단정하기보다 곁눈질과 참는 듯한 미소가 만드는 장난스러운 분위기를 살리면 좋은 제목을 만들 수 있습니다.",
     alt: "회색 칠판 배경 앞에서 빨간 폴로 셔츠를 입고 옆을 곁눈질하며 웃는 남자",
@@ -492,6 +508,7 @@ const defaultGalleryImages = [
     id: "imm-014",
     imageKey: "24",
     src: "assets/gallery/suit-tiny-desk-gimbap.png",
+    webpSrc: "assets/gallery/webp/suit-tiny-desk-gimbap.webp",
     title: "유치원 작은 의자에 앉아 김밥을 먹는 정장 청년",
     description: "어린이집 교실의 작은 책상과 의자에 정장을 입은 청년이 몸을 접고 앉아 김밥을 먹는 사진입니다. 큰 사람과 작은 가구의 크기 대비, 진지한 옷차림과 소박한 김밥의 어긋남을 제목의 중심으로 잡으면 좋습니다.",
     alt: "어린이집 교실의 노란 작은 책상과 의자에 정장을 입은 청년이 앉아 김밥을 집어 먹는 모습",
@@ -504,6 +521,7 @@ const defaultGalleryImages = [
     id: "imm-015",
     imageKey: "25",
     src: "assets/gallery/pigeon-steals-fry.png",
+    webpSrc: "assets/gallery/webp/pigeon-steals-fry.webp",
     title: "감자튀김을 채 가는 비둘기와 놀란 남자",
     description: "야외 식당에서 한 남자가 입을 벌린 사이, 비둘기가 감자튀김 하나를 물고 날아오르는 순간을 잡은 사진입니다. 음식을 가운데 두고 사람과 새의 시선·동작이 부딪치는 찰나를 짧고 재미있게 표현하기 좋습니다.",
     alt: "야외 식당 테이블에서 남자가 입을 벌리고 놀라는 사이 비둘기가 감자튀김을 물고 날아오르는 장면",
@@ -516,6 +534,7 @@ const defaultGalleryImages = [
     id: "imm-016",
     imageKey: "26",
     src: "assets/gallery/suit-bathtub-newspaper.png",
+    webpSrc: "assets/gallery/webp/suit-bathtub-newspaper.webp",
     title: "옷을 입은 채 욕조에 앉아 신문을 읽는 남자",
     description: "물 없는 욕조 안에 정장을 입은 남자가 신발까지 신은 채 앉아 신문을 펼친 사진입니다. 장소와 행동이 어긋나는 상황을 침착한 태도와 묶어 능청스러운 제목으로 풀면 어울립니다.",
     alt: "타일 욕실의 욕조 안에 정장과 구두 차림으로 앉아 신문을 펼쳐 읽는 남자",
@@ -528,6 +547,7 @@ const defaultGalleryImages = [
     id: "imm-017",
     imageKey: "27",
     src: "assets/gallery/shocked-home-selfie.png",
+    webpSrc: "assets/gallery/webp/shocked-home-selfie.webp",
     title: "두 손으로 볼을 감싸고 크게 놀란 표정의 여성",
     description: "거실에서 한 여성이 양손으로 볼을 감싸고 입을 크게 벌려 과장되게 놀라는 표정의 셀카입니다. 표정의 강도와 정면 구도를 그대로 살려 짧고 강한 한마디 제목을 붙이는 연습에 좋습니다.",
     alt: "집 거실에서 양손으로 볼을 감싸고 입을 크게 벌린 채 눈을 크게 뜬 여성의 셀카",
@@ -540,6 +560,7 @@ const defaultGalleryImages = [
     id: "imm-018",
     imageKey: "28",
     src: "assets/gallery/laptop-in-shopping-cart.png",
+    webpSrc: "assets/gallery/webp/laptop-in-shopping-cart.webp",
     title: "마트 카트 안에 앉아 노트북으로 일하는 남자",
     description: "채소 코너 앞에서 정장을 입은 남자가 쇼핑 카트 안에 들어가 앉아 무릎에 노트북을 올리고 일하는 사진입니다. 일상 공간과 업무 자세의 어긋남을 살리면 직장인의 피로를 담은 제목을 만들기 좋습니다.",
     alt: "마트 채소 코너 앞에서 정장을 입은 남자가 쇼핑 카트 안에 앉아 노트북을 무릎에 올리고 작업하는 모습",
@@ -552,6 +573,7 @@ const defaultGalleryImages = [
     id: "imm-019",
     imageKey: "29",
     src: "assets/gallery/cookbook-in-shower.png",
+    webpSrc: "assets/gallery/webp/cookbook-in-shower.webp",
     title: "샤워 부스 안에 서서 요리책을 읽는 남자",
     description: "유리 샤워 부스 안에 셔츠와 넥타이 차림의 남자가 서서 두꺼운 요리책을 펼쳐 읽는 사진입니다. 장소와 행동이 맞지 않는 상황을 무표정한 태도와 함께 담담한 제목으로 풀면 어울립니다.",
     alt: "유리 샤워 부스 안에 셔츠와 넥타이 차림으로 서서 요리책을 펼쳐 읽는 남자",
@@ -564,6 +586,7 @@ const defaultGalleryImages = [
     id: "imm-020",
     imageKey: "30",
     src: "assets/gallery/cat-steals-pizza.png",
+    webpSrc: "assets/gallery/webp/cat-steals-pizza.webp",
     title: "피자를 낚아채 가는 고양이와 놀란 남자",
     description: "소파에 앉은 남자가 입을 벌린 사이, 고양이가 몸을 날려 피자 조각을 채 가는 순간을 흔들린 화면으로 잡은 사진입니다. 빠른 움직임과 놀란 표정이 겹치는 찰나를 짧고 재미있는 제목으로 옮기기 좋습니다.",
     alt: "거실 소파에서 남자가 입을 벌리고 놀라는 사이 고양이가 피자 조각을 물어 채 가는 흔들린 순간",
@@ -627,6 +650,7 @@ const defaultGalleryImages = [
     id: "imm-024",
     imageKey: "36",
     src: "assets/gallery/raincoat-duck-bus-stop.png",
+    webpSrc: "assets/gallery/webp/raincoat-duck-bus-stop.webp",
     title: "비 오는 버스 정류장에서 함께 기다리는 여성과 오리",
     description: "비 내리는 저녁 버스 정류장에서 투명 우산을 든 정장 차림의 여성과 노란 우비를 입은 오리가 나란히 버스를 기다리는 듯 서 있는 AI 생성 사진입니다. 익숙한 퇴근길 풍경에 자연스럽게 섞인 뜻밖의 동행을 살리면 담담하면서도 재미있는 제목을 만들기 좋습니다.",
     alt: "비 오는 저녁 버스 정류장에서 투명 우산을 든 정장 차림의 여성 옆에 노란 우비를 입은 오리가 나란히 서 있는 모습",
@@ -644,6 +668,7 @@ const defaultGalleryImages = [
     id: "imm-025",
     imageKey: "37",
     src: "assets/gallery/robot-vacuum-elevator.png",
+    webpSrc: "assets/gallery/webp/robot-vacuum-elevator.webp",
     title: "수건을 싣고 엘리베이터를 기다리는 로봇청소기",
     description: "아파트 복도에서 로봇청소기가 접은 수건을 등에 올린 채 엘리베이터 문 앞에 멈춰 선 AI 생성 사진입니다. 너무 평범한 배달 업무처럼 보이는 태연함과 뜻밖의 주인공을 살리면 능청스러운 제목을 만들기 좋습니다.",
     alt: "아파트 복도 엘리베이터 앞에서 접은 흰 수건을 등에 올리고 기다리는 로봇청소기",
@@ -661,6 +686,7 @@ const defaultGalleryImages = [
     id: "imm-026",
     imageKey: "38",
     src: "assets/gallery/plant-rain-bench.png",
+    webpSrc: "assets/gallery/webp/plant-rain-bench.webp",
     title: "비 오는 공원 벤치 아래로 피신한 화분",
     description: "빗줄기가 내리는 공원에서 작은 화분 하나가 벤치 아래 마른 자리를 찾아 들어간 듯 놓여 있는 AI 생성 사진입니다. 비를 좋아할 것 같은 식물이 오히려 비를 피한다는 반전과 쓸쓸한 자세를 담담하게 풀면 재미있는 제목이 됩니다.",
     alt: "비가 내리는 공원의 나무 벤치 아래에서 빗줄기를 피하듯 놓여 있는 작은 화분",
@@ -678,6 +704,7 @@ const defaultGalleryImages = [
     id: "imm-027",
     imageKey: "39",
     src: "assets/gallery/wide-angle-nose-selfie.jpg",
+    webpSrc: "assets/gallery/webp/wide-angle-nose-selfie.webp",
     title: "카메라에 코부터 들이민 초근접 셀카",
     description: "카메라를 얼굴 바로 앞에 대고 찍어 코가 화면 한가운데를 가득 채우고, 두 눈은 옆쪽을 흘겨보는 초근접 사진입니다. 렌즈와의 거리 때문에 과장된 코와 딴 데를 보는 눈빛의 대비를 살리면 재치 있는 제목을 만들기 좋습니다.",
     alt: "카메라를 아주 가까이 대고 찍어 코가 화면 중앙을 가득 채운 사람의 얼굴 클로즈업. 두 눈은 옆쪽을 바라보고 있고 오른쪽 아래에 카무플라주 무늬 소매가 걸쳐 있다.",
@@ -696,6 +723,7 @@ const defaultGalleryImages = [
     id: "imm-028",
     imageKey: "40",
     src: "assets/gallery/tug-of-war-rope-snap.png",
+    webpSrc: "assets/gallery/webp/tug-of-war-rope-snap.webp",
     title: "줄이 풀린 순간 동시에 뒤로 넘어진 두 참가자",
     description: "동네 운동회 줄다리기에서 줄이 갑자기 느슨해진 순간, 양쪽 선두 참가자가 서로 반대 방향으로 넘어지고 심판은 아직 초시계만 바라보는 AI 생성 사진입니다. 동시에 무너진 자세와 뒤늦은 주변 반응을 다른 관계나 사건으로 바꾸어 보면 재치 있는 제목을 만들기 좋습니다.",
     alt: "동네 운동회 줄다리기 도중 줄이 느슨해져 양쪽 선두 참가자가 반대 방향으로 넘어지고 뒤의 심판은 초시계를 보는 모습",
@@ -713,6 +741,7 @@ const defaultGalleryImages = [
     id: "imm-029",
     imageKey: "41",
     src: "assets/gallery/wedding-veil-runaway-child.png",
+    webpSrc: "assets/gallery/webp/wedding-veil-runaway-child.webp",
     title: "단체사진 중 신부 베일 아래로 달려간 아이",
     description: "야외 결혼식 단체사진을 찍는 동안 한 아이가 신부의 긴 베일 아래로 들어가 반대편으로 달려가고, 뒤늦게 알아챈 어른이 손을 뻗는 AI 생성 사진입니다. 사진을 위해 멈춘 어른들과 혼자 움직이는 아이의 속도 차이를 살리면 뜻밖의 사건을 상상하기 좋습니다.",
     alt: "야외 결혼식 단체사진을 찍는 신부와 가족 옆에서 어린아이가 긴 베일 아래로 들어가 달려가고 한 어른이 손을 뻗는 모습",
@@ -2753,6 +2782,14 @@ function renderGallery() {
       placeholder.className = "photo-card-placeholder";
       placeholder.textContent = "이미지를 불러올 수 없습니다";
 
+      const caption = document.createElement("div");
+      caption.className = "photo-card-caption";
+
+      const captionTitle = document.createElement("strong");
+      captionTitle.className = "photo-card-title";
+      captionTitle.textContent = image.title || "이 장면의 제목";
+      caption.append(captionTitle);
+
       const actions = document.createElement("div");
       actions.className = "photo-card-actions";
 
@@ -2769,7 +2806,13 @@ function renderGallery() {
       rankingButton.dataset.action = "ranking";
       rankingButton.textContent = "랭킹";
 
-      actions.append(rankingButton);
+      const titleButton = document.createElement("button");
+      titleButton.className = "photo-action photo-title-action";
+      titleButton.type = "button";
+      titleButton.dataset.action = "title";
+      titleButton.textContent = "제목 쓰기";
+
+      actions.append(titleButton, rankingButton);
 
       const reportButton = document.createElement("button");
       reportButton.className = "photo-action photo-report-action";
@@ -2783,7 +2826,7 @@ function renderGallery() {
       card.tabIndex = 0;
       card.setAttribute("role", "button");
       card.setAttribute("aria-label", `${image.alt}. 제목 입력`);
-      card.append(media, placeholder, actions);
+      card.append(media, placeholder, caption, actions);
     } else {
       card.classList.add("is-empty");
       card.tabIndex = 0;
@@ -5807,6 +5850,17 @@ rankingSelfLink.addEventListener("click", scrollToMyRanking);
 randomEntryButton?.addEventListener("click", () => goRandom());
 randomBackButton?.addEventListener("click", goHome);
 randomShuffleButton?.addEventListener("click", () => goRandom(selectedImageIndex));
+heroRandomButton?.addEventListener("click", () => goRandom());
+heroBrowseLink?.addEventListener("click", (event) => {
+  event.preventDefault();
+  const target = document.querySelector("#galleryLayout");
+  if (!target) {
+    return;
+  }
+
+  const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  target.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth", block: "start" });
+});
 randomTitleButton?.addEventListener("click", () => {
   if (Number.isInteger(selectedImageIndex)) {
     startTitleEntry(selectedImageIndex);
@@ -6444,6 +6498,12 @@ guestLoginButton.addEventListener("click", () => {
 guestSignupButton.addEventListener("click", () => {
   closeDrawer();
   openAuthModal("signup");
+});
+// 헤더의 "원하는 이미지 제안하기" 버튼은 640px 이하에서 숨기므로, 모바일에서는
+// 이 드로어 행이 유일한 진입점이다.
+drawerSuggestButton.addEventListener("click", () => {
+  closeDrawer();
+  goImageSuggestionContact();
 });
 drawerContactButton.addEventListener("click", () => {
   closeDrawer();
