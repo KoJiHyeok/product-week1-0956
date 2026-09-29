@@ -17,6 +17,7 @@ const staticBlogUrls = Object.freeze([
   "/blog/popular-title-patterns/",
   "/blog/meme-title-lessons/",
   "/blog/observation-training/",
+  "/blog/one-photo-143-titles/",
 ]);
 
 function loadGalleryCopyMap() {
@@ -181,14 +182,11 @@ function navHtml() {
   return `
       <nav class="site-nav" aria-label="주요 페이지">
         <a href="/">홈</a>
-        <a href="/about/">제목 학원이란?</a>
-        <a href="/guide/">사용 가이드</a>
+        <a href="/gallery/" aria-current="page">사진 모음</a>
+        <a href="/blog/">제목 칼럼</a>
         <a href="/examples/">제목 예시</a>
-        <a href="/gallery/">사진 해설</a>
-        <a href="/blog/">글쓰기 칼럼</a>
-        <a href="/privacy/">개인정보처리방침</a>
-        <a href="/terms/">이용약관</a>
-        <a href="/contact/">문의</a>
+        <a href="/guide/">사용 가이드</a>
+        <a href="/about/">소개</a>
       </nav>`;
 }
 
@@ -213,90 +211,57 @@ ${navHtml()}
 }
 
 function galleryIndexHtml(images) {
-  const animalTerms = ["고양이", "강아지", "악어", "비둘기", "알파카", "금붕어", "개구리", "두 집게"];
-  const personTerms = ["남자", "여자", "남성", "여성", "사람", "아기", "인물", "청년"];
-  const groups = [
-    { id: "animals", title: "동물이 등장하는 사진", images: [], newestIndex: Infinity },
-    { id: "people", title: "사람이 중심인 사진", images: [], newestIndex: Infinity },
-    { id: "scenes", title: "사물과 상상 장면", images: [], newestIndex: Infinity },
-  ];
-
-  images.forEach((image, index) => {
-    const searchable = `${image.title} ${image.alt}`;
-    const group = animalTerms.some((term) => searchable.includes(term))
-      ? groups[0]
-      : personTerms.some((term) => searchable.includes(term))
-        ? groups[1]
-        : groups[2];
-    group.images.push(image);
-    group.newestIndex = Math.min(group.newestIndex, index);
-  });
-
   const cardHtml = (image) => {
     const imagePath = encodedAssetUrl(image.webpSrc || image.src);
+    const sourceDisclosure = String(image.sourceName || "").includes("AI 생성")
+      ? `\n        <p class="info-meta gallery-index-source">AI 생성 이미지</p>`
+      : "";
     return `      <article class="info-card gallery-index-card">
-        <a href="/gallery/${escapeHtml(image.slug)}/" aria-label="${escapeHtml(image.title)} 해설 보기">
-          <img src="${escapeHtml(imagePath)}" alt="${escapeHtml(image.alt)}" loading="lazy" decoding="async" />
+        <a href="/gallery/${escapeHtml(image.slug)}/" aria-label="${escapeHtml(image.title)} 보기">
+          <img src="${escapeHtml(imagePath)}" alt="${escapeHtml(image.alt || image.title)}" loading="lazy" decoding="async" />
           <strong>${escapeHtml(image.title)}</strong>
-        </a>
-        <p>${escapeHtml(image.description)}</p>
+        </a>${sourceDisclosure}
       </article>`;
   };
 
-  const groupedCards = groups
-    .sort((left, right) => left.newestIndex - right.newestIndex)
-    .filter((group) => group.images.length > 0)
-    .map((group) => `    <section aria-labelledby="gallery-${group.id}">
-      <h2 id="gallery-${group.id}">${group.title} <span class="info-meta">${group.images.length}장</span></h2>
-      <div class="gallery-index-grid">
-${group.images.map(cardHtml).join("\n")}
-      </div>
-    </section>`)
-    .join("\n");
+  const cards = images.map(cardHtml).join("\n");
 
   return `<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="google-adsense-account" content="ca-pub-2571483149742375" />
   <link rel="icon" type="image/png" href="/Logo-image.png">
   <link rel="apple-touch-icon" href="/Logo-image.png">
-  <meta name="description" content="제목 학원 사진 해설 모음입니다. 사진별 관찰 포인트, 예시 제목, 제목 짓는 방향을 확인할 수 있습니다." />
+  <meta name="description" content="제목 학원 사진 모음입니다. 사진을 고르고 제목을 붙여보세요." />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="${siteUrl}/gallery/" />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="ko_KR" />
   <meta property="og:site_name" content="제목 학원" />
-  <meta property="og:title" content="사진별 제목 해설 모음 - 제목 학원" />
-  <meta property="og:description" content="사진별 관찰 포인트와 예시 제목을 모았습니다." />
+  <meta property="og:title" content="사진 모음 - 제목 학원" />
+  <meta property="og:description" content="사진을 고르고 제목을 붙여보세요." />
   <meta property="og:url" content="${siteUrl}/gallery/" />
   <meta property="og:image" content="${siteUrl}/assets/gallery/logo.png" />
   <meta property="og:image:alt" content="제목 학원 로고" />
-  <title>사진별 제목 해설 모음 - 제목 학원</title>
-  <link href="/style.css?v=17" rel="stylesheet" />
+  <title>사진 모음 - 제목 학원</title>
+  <link href="/style.css?v=46" rel="stylesheet" />
 </head>
 <body class="info-page">
   <main class="info-shell">
 ${headerHtml()}
 
     <section class="info-hero">
-      <p class="info-kicker">사진 해설</p>
-      <h1>사진별 제목 해설 모음</h1>
-      <p>
-        각 사진에서 먼저 볼 단서, 제목으로 바꾸기 좋은 감정, 예시 제목을 정리했습니다.
-        사진을 고르기 전에 해설을 읽으면 더 선명한 제목을 만들 수 있습니다.
-      </p>
-      <p class="info-meta">현재 ${images.length}장의 운영자 검토 사진을 제공합니다. 이미지별 제공 방식과 검토 안내는 각 해설 페이지에서 확인할 수 있습니다.</p>
+      <p class="info-kicker">사진 모음</p>
+      <h1>사진 모음</h1>
+      <p>사진을 고르고 제목을 붙여보세요.</p>
+      <p class="info-meta">${images.length}장의 사진</p>
     </section>
 
-    <section class="info-card info-card-wide" aria-labelledby="gallery-how-to">
-      <h2 id="gallery-how-to">사진 고르는 법</h2>
-      <p>동물의 표정과 행동을 대사처럼 바꾸고 싶다면 동물 사진을, 자세와 표정에서 감정을 찾고 싶다면 사람 사진을 골라보세요. 사물과 상상 장면은 서로 어울리지 않는 요소의 대비를 제목으로 옮기는 연습에 좋습니다.</p>
-      <p class="info-meta">아래 분류는 사진 제목과 대체텍스트에 나타난 중심 소재를 기준으로 나눴습니다. 모든 사진 카드를 눌러 해설을 읽거나 메인에서 직접 제목을 달 수 있습니다.</p>
+    <section class="gallery-index-grid" aria-label="사진 목록">
+${cards}
     </section>
-
-${groupedCards}
 
 ${footerHtml()}
   </main>
@@ -366,11 +331,11 @@ const newestImages = normalizedImages.slice().reverse();
 fs.mkdirSync(galleryRoot, { recursive: true });
 
 // 상세 페이지는 정적 HTML이 아니라 functions/gallery/[slug].js가 서버렌더한다.
-// (해설 + 실제 사용자 제목 랭킹을 한 페이지에 합치기 위해 2026-09-01에 전환)
+// (사진 + 실제 사용자 제목 랭킹을 한 페이지에 합치기 위해 2026-09-01에 전환)
 // 예전 생성물이 남아 있으면 Pages가 Function 대신 정적 파일을 서빙할 수 있어 지운다.
 removeStaleDetailPages();
 
-// Pages Function은 런타임에 파일을 못 읽으므로 해설 원고를 ESM 모듈로 내보낸다.
+// Pages Function은 런타임에 파일을 못 읽으므로 홈 SSR·사이트맵용 원고를 ESM 모듈로 내보낸다.
 writeGalleryCopyModule();
 
 fs.writeFileSync(path.join(galleryRoot, "index.html"), galleryIndexHtml(newestImages), "utf8");
@@ -382,10 +347,35 @@ console.log(
 );
 
 function removeStaleDetailPages() {
-  for (const entry of fs.readdirSync(galleryRoot, { withFileTypes: true })) {
-    if (entry.isDirectory()) {
-      fs.rmSync(path.join(galleryRoot, entry.name), { recursive: true, force: true });
+  const absoluteGalleryRoot = path.resolve(galleryRoot);
+  const galleryRootStat = fs.lstatSync(absoluteGalleryRoot);
+  if (!galleryRootStat.isDirectory() || galleryRootStat.isSymbolicLink()) {
+    throw new Error(`Refusing to remove gallery output from a non-directory or symlink: ${absoluteGalleryRoot}`);
+  }
+
+  const entries = fs.readdirSync(absoluteGalleryRoot, { withFileTypes: true });
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
     }
+
+    const absoluteDirectory = path.resolve(absoluteGalleryRoot, entry.name);
+    if (path.dirname(absoluteDirectory) !== absoluteGalleryRoot) {
+      throw new Error(`Refusing to inspect a gallery path outside ${absoluteGalleryRoot}`);
+    }
+
+    const staleIndexPath = path.resolve(absoluteDirectory, "index.html");
+    if (path.dirname(staleIndexPath) !== absoluteDirectory || !fs.existsSync(staleIndexPath)) {
+      continue;
+    }
+
+    const staleIndexStat = fs.lstatSync(staleIndexPath);
+    if (!staleIndexStat.isFile()) {
+      throw new Error(`Refusing to remove non-file gallery output: ${staleIndexPath}`);
+    }
+
+    fs.rmSync(staleIndexPath, { force: true });
   }
 }
 
@@ -405,7 +395,7 @@ function writeGalleryCopyModule() {
 
   const source = `// 생성 파일 — 직접 고치지 말 것.
 // 원본: content/gallery-copy/*.json → \`node scripts/generate-gallery-pages.js\` 로 재생성.
-// functions/gallery/[slug].js가 런타임에 이 모듈을 읽어 해설을 렌더한다.
+// functions/index.js가 런타임에 이 모듈을 읽어 홈의 검색용 카드를 렌더한다.
 export const galleryCopy = {
 ${entries}
 };

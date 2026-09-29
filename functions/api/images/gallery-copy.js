@@ -1,6 +1,6 @@
 // 생성 파일 — 직접 고치지 말 것.
 // 원본: content/gallery-copy/*.json → `node scripts/generate-gallery-pages.js` 로 재생성.
-// functions/gallery/[slug].js가 런타임에 이 모듈을 읽어 해설을 렌더한다.
+// functions/index.js가 런타임에 이 모듈을 읽어 홈의 검색용 카드를 렌더한다.
 export const galleryCopy = {
   "photo-001": {
       "scene": [

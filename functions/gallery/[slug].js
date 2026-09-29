@@ -1,10 +1,9 @@
-// /gallery/<slug>/ — 사진 해설 + 실제 사용자 제목 랭킹을 한 페이지에 렌더한다.
+// /gallery/<slug>/ — 사진과 실제 사용자 제목 랭킹을 한 페이지에 렌더한다.
 // 이전에는 해설(정적 gallery/<slug>/index.html)과 랭킹(/titles/<key>/)이 같은 사진에 대해
 // 별도 URL로 쪼개져 있어 중복·저품질 페이지 쌍을 만들었다. 두 페이지를 여기로 합쳤고,
 // /titles/<key>/ 는 이 URL로 301한다.
 import { getDb } from "../api/auth/_shared.js";
 import { galleryImages } from "../api/images/gallery-data.js";
-import { galleryCopy } from "../api/images/gallery-copy.js";
 import { gallerySlug, findImageBySlug } from "../api/images/_gallery-slug.js";
 import { formatAuthorName } from "../api/submissions/_guest-identity.js";
 
@@ -120,7 +119,6 @@ async function loadSharedSubmission(db, submissionId, imageKey) {
 }
 
 function renderGalleryPage(image, titles, loadError, sharedSubmission) {
-  const copy = galleryCopy[image.id] || null;
   const slug = gallerySlug(image);
   const imageKey = String(image.imageKey);
   const canonicalUrl = `${SITE_ORIGIN}/gallery/${slug}/`;
@@ -129,15 +127,14 @@ function renderGalleryPage(image, titles, loadError, sharedSubmission) {
   const webpPath = image.webpSrc ? encodedAssetUrl(image.webpSrc) : "";
   const titleCount = titles.length;
 
-  let pageTitle = `${image.title} - 사진 해설과 제목 랭킹 | 제목 학원`;
-  let description = image.description;
-  // 해설 원고가 없는 사진은 색인 대상에서 뺀다(얇은 페이지 방지).
-  let robots = copy ? "index, follow" : "noindex, follow";
+  let pageTitle = `${image.title}에 제목 붙이기 | 제목 학원`;
+  let description = `${image.title} 사진을 보고 제목을 붙이고, 다른 이용자들이 남긴 제목을 둘러보세요.`;
+  let robots = "index, follow";
   let ogUrl = canonicalUrl;
 
   if (sharedSubmission) {
     pageTitle = `"${sharedSubmission.title}" — ${sharedSubmission.author}의 제목 | 제목 학원`;
-    description = `${image.title} 사진에 달린 제목입니다. 이보다 웃긴 제목을 지을 수 있다면 도전해보세요!`;
+    description = `${image.title} 사진에 ${sharedSubmission.author}님이 남긴 제목입니다.`;
     robots = "noindex, follow";
     ogUrl = `${canonicalUrl}?t=${sharedSubmission.id}`;
   }
@@ -146,7 +143,7 @@ function renderGalleryPage(image, titles, loadError, sharedSubmission) {
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="google-adsense-account" content="${ADSENSE_ACCOUNT}" />
   <link rel="icon" type="image/png" href="/Logo-image.png">
   <link rel="apple-touch-icon" href="/Logo-image.png">
@@ -166,17 +163,16 @@ function renderGalleryPage(image, titles, loadError, sharedSubmission) {
   <meta name="twitter:description" content="${escapeHtml(description)}" />
   <meta name="twitter:image" content="${imageFullUrl}" />
   <title>${escapeHtml(pageTitle)}</title>
-  <link href="/style.css?v=40" rel="stylesheet" />
-${articleJsonLd(image, canonicalUrl, imageFullUrl, titleCount)}
+  <link href="/style.css?v=46" rel="stylesheet" />
+${articleJsonLd(image, canonicalUrl, imageFullUrl, titleCount, description)}
 </head>
 <body class="info-page">
   <main class="info-shell">
 ${headerHtml()}
 
     <section class="info-hero">
-      <p class="info-kicker">사진 해설</p>
+      <p class="info-kicker">사진 모음</p>
       <h1>${escapeHtml(image.title)}</h1>
-      <p>${escapeHtml(image.description)}</p>
     </section>
 
 ${sharedSubmission ? renderSharedSubmissionBlock(sharedSubmission) : ""}
@@ -185,23 +181,23 @@ ${sharedSubmission ? renderSharedSubmissionBlock(sharedSubmission) : ""}
         <picture>
 ${webpPath ? `          <source srcset="${escapeHtml(webpPath)}" type="image/webp" />\n` : ""}          <img src="${escapeHtml(encodedImagePath)}"
                alt="${escapeHtml(image.alt || image.title)}"
-               loading="lazy" decoding="async"
+               loading="eager" fetchpriority="high" decoding="async"
                style="width:100%;height:auto;border-radius:12px;display:block;" />
         </picture>
-      </article>
-
-${copy ? renderCopyCards(image, copy) : renderFallbackCard(image)}
-      <article class="info-card info-card-wide">
-        <h2>이 사진에 달린 제목 ${titleCount}개</h2>
-${renderRankingList(titles, loadError, image, imageKey)}
       </article>
     </section>
 
     <section class="info-cta">
-      <p class="info-kicker">참여하기</p>
-      <h2>이 사진에 어울리는 제목을 직접 만들어보세요</h2>
-      <p>제목을 남기면 이 페이지의 랭킹에 바로 올라가고, 다른 사람의 하트와 댓글을 받을 수 있습니다.</p>
-      <a class="info-primary-button" href="/#title/key/${encodeURIComponent(imageKey)}">제목 달아보기</a>
+      <h2>떠오르는 제목이 있나요?</h2>
+      <a class="info-primary-button" href="/#title/key/${encodeURIComponent(imageKey)}">제목 쓰기</a>
+    </section>
+
+    <section class="info-grid">
+      <article class="info-card info-card-wide">
+        <h2>사람들이 붙인 제목 ${titleCount}개</h2>
+${renderRankingList(titles, loadError)}
+      </article>
+${renderPhotoHints(image)}
     </section>
 
 ${footerHtml(image)}
@@ -211,65 +207,59 @@ ${footerHtml(image)}
 `;
 }
 
-function renderCopyCards(image, copy) {
-  return `      <article class="info-card">
-        <h2>이 사진의 핵심 장면</h2>
-${copy.scene.map((paragraph) => `        <p>${escapeHtml(paragraph)}</p>`).join("\n")}
-      </article>
+function renderPhotoHints(image) {
+  const prompt = String(image.prompt || "").trim();
+  const observationPoints = Array.isArray(image.observationPoints)
+    ? image.observationPoints.filter((item) => String(item || "").trim())
+    : [];
+  const exampleTitles = Array.isArray(image.exampleTitles)
+    ? image.exampleTitles.filter((item) => String(item || "").trim())
+    : [];
 
-      <article class="info-card">
-        <h2>관찰 포인트</h2>
-        <ul class="info-link-list">
-${(image.observationPoints || []).map((item) => `          <li>${escapeHtml(item)}</li>`).join("\n")}
-        </ul>
-      </article>
+  if (!prompt && observationPoints.length === 0 && exampleTitles.length === 0) {
+    return "";
+  }
 
-      <article class="info-card">
-        <h2>예시 제목과 해석</h2>
-        <ul class="info-link-list">
-${(image.exampleTitles || []).map((title, i) => `          <li><strong>${escapeHtml(title)}</strong> - ${escapeHtml(copy.analysis[i] || "")}</li>`).join("\n")}
-        </ul>
-      </article>
+  const promptHtml = prompt ? `        <p>${escapeHtml(prompt)}</p>\n` : "";
+  const observationsHtml = observationPoints.length
+    ? `        <div class="image-brief-group">
+          <strong>눈여겨볼 것</strong>
+          <ul class="info-link-list">
+${observationPoints.map((item) => `            <li>${escapeHtml(item)}</li>`).join("\n")}
+          </ul>
+        </div>
+`
+    : "";
+  const examplesHtml = exampleTitles.length
+    ? `        <div class="image-brief-group">
+          <strong>운영자 예시</strong>
+          <ul class="info-link-list">
+${exampleTitles.map((title) => `            <li>${escapeHtml(title)}</li>`).join("\n")}
+          </ul>
+        </div>
+`
+    : "";
 
-      <article class="info-card">
-        <h2>직접 제목을 만들 때</h2>
-${copy.composeTip.map((paragraph) => `        <p>${escapeHtml(paragraph)}</p>`).join("\n")}
-      </article>
-
-      <article class="info-card">
-        <h2>한 걸음 더 관찰하기</h2>
-        <p>${escapeHtml(copy.extra)}</p>
-      </article>
-
+  return `      <details class="info-card info-card-wide photo-hints">
+        <summary>힌트 보기</summary>
+${promptHtml}${observationsHtml}${examplesHtml}      </details>
 `;
 }
 
-function renderFallbackCard(image) {
-  return `      <article class="info-card">
-        <h2>관찰 포인트</h2>
-        <p>${escapeHtml(image.prompt || image.description)}</p>
-        <ul class="info-link-list">
-${(image.observationPoints || []).map((item) => `          <li>${escapeHtml(item)}</li>`).join("\n")}
-        </ul>
-      </article>
-
-`;
-}
-
-function renderRankingList(titles, loadError, image, imageKey) {
+function renderRankingList(titles, loadError) {
   if (loadError) {
     return `        <p>제목 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</p>`;
   }
 
   if (!titles.length) {
-    return `        <p>아직 이 사진에 달린 제목이 없습니다. 첫 번째 제목의 주인공이 되어보세요.</p>`;
+    return `        <p>아직 제목이 없어요. 첫 제목을 남겨주세요.</p>`;
   }
 
   const totalHearts = titles.reduce((sum, entry) => sum + entry.likeCount, 0);
   const totalComments = titles.reduce((sum, entry) => sum + entry.commentCount, 0);
   const authors = new Set(titles.map((entry) => entry.author)).size;
 
-  const summary = `${authors}명이 남긴 제목 ${titles.length}개에 하트 ${totalHearts}개와 댓글 ${totalComments}개가 달렸습니다. 같은 사진을 사람마다 어떻게 다르게 읽었는지 비교해보세요.`;
+  const summary = `${authors}명이 제목 ${titles.length}개를 남겼습니다. 하트 ${totalHearts}개 · 댓글 ${totalComments}개`;
 
   const items = titles
     .map((entry, index) => {
@@ -296,7 +286,7 @@ function renderSharedSubmissionBlock(sharedSubmission) {
 `;
 }
 
-function articleJsonLd(image, canonicalUrl, imageFullUrl, titleCount) {
+function articleJsonLd(image, canonicalUrl, imageFullUrl, titleCount, description) {
   const dates = image.publishedAt
     ? `    "datePublished": ${JSON.stringify(image.publishedAt)},\n    "dateModified": ${JSON.stringify(image.updatedAt || image.publishedAt)},\n`
     : "";
@@ -306,7 +296,7 @@ function articleJsonLd(image, canonicalUrl, imageFullUrl, titleCount) {
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": ${JSON.stringify(image.title)},
-    "description": ${JSON.stringify(image.description)},
+    "description": ${JSON.stringify(description || image.description || image.title)},
     "inLanguage": "ko-KR",
     "mainEntityOfPage": ${JSON.stringify(canonicalUrl)},
     "image": ${JSON.stringify(imageFullUrl)},
@@ -326,21 +316,21 @@ function renderNotFoundPage() {
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <link rel="icon" type="image/png" href="/Logo-image.png">
   <meta name="description" content="요청하신 사진을 찾을 수 없습니다." />
   <meta name="robots" content="noindex, follow" />
   <title>사진을 찾을 수 없습니다 | 제목 학원</title>
-  <link href="/style.css?v=40" rel="stylesheet" />
+  <link href="/style.css?v=46" rel="stylesheet" />
 </head>
 <body class="info-page">
   <main class="info-shell">
 ${headerHtml()}
 
     <section class="info-hero">
-      <p class="info-kicker">사진 해설</p>
+      <p class="info-kicker">사진 모음</p>
       <h1>사진을 찾을 수 없습니다</h1>
-      <p>주소가 바뀌었거나 사진이 내려갔을 수 있습니다. <a href="/gallery/">사진 해설 목록</a>에서 다른 사진을 찾아보세요.</p>
+      <p>주소가 바뀌었거나 사진이 내려갔을 수 있습니다. <a href="/gallery/">사진 모음</a>에서 다른 사진을 찾아보세요.</p>
     </section>
 
 ${footerHtml(null)}
@@ -354,14 +344,11 @@ function navHtml() {
   return `
       <nav class="site-nav" aria-label="주요 페이지">
         <a href="/">홈</a>
-        <a href="/about/">제목 학원이란?</a>
-        <a href="/guide/">사용 가이드</a>
+        <a href="/gallery/" aria-current="page">사진 모음</a>
+        <a href="/blog/">제목 칼럼</a>
         <a href="/examples/">제목 예시</a>
-        <a href="/gallery/">사진 해설</a>
-        <a href="/blog/">글쓰기 칼럼</a>
-        <a href="/privacy/">개인정보처리방침</a>
-        <a href="/terms/">이용약관</a>
-        <a href="/contact/">문의</a>
+        <a href="/guide/">사용 가이드</a>
+        <a href="/about/">소개</a>
       </nav>`;
 }
 
@@ -393,7 +380,11 @@ function sourceNote(image) {
   const sourceName = String(image.sourceName || "");
 
   if (sourceName.includes("AI 생성")) {
-    return "이 이미지는 사용자가 AI 생성물임을 밝히고 게시를 요청해 운영자 검토를 거친 자료입니다.";
+    if (sourceName.startsWith("사용자 제공")) {
+      return "이 이미지는 사용자가 AI 생성물임을 밝히고 게시를 요청해 운영자 검토를 거친 자료입니다.";
+    }
+
+    return "이 이미지는 제목 학원이 AI로 생성하고 제목 연습용으로 검토한 자료입니다.";
   }
 
   if (sourceName.startsWith("사용자 제공")) {
